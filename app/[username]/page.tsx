@@ -3,26 +3,22 @@ import { getUserByUsername } from '@/lib/storage';
 import BioCard from '@/components/BioCard';
 import LinkCard from '@/components/LinkCard';
 
-export async function generateMetadata({ params }: { params: { username: string } }) {
-  const user = await getUserByUsername(params.username);
-  
-  if (!user) {
-    return { title: 'User Not Found | The BioLink' };
-  }
-  
-  return {
-    title: `${user.name} | The BioLink`,
-    description: user.bio || `Check out ${user.name}'s links`,
-  };
+// ✅ Correct type for page props
+interface PageProps {
+  params: Promise<{ username: string }>;
 }
 
-export default async function UserPage({ params }: { params: { username: string } }) {
-  const user = await getUserByUsername(params.username);
+// ✅ Use async component + await params
+export default async function UserPage({ params }: PageProps) {
+  // Await the params (required in Next.js 15+)
+  const { username } = await params;
+  
+  const user = await getUserByUsername(username);
   
   if (!user) {
     notFound();
   }
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -55,4 +51,19 @@ export default async function UserPage({ params }: { params: { username: string 
       </div>
     </div>
   );
+}
+
+// ✅ Metadata function must also be async
+export async function generateMetadata({ params }: PageProps) {
+  const { username } = await params;
+  const user = await getUserByUsername(username);
+  
+  if (!user) {
+    return { title: 'User Not Found | The BioLink' };
+  }
+  
+  return {
+    title: `${user.name} | The BioLink`,
+    description: user.bio || `Check out ${user.name}'s links`,
+  };
 }

@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
+      - key: NEXT_PUBLIC_BASE_URL
+        value: "https://thebiolink.lol"
     disk:
       name: biolink-data
       mountPath: /var/data

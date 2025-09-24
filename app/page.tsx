@@ -16,15 +16,23 @@ export default function HomePage() {
           
           <div className="space-y-4">
             <Link 
-              href="/dashboard" 
+              href="/auth/signup" 
               className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Create Your BioLink
             </Link>
             
-            <p className="text-sm text-gray-500">
-              Already have one? Visit <span className="font-mono">yourname.thebiolink.lol</span>
-            </p>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Already have an account?
+              </p>
+              <Link 
+                href="/auth/login" 
+                className="text-indigo-600 font-medium hover:underline"
+              >
+                Sign in to your dashboard
+              </Link>
+            </div>
           </div>
         </div>
         

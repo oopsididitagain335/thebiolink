@@ -8,5 +8,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deploy
-        run: curl -X POST "https://api.render.com/v1/services/srv-d2b7mtogjchc73f0tk9g/deploys" -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build
+        run: npm run build
+        
+      - name: Deploy to Render
+        run: curl -X POST "https://api.render.com/v1/services/YOUR_SERVICE_ID/deploys" -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"

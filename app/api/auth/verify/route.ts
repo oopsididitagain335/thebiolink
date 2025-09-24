@@ -1,4 +1,3 @@
-// app/api/auth/verify/route.ts
 import { NextRequest } from 'next/server';
 import { verifyUserEmail } from '@/lib/storage';
 
@@ -16,5 +15,6 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: 'Invalid or expired token' }, { status: 400 });
   }
   
+  // Redirect to dashboard with success message
   return Response.redirect(new URL('/dashboard?verified=true', request.url));
 }

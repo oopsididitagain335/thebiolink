@@ -1,71 +1,68 @@
 import { NextRequest } from 'next/server';
-import { saveUser, getUser } from '@/lib/storage';
+import { getUserByUsername, saveUserLinks, updateUserProfile } from '@/lib/storage';
 import { z } from 'zod';
 
-const UserInputSchema = z.object({
+const ProfileUpdateSchema = z.object({
   name: z.string().min(1).max(50),
   avatar: z.string().url().optional(),
   bio: z.string().max(200).optional(),
-  links: z.array(
-    z.object({
-      url: z.string().url(),
-      title: z.string().min(1),
-      icon: z.string().optional()
-    })
-  ).max(20)
 });
+
+const LinksUpdateSchema = z.array(
+  z.object({
+    id: z.string(),
+    url: z.string().url(),
+    title: z.string().min(1),
+    icon: z.string().optional(),
+    position: z.number().int().min(0)
+  })
+).max(20);
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { username: string } }
 ) {
-  const user = await getUser(params.username);
+  const data = await getUserByUsername(params.username);
   
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'User not found' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  if (!data) {
+    return Response.json({ error: 'User not found' }, { status: 404 });
   }
   
-  return new Response(JSON.stringify(user), {
-    headers: { 'Content-Type': 'application/json' }
+  return Response.json({
+    name: data.name,
+    avatar: data.avatar,
+    bio: data.bio,
+    links: data.links
   });
 }
 
-export async function POST(
+export async function PUT(
   request: NextRequest,
   { params }: { params: { username: string } }
 ) {
+  // For now, we'll allow anyone to update (in production, add authentication)
   try {
     const body = await request.json();
-    const validatedData = UserInputSchema.parse(body);
     
-    // Add username to data
-    const userData = {
-      username: params.username,
-      ...validatedData,
-      links: validatedData.links.map((link, index) => ({
-        ...link,
-        id: `link-${Date.now()}-${index}`,
-        position: index
-      }))
-    };
+    // Handle profile update
+    if (body.profile) {
+      const profileData = ProfileUpdateSchema.parse(body.profile);
+      await updateUserProfile(body.userId, profileData);
+    }
     
-    await saveUser(userData);
+    // Handle links update
+    if (body.links) {
+      const linksData = LinksUpdateSchema.parse(body.links);
+      await saveUserLinks(body.userId, linksData);
+    }
     
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return Response.json({ success: true });
   } catch (error) {
-    console.error('Save error:', error);
-    return new Response(JSON.stringify({ 
+    console.error('Update error:', error);
+    return Response.json({ 
       error: error instanceof z.ZodError 
         ? 'Validation failed' 
-        : 'Failed to save data' 
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
+        : 'Failed to update data' 
+    }, { status: 400 });
   }
 }

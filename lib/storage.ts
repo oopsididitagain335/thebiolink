@@ -1,123 +1,51 @@
-import fs from 'fs/promises';
-import path from 'path';
+// lib/storage.ts
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import bcrypt from 'bcryptjs';
 
-// Use sync mkdir to avoid EACCES permission errors on Render Disk
-const { mkdirSync } = require('fs');
-
-// Get persistent data directory
-const getDataDir = () => {
-  return process.env.NODE_ENV === 'production' 
-    ? '/var/data' 
-    : path.join(process.cwd(), 'data');
-};
-
-// Ensure directory exists with proper permissions
-const ensureDir = (dir: string) => {
-  try {
-    mkdirSync(dir, { recursive: true, mode: 0o755 });
-  } catch (error) {
-    // Directory might already exist
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-      throw error;
-    }
-  }
-};
-
-// Storage paths
-const getUsersDir = () => path.join(getDataDir(), 'users');
-const getUserFile = (id: string) => path.join(getUsersDir(), `${id}.json`);
-const getEmailIndexFile = () => path.join(getDataDir(), 'email_index.json');
-const getUsernameIndexFile = () => path.join(getDataDir(), 'username_index.json');
-const getLinksDir = () => path.join(getDataDir(), 'links');
-const getUserLinksFile = (userId: string) => path.join(getLinksDir(), `${userId}.json`);
-
-// Simple ID generator (no uuid dependency)
+// Simple ID generator
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
 }
 
-// Initialize storage on server start
-export async function initStorage() {
-  ensureDir(getDataDir());
-  ensureDir(getUsersDir());
-  ensureDir(getLinksDir());
-  
-  // Initialize index files
-  const indexFiles = [getEmailIndexFile(), getUsernameIndexFile()];
-  for (const file of indexFiles) {
-    try {
-      await fs.access(file);
-    } catch {
-      await fs.writeFile(file, JSON.stringify({}), { mode: 0o644 });
-    }
-  }
-}
-
-// Save user with indexes
+// Save user
 export async function saveUser(user: any) {
-  ensureDir(getUsersDir());
-  
-  // Update email index
-  const emailIndex = JSON.parse(await fs.readFile(getEmailIndexFile(), 'utf8'));
-  emailIndex[user.email] = user.id;
-  await fs.writeFile(getEmailIndexFile(), JSON.stringify(emailIndex, null, 2), { mode: 0o644 });
-  
-  // Update username index
-  const usernameIndex = JSON.parse(await fs.readFile(getUsernameIndexFile(), 'utf8'));
-  usernameIndex[user.username] = user.id;
-  await fs.writeFile(getUsernameIndexFile(), JSON.stringify(usernameIndex, null, 2), { mode: 0o644 });
-  
-  // Save user file
-  await fs.writeFile(getUserFile(user.id), JSON.stringify(user, null, 2), { mode: 0o644 });
+  const userRef = doc(db, 'users', user.id);
+  await setDoc(userRef, user);
 }
 
 // Get user by ID
 export async function getUserById(id: string) {
-  try {
-    const data = await fs.readFile(getUserFile(id), 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
+  const userRef = doc(db, 'users', id);
+  const userSnap = await getDoc(userRef);
+  return userSnap.exists() ? userSnap.data() : null;
 }
 
 // Get user by email
 export async function getUserByEmail(email: string) {
-  try {
-    const index = JSON.parse(await fs.readFile(getEmailIndexFile(), 'utf8'));
-    const userId = index[email];
-    return userId ? getUserById(userId) : null;
-  } catch {
-    return null;
-  }
+  const q = query(collection(db, 'users'), where('email', '==', email));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.length > 0 ? querySnapshot.docs[0].data() : null;
 }
 
 // Get user by username
 export async function getUserByUsername(username: string) {
-  try {
-    const index = JSON.parse(await fs.readFile(getUsernameIndexFile(), 'utf8'));
-    const userId = index[username];
-    if (!userId) return null;
-    
-    const user = await getUserById(userId);
-    const linksFile = getUserLinksFile(userId);
-    
-    let links = [];
-    try {
-      const linksData = await fs.readFile(linksFile, 'utf8');
-      links = JSON.parse(linksData);
-    } catch {
-      // No links file exists yet
-    }
-    
-    return { ...user, links };
-  } catch {
-    return null;
-  }
+  const q = query(collection(db, 'users'), where('username', '==', username));
+  const querySnapshot = await getDocs(q);
+  
+  if (querySnapshot.docs.length === 0) return null;
+  
+  const user = querySnapshot.docs[0].data();
+  
+  // Get links
+  const linksRef = collection(db, 'users', user.id, 'links');
+  const linksSnapshot = await getDocs(linksRef);
+  const links = linksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  
+  return { ...user, links };
 }
 
-// Create new user (enforces 1:1 email/username)
+// Create new user
 export async function createUser(email: string, password: string, username: string, name: string) {
   // Check for existing email
   if (await getUserByEmail(email)) {
@@ -149,8 +77,18 @@ export async function createUser(email: string, password: string, username: stri
 
 // Save user links
 export async function saveUserLinks(userId: string, links: any[]) {
-  ensureDir(getLinksDir());
-  await fs.writeFile(getUserLinksFile(userId), JSON.stringify(links, null, 2), { mode: 0o644 });
+  // First, clear existing links
+  const linksRef = collection(db, 'users', userId, 'links');
+  const linksSnapshot = await getDocs(linksRef);
+  for (const doc of linksSnapshot.docs) {
+    await doc.ref.delete();
+  }
+  
+  // Add new links
+  for (let i = 0; i < links.length; i++) {
+    const linkRef = doc(db, 'users', userId, 'links', links[i].id || generateId());
+    await setDoc(linkRef, { ...links[i], position: i });
+  }
 }
 
 // Update user profile
@@ -165,32 +103,25 @@ export async function updateUserProfile(userId: string, updates: any) {
     }
   }
   
-  const updatedUser = { ...user, ...updates };
-  await saveUser(updatedUser);
-  return updatedUser;
+  const userRef = doc(db, 'users', userId);
+  await updateDoc(userRef, updates);
+  return { ...user, ...updates };
 }
 
 // Verify email
 export async function verifyUserEmail(token: string) {
-  const usersDir = getUsersDir();
-  ensureDir(usersDir);
+  const q = query(collection(db, 'users'), where('emailVerificationToken', '==', token));
+  const querySnapshot = await getDocs(q);
   
-  try {
-    const files = await fs.readdir(usersDir);
-    for (const file of files) {
-      const userPath = path.join(usersDir, file);
-      const user = JSON.parse(await fs.readFile(userPath, 'utf8'));
-      
-      if (user.emailVerificationToken === token) {
-        user.isEmailVerified = true;
-        user.emailVerificationToken = null;
-        await saveUser(user);
-        return user;
-      }
-    }
-  } catch (error) {
-    console.error('Email verification error:', error);
-  }
+  if (querySnapshot.docs.length === 0) return null;
   
-  return null;
+  const user = querySnapshot.docs[0].data();
+  const userRef = doc(db, 'users', user.id);
+  
+  await updateDoc(userRef, {
+    isEmailVerified: true,
+    emailVerificationToken: null
+  });
+  
+  return { ...user, isEmailVerified: true, emailVerificationToken: null };
 }

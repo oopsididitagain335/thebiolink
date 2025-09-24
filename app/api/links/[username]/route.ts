@@ -18,12 +18,13 @@ const LinksUpdateSchema = z.array(
   })
 ).max(20);
 
-// ✅ Correct GET handler signature
+// ✅ CORRECT: params is inside a Promise
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
-  const data = await getUserByUsername(params.username);
+  const { username } = await params; // ✅ await params
+  const data = await getUserByUsername(username);
   
   if (!data) {
     return Response.json({ error: 'User not found' }, { status: 404 });
@@ -37,22 +38,22 @@ export async function GET(
   });
 }
 
-// ✅ Correct PUT handler signature
+// ✅ Same for PUT
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
-  // For now, we'll allow anyone to update (in production, add authentication)
+  const { username } = await params; // ✅ await here too
+  
   try {
     const body = await request.json();
     
-    // Handle profile update
+    // For demo: assume userId is sent in body (in real app, use auth)
     if (body.profile) {
       const profileData = ProfileUpdateSchema.parse(body.profile);
       await updateUserProfile(body.userId, profileData);
     }
     
-    // Handle links update
     if (body.links) {
       const linksData = LinksUpdateSchema.parse(body.links);
       await saveUserLinks(body.userId, linksData);

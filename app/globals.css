@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-50;
+}
+
+/* Custom styles */
+.gradient-bg {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-lg p-6;
+}
+
+.link-card {
+  @apply bg-white rounded-lg shadow-md p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors;
+}
+
+.link-icon {
+  @apply w-6 h-6 text-gray-500;
+}
+
+.link-title {
+  @apply text-gray-800 font-medium;
+}
+
+.link-url {
+  @apply text-sm text-gray-500 truncate;
+}

@@ -1,12 +1,9 @@
-// app/dashboard/page.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers'; // ✅ Import from next/headers
-import { getUserById } from '@/lib/storage';
+import { cookies } from 'next/headers';
+import { getUserById } from '@/lib/storage'; // Now works!
 
 export default async function Dashboard() {
-  // ✅ Await cookies() - it's a Promise in Next.js 15
   const sessionId = (await cookies()).get('biolink_session')?.value;
-  
   if (!sessionId) {
     redirect('/auth/login');
   }
@@ -38,7 +35,6 @@ export default async function Dashboard() {
           )}
         </div>
         
-        {/* Add your dashboard content here */}
         <div className="text-center py-12 text-gray-600">
           Dashboard content coming soon...
         </div>

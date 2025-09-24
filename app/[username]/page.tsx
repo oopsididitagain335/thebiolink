@@ -11,23 +11,16 @@ export default async function UserPage({ params }: PageProps) {
   const { username } = await params;
   const userData = await getUserByUsername(username);
   
-  // Handle missing user
   if (!userData) {
     notFound();
   }
 
-  // Destructure with fallbacks
   const { name = '', avatar = '', bio = '', links = [] } = userData;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <BioCard 
-          name={name} 
-          avatar={avatar} 
-          bio={bio} 
-        />
-        
+        <BioCard name={name} avatar={avatar} bio={bio} />
         <div className="mt-6 space-y-3">
           {links.map((link: any) => (
             <LinkCard 
@@ -38,13 +31,9 @@ export default async function UserPage({ params }: PageProps) {
             />
           ))}
         </div>
-        
         <div className="mt-8 text-center text-gray-500 text-sm">
           <p>Powered by The BioLink</p>
-          <a 
-            href="/" 
-            className="text-indigo-600 hover:underline"
-          >
+          <a href="/" className="text-indigo-600 hover:underline">
             Create your own
           </a>
         </div>

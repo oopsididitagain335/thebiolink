@@ -17,6 +17,16 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
 }
 
+// GET USER BY ID (was missing!)
+export async function getUserById(userId: string) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    return userDoc.exists() ? userDoc.data() : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 // Get user by username (for public bio pages)
 export async function getUserByUsername(username: string) {
   try {

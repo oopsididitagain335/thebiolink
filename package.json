@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "firebase": "^10.7.1",
+    "mongodb": "^6.8.0",
     "next": "15.5.4",
     "nodemailer": "^6.9.13",
     "react": "18.3.1",

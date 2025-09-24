@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: thebiolink
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+    disk:
+      name: biolink-data
+      mountPath: /var/data
+      sizeGB: 1

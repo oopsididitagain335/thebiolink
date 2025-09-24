@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
-import { getUser } from '@/lib/storage';
+import { getUserByUsername } from '@/lib/storage';
 import BioCard from '@/components/BioCard';
 import LinkCard from '@/components/LinkCard';
 
 export async function generateMetadata({ params }: { params: { username: string } }) {
-  const user = await getUser(params.username);
+  const user = await getUserByUsername(params.username);
   
   if (!user) {
     return { title: 'User Not Found | The BioLink' };
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { username: string 
 }
 
 export default async function UserPage({ params }: { params: { username: string } }) {
-  const user = await getUser(params.username);
+  const user = await getUserByUsername(params.username);
   
   if (!user) {
     notFound();
@@ -33,7 +33,7 @@ export default async function UserPage({ params }: { params: { username: string 
         />
         
         <div className="mt-6 space-y-3">
-          {user.links.map((link) => (
+          {user.links.map((link: any) => (
             <LinkCard 
               key={link.id}
               url={link.url}

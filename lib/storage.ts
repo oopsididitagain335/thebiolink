@@ -1,170 +1,154 @@
 // lib/storage.ts
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  updateDoc,
-  writeBatch
-} from 'firebase/firestore';
-import { db } from './firebase';
+import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-}
+let client: MongoClient;
+let db: any;
 
-// GET USER BY ID (was missing!)
-export async function getUserById(userId: string) {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    return userDoc.exists() ? userDoc.data() : null;
-  } catch (error) {
-    return null;
+async function connectDB() {
+  if (!client) {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI not set');
+    }
+    client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    db = client.db();
   }
+  return db;
 }
 
 // Get user by username (for public bio pages)
 export async function getUserByUsername(username: string) {
-  try {
-    const usernameDoc = await getDoc(doc(db, 'usernames', username));
-    if (!usernameDoc.exists()) return null;
-    
-    const { userId } = usernameDoc.data();
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) return null;
-    
-    const userData = userDoc.data();
-    const linksSnapshot = await getDocs(collection(db, 'users', userId, 'links'));
-    const links = linksSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    return {
-      name: userData.name || '',
-      avatar: userData.avatar || '',
-      bio: userData.bio || '',
-      links: links.sort((a: any, b: any) => a.position - b.position)
-    };
-  } catch (error) {
-    return null;
-  }
+  const database = await connectDB();
+  const user = await database.collection('users').findOne({ username });
+  
+  if (!user) return null;
+  
+  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  
+  return {
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    links: links.map((link: any) => ({
+      id: link._id.toString(),
+      url: link.url,
+      title: link.title,
+      icon: link.icon,
+      position: link.position
+    })).sort((a: any, b: any) => a.position - b.position)
+  };
 }
 
 // Create new user
 export async function createUser(email: string, password: string, username: string, name: string) {
-  const emailQuery = query(collection(db, 'emails'), where('email', '==', email));
-  const emailSnapshot = await getDocs(emailQuery);
-  if (!emailSnapshot.empty) {
+  const database = await connectDB();
+  
+  // Check for existing email
+  const existingEmail = await database.collection('users').findOne({ email });
+  if (existingEmail) {
     throw new Error('Email already registered');
   }
   
-  const usernameDoc = await getDoc(doc(db, 'usernames', username));
-  if (usernameDoc.exists()) {
+  // Check for existing username
+  const existingUsername = await database.collection('users').findOne({ username });
+  if (existingUsername) {
     throw new Error('Username already taken');
   }
   
   const passwordHash = await bcrypt.hash(password, 12);
-  const userId = generateId();
+  const userId = new ObjectId();
   
-  const batch = writeBatch(db);
-  batch.set(doc(db, 'users', userId), {
-    id: userId,
+  await database.collection('users').insertOne({
+    _id: userId,
     email,
     username,
     name,
     passwordHash,
     isEmailVerified: false,
-    emailVerificationToken: generateId(),
-    createdAt: new Date().toISOString(),
+    emailVerificationToken: userId.toString(),
+    createdAt: new Date()
   });
-  batch.set(doc(db, 'emails', email), { userId });
-  batch.set(doc(db, 'usernames', username), { userId });
-  await batch.commit();
   
-  return { id: userId, email, username, name };
+  return { id: userId.toString(), email, username, name };
 }
 
 // Get user by email (for login)
 export async function getUserByEmail(email: string) {
-  const q = query(collection(db, 'emails'), where('email', '==', email));
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) return null;
-  
-  const { userId } = querySnapshot.docs[0].data();
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  return userDoc.exists() ? userDoc.data() : null;
+  const database = await connectDB();
+  return await database.collection('users').findOne({ email });
+}
+
+// Get user by ID
+export async function getUserById(id: string) {
+  const database = await connectDB();
+  try {
+    return await database.collection('users').findOne({ _id: new ObjectId(id) });
+  } catch {
+    return null;
+  }
 }
 
 // Save user links
 export async function saveUserLinks(userId: string, links: any[]) {
-  const linksRef = collection(db, 'users', userId, 'links');
-  const linksSnapshot = await getDocs(linksRef);
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
   
-  const batch = writeBatch(db);
-  linksSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+  // Delete existing links
+  await database.collection('links').deleteMany({ userId: objectId });
   
-  links.forEach((link, index) => {
-    const linkId = link.id || generateId();
-    batch.set(doc(db, 'users', userId, 'links', linkId), {
-      ...link,
+  // Insert new links
+  if (links.length > 0) {
+    const linksToInsert = links.map((link: any, index: number) => ({
+      _id: link.id ? new ObjectId(link.id) : new ObjectId(),
+      userId: objectId,
+      url: link.url,
+      title: link.title,
+      icon: link.icon || '',
       position: index
-    });
-  });
-  
-  await batch.commit();
+    }));
+    await database.collection('links').insertMany(linksToInsert);
+  }
 }
 
 // Update user profile
 export async function updateUserProfile(userId: string, updates: any) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+  
+  // Check username uniqueness if changing
   if (updates.username) {
-    const existing = await getDoc(doc(db, 'usernames', updates.username));
-    if (existing.exists()) {
+    const existing = await database.collection('users').findOne({ 
+      username: updates.username,
+      _id: { $ne: objectId }
+    });
+    if (existing) {
       throw new Error('Username already taken');
     }
   }
   
-  const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, updates);
+  await database.collection('users').updateOne(
+    { _id: objectId },
+    { $set: updates }
+  );
   
-  if (updates.username) {
-    const oldUser = await getDoc(userRef);
-    const oldUsername = oldUser.data()?.username;
-    if (oldUsername && oldUsername !== updates.username) {
-      const batch = writeBatch(db);
-      batch.delete(doc(db, 'usernames', oldUsername));
-      batch.set(doc(db, 'usernames', updates.username), { userId });
-      await batch.commit();
-    }
-  }
-  
-  return { ...updates };
+  return updates;
 }
 
-// VERIFY EMAIL FUNCTION (was missing!)
+// Verify email
 export async function verifyUserEmail(token: string) {
-  try {
-    const q = query(collection(db, 'users'), where('emailVerificationToken', '==', token));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return null;
+  const database = await connectDB();
+  const user = await database.collection('users').findOne({ emailVerificationToken: token });
+  
+  if (!user) return null;
+  
+  await database.collection('users').updateOne(
+    { _id: user._id },
+    { 
+      $set: { isEmailVerified: true },
+      $unset: { emailVerificationToken: "" }
     }
-    
-    const userDoc = querySnapshot.docs[0];
-    const userId = userDoc.id;
-    
-    await updateDoc(doc(db, 'users', userId), {
-      isEmailVerified: true,
-      emailVerificationToken: null
-    });
-    
-    return { ...userDoc.data(), id: userId };
-  } catch (error) {
-    return null;
-  }
+  );
+  
+  return { ...user, isEmailVerified: true, emailVerificationToken: null };
 }

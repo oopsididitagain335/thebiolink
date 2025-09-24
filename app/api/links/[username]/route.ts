@@ -18,6 +18,7 @@ const LinksUpdateSchema = z.array(
   })
 ).max(20);
 
+// ✅ Correct GET handler signature
 export async function GET(
   request: NextRequest,
   { params }: { params: { username: string } }
@@ -36,6 +37,7 @@ export async function GET(
   });
 }
 
+// ✅ Correct PUT handler signature
 export async function PUT(
   request: NextRequest,
   { params }: { params: { username: string } }

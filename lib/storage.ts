@@ -1,44 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { z } from 'zod';
-
-// Define data schemas
-const LinkSchema = z.object({
-  id: z.string(),
-  url: z.string().url(),
-  title: z.string().min(1),
-  icon: z.string().optional(),
-  position: z.number().int().min(0)
-});
-
-const UserSchema = z.object({
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9]+$/),
-  name: z.string().min(1).max(50),
-  avatar: z.string().url().optional(),
-  bio: z.string().max(200).optional(),
-  links: z.array(LinkSchema).max(20)
-});
-
-export type User = z.infer<typeof UserSchema>;
+import { v4 as uuidv4 } from 'uuid';
 
 // Get persistent data directory
 const getDataDir = () => {
-  // Use Render Disk if available, otherwise fallback to local (for dev)
   return process.env.NODE_ENV === 'production' 
     ? '/var/data' 
     : path.join(process.cwd(), 'data');
-};
-
-// Get shard path for a username
-const getShardPath = (username: string) => {
-  const firstChar = username.charAt(0).toLowerCase();
-  return path.join(getDataDir(), 'shards', firstChar);
-};
-
-// Get user file path
-const getUserFilePath = (username: string) => {
-  const shardPath = getShardPath(username);
-  return path.join(shardPath, `${username}.json`);
 };
 
 // Ensure directory exists
@@ -50,52 +18,144 @@ const ensureDir = async (dir: string) => {
   }
 };
 
-// Save user data atomically
-export const saveUser = async (userData: User) => {
-  const validatedData = UserSchema.parse(userData);
-  const filePath = getUserFilePath(validatedData.username);
-  const dir = path.dirname(filePath);
-  
-  await ensureDir(dir);
-  
-  // Write to temp file first, then rename (atomic operation)
-  const tempPath = `${filePath}.tmp`;
-  await fs.writeFile(tempPath, JSON.stringify(validatedData, null, 2));
-  await fs.rename(tempPath, filePath);
-};
+// User storage paths
+const getUsersDir = () => path.join(getDataDir(), 'users');
+const getUserFile = (id: string) => path.join(getUsersDir(), `${id}.json`);
+const getEmailIndexFile = () => path.join(getDataDir(), 'email_index.json');
+const getUsernameIndexFile = () => path.join(getDataDir(), 'username_index.json');
 
-// Get user data
-export const getUser = async (username: string): Promise<User | null> => {
-  try {
-    const filePath = getUserFilePath(username);
-    const data = await fs.readFile(filePath, 'utf8');
-    return UserSchema.parse(JSON.parse(data));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null; // File doesn't exist
-    }
-    throw error;
-  }
-};
+// Link storage paths
+const getLinksDir = () => path.join(getDataDir(), 'links');
+const getUserLinksFile = (userId: string) => path.join(getLinksDir(), `${userId}.json`);
 
-// List all users (for admin/debugging)
-export const listUsers = async (): Promise<string[]> => {
+// Initialize storage
+export async function initStorage() {
+  await ensureDir(getUsersDir());
+  await ensureDir(getLinksDir());
+  
+  // Create index files if they don't exist
   try {
-    const shardsDir = path.join(getDataDir(), 'shards');
-    const letters = await fs.readdir(shardsDir);
-    let users: string[] = [];
-    
-    for (const letter of letters) {
-      const letterPath = path.join(shardsDir, letter);
-      const files = await fs.readdir(letterPath);
-      users = users.concat(files.map(file => file.replace('.json', '')));
-    }
-    
-    return users;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return []; // No users yet
-    }
-    throw error;
+    await fs.access(getEmailIndexFile());
+  } catch {
+    await fs.writeFile(getEmailIndexFile(), JSON.stringify({}));
   }
-};
+  
+  try {
+    await fs.access(getUsernameIndexFile());
+  } catch {
+    await fs.writeFile(getUsernameIndexFile(), JSON.stringify({}));
+  }
+}
+
+// Save user
+export async function saveUser(user: any) {
+  await ensureDir(getUsersDir());
+  
+  // Update email index
+  const emailIndex = JSON.parse(await fs.readFile(getEmailIndexFile(), 'utf8'));
+  emailIndex[user.email] = user.id;
+  await fs.writeFile(getEmailIndexFile(), JSON.stringify(emailIndex, null, 2));
+  
+  // Update username index
+  const usernameIndex = JSON.parse(await fs.readFile(getUsernameIndexFile(), 'utf8'));
+  usernameIndex[user.username] = user.id;
+  await fs.writeFile(getUsernameIndexFile(), JSON.stringify(usernameIndex, null, 2));
+  
+  // Save user file
+  await fs.writeFile(getUserFile(user.id), JSON.stringify(user, null, 2));
+}
+
+// Get user by ID
+export async function getUserById(id: string): Promise<any> {
+  try {
+    const data = await fs.readFile(getUserFile(id), 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    throw new Error('User not found');
+  }
+}
+
+// Get user by email
+export async function getUserByEmail(email: string): Promise<any | null> {
+  try {
+    const index = JSON.parse(await fs.readFile(getEmailIndexFile(), 'utf8'));
+    const userId = index[email];
+    if (!userId) return null;
+    return await getUserById(userId);
+  } catch {
+    return null;
+  }
+}
+
+// Get user by username
+export async function getUserByUsername(username: string): Promise<any | null> {
+  try {
+    const index = JSON.parse(await fs.readFile(getUsernameIndexFile(), 'utf8'));
+    const userId = index[username];
+    if (!userId) return null;
+    
+    const user = await getUserById(userId);
+    const linksFile = getUserLinksFile(userId);
+    
+    let links: any[] = [];
+    try {
+      const linksData = await fs.readFile(linksFile, 'utf8');
+      links = JSON.parse(linksData);
+    } catch {
+      // No links file exists yet
+    }
+    
+    return { ...user, links };
+  } catch {
+    return null;
+  }
+}
+
+// Create new user
+export async function createUser(email: string, password: string, username: string, name: string) {
+  const existingUser = await getUserByEmail(email);
+  if (existingUser) {
+    throw new Error('Email already in use');
+  }
+  
+  const existingUsername = await getUserByUsername(username);
+  if (existingUsername) {
+    throw new Error('Username already taken');
+  }
+  
+  const id = uuidv4();
+  const user = {
+    id,
+    email,
+    username,
+    name,
+    passwordHash: password, // In production, hash this password
+    createdAt: new Date().toISOString()
+  };
+  
+  await saveUser(user);
+  return user;
+}
+
+// Save user links
+export async function saveUserLinks(userId: string, links: any[]) {
+  await ensureDir(getLinksDir());
+  await fs.writeFile(getUserLinksFile(userId), JSON.stringify(links, null, 2));
+}
+
+// Update user profile
+export async function updateUserProfile(userId: string, updates: any) {
+  const user = await getUserById(userId);
+  
+  // Check for username conflicts
+  if (updates.username && updates.username !== user.username) {
+    const existing = await getUserByUsername(updates.username);
+    if (existing) {
+      throw new Error('Username already taken');
+    }
+  }
+  
+  const updatedUser = { ...user, ...updates };
+  await saveUser(updatedUser);
+  return updatedUser;
+}

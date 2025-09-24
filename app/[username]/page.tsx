@@ -3,33 +3,33 @@ import { getUserByUsername } from '@/lib/storage';
 import BioCard from '@/components/BioCard';
 import LinkCard from '@/components/LinkCard';
 
-// ✅ Correct type for page props
 interface PageProps {
   params: Promise<{ username: string }>;
 }
 
-// ✅ Use async component + await params
 export default async function UserPage({ params }: PageProps) {
-  // Await the params (required in Next.js 15+)
   const { username } = await params;
+  const userData = await getUserByUsername(username);
   
-  const user = await getUserByUsername(username);
-  
-  if (!user) {
+  // Handle missing user
+  if (!userData) {
     notFound();
   }
+
+  // Destructure with fallbacks
+  const { name = '', avatar = '', bio = '', links = [] } = userData;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <BioCard 
-          name={user.name} 
-          avatar={user.avatar} 
-          bio={user.bio} 
+          name={name} 
+          avatar={avatar} 
+          bio={bio} 
         />
         
         <div className="mt-6 space-y-3">
-          {user.links.map((link: any) => (
+          {links.map((link: any) => (
             <LinkCard 
               key={link.id}
               url={link.url}
@@ -53,17 +53,16 @@ export default async function UserPage({ params }: PageProps) {
   );
 }
 
-// ✅ Metadata function must also be async
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
-  const user = await getUserByUsername(username);
+  const userData = await getUserByUsername(username);
   
-  if (!user) {
+  if (!userData) {
     return { title: 'User Not Found | The BioLink' };
   }
   
   return {
-    title: `${user.name} | The BioLink`,
-    description: user.bio || `Check out ${user.name}'s links`,
+    title: `${userData.name || username} | The BioLink`,
+    description: userData.bio || `Check out ${userData.name || username}'s links`,
   };
 }

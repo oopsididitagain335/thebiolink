@@ -1,4 +1,3 @@
-// ✅ CORRECT: Only import — DO NOT export anything except GET/PUT/etc.
 import { NextRequest } from 'next/server';
 import { getUserByUsername, saveUserLinks, updateUserProfile } from '@/lib/storage';
 import { z } from 'zod';
@@ -19,7 +18,6 @@ const LinksUpdateSchema = z.array(
   })
 ).max(20);
 
-// ✅ Only export HTTP methods
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
@@ -44,10 +42,9 @@ export async function PUT(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
+  const body = await request.json();
   
   try {
-    const body = await request.json();
-    
     if (body.profile) {
       const profileData = ProfileUpdateSchema.parse(body.profile);
       await updateUserProfile(body.userId, profileData);

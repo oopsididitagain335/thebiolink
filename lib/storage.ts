@@ -11,7 +11,7 @@ export async function connectDB() {
   
   if (!client) {
     if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI not set');
+      throw new Error('MONGODB_URI not set in environment variables');
     }
     client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
@@ -24,7 +24,7 @@ export async function connectDB() {
   return db;
 }
 
-// Get complete user data with all fields for any page
+// Get complete user data by username (for /{username} pages)
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -32,7 +32,6 @@ export async function getUserByUsername(username: string) {
   
   const links = await database.collection('links').find({ userId: user._id }).toArray();
   
-  // Return ALL user data with proper structure
   return {
     _id: user._id.toString(),
     id: user._id.toString(),
@@ -53,7 +52,7 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-// Get complete user data by ID
+// Get complete user data by ID (for dashboard)
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
@@ -192,7 +191,6 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
   
-  // Return complete updated user data
   const updatedUser = await database.collection('users').findOne({ _id: objectId });
   const links = await database.collection('links').find({ userId: objectId }).toArray();
   

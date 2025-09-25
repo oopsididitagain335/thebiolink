@@ -19,7 +19,7 @@ export default function BioCard({ name, avatar, bio }: BioCardProps) {
             sizes="96px"
           />
         </div>
-      ) else (
+      ) : (
         <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
           <span className="text-4xl text-white font-bold">{name.charAt(0).toUpperCase()}</span>
         </div>

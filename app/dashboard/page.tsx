@@ -80,12 +80,19 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           profile: { 
-            name: user.name,
-            username: user.username,
-            avatar: user.avatar,
-            bio: user.bio
+            name: user.name.trim(), 
+            username: user.username.trim().toLowerCase(), 
+            avatar: user.avatar?.trim() || '', 
+            bio: user.bio?.trim() || '' 
           },
-          links: links.filter(link => link.url.trim() && link.title.trim())
+          links: links
+            .filter(link => link.url?.trim() && link.title?.trim())
+            .map((link, index) => ({
+              id: link.id || Date.now().toString(),
+              url: link.url.trim(),
+              title: link.title.trim(),
+              icon: link.icon?.trim() || ''
+            }))
         })
       });
       

@@ -1,4 +1,3 @@
-// PUT update user data
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { updateUserProfile, saveUserLinks } from '@/lib/storage';
@@ -12,16 +11,10 @@ export async function PUT(request: NextRequest) {
   const { profile, links } = await request.json();
   
   try {
-    // Update profile
     await updateUserProfile(sessionId, profile);
-    
-    // Update links
     await saveUserLinks(sessionId, links);
     
-    return Response.json({ 
-      success: true,
-      newUrl: profile.username ? `/dashboard` : undefined
-    });
+    return Response.json({ success: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 400 });
   }

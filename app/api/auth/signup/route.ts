@@ -13,11 +13,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
     
-    const user = await createUser(email, password, username, name);
+    // ✅ Create user as already verified
+    const user = await createUser(email, password, username, name, true);
     
     return Response.json({ 
       success: true, 
-      message: 'Account created successfully!' 
+      message: 'Account created! Email verification is disabled. Please join our Discord for manual verification.'
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 400 });

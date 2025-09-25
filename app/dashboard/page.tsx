@@ -122,7 +122,6 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Profile Form */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
               <div className="space-y-4">
@@ -184,7 +183,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Links Manager */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Link Manager</h2>
@@ -264,7 +262,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Preview + Discord Message */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-md p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4">Preview</h2>
@@ -297,23 +294,20 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Discord Verification Message */}
-            {!user.isEmailVerified && (
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-6 rounded-r-lg">
-                <p className="text-blue-700 text-sm">
-                  🔔 <strong>Email verification is currently disabled.</strong><br />
-                  Please join our Discord and ask <span className="font-mono">@theceosolace</span> to verify you:<br />
-                  <a 
-                    href="https://discord.gg/YKjgqmNP" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 font-medium underline"
-                  >
-                    https://discord.gg/YKjgqmNP
-                  </a>
-                </p>
-              </div>
-            )}
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-6 rounded-r-lg">
+              <p className="text-blue-700 text-sm">
+                🔔 <strong>Email verification is currently disabled.</strong><br />
+                Please join our Discord and ask <span className="font-mono">@theceosolace</span> to verify you:<br />
+                <a 
+                  href="https://discord.gg/YKjgqmNP" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 font-medium underline"
+                >
+                  https://discord.gg/YKjgqmNP
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

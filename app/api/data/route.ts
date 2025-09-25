@@ -1,4 +1,3 @@
-// GET user data for dashboard
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/storage';
@@ -14,7 +13,6 @@ export async function GET() {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
   
-  // Get user's links
   const database = (await import('@/lib/storage')).connectDB();
   const links = await database.collection('links').find({ userId: user._id }).toArray();
   

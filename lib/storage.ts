@@ -86,9 +86,9 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const linksToInsert = links.map((link: any, index: number) => ({
       _id: link.id ? new ObjectId(link.id) : new ObjectId(),
       userId: objectId,
-      url: link.url,
-      title: link.title,
-      icon: link.icon || '',
+      url: link.url.trim(),
+      title: link.title.trim(),
+      icon: link.icon?.trim() || '',
       position: index
     }));
     await database.collection('links').insertMany(linksToInsert);
@@ -99,9 +99,17 @@ export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
-  if (updates.username) {
+  // Clean input data
+  const cleanedUpdates = {
+    name: updates.name?.trim() || '',
+    username: updates.username?.trim().toLowerCase() || '',
+    avatar: updates.avatar?.trim() || '',
+    bio: updates.bio?.trim() || ''
+  };
+  
+  if (cleanedUpdates.username) {
     const existing = await database.collection('users').findOne({ 
-      username: updates.username,
+      username: cleanedUpdates.username,
       _id: { $ne: objectId }
     });
     if (existing) throw new Error('Username already taken');
@@ -109,8 +117,8 @@ export async function updateUserProfile(userId: string, updates: any) {
   
   await database.collection('users').updateOne(
     { _id: objectId },
-    { $set: updates }
+    { $set: cleanedUpdates }
   );
   
-  return updates;
+  return cleanedUpdates;
 }

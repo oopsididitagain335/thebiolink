@@ -1,18 +1,26 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-let client: MongoClient;
-let db: any;
+let client: MongoClient | null = null;
+let db: any = null;
 
 export async function connectDB() {
+  if (db) {
+    return db;
+  }
+  
   if (!client) {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI not set');
     }
     client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
+  }
+  
+  if (!db) {
     db = client.db();
   }
+  
   return db;
 }
 
@@ -99,7 +107,6 @@ export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
-  // Clean input data
   const cleanedUpdates = {
     name: updates.name?.trim() || '',
     username: updates.username?.trim().toLowerCase() || '',

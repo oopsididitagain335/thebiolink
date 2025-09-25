@@ -24,7 +24,6 @@ export async function connectDB() {
   return db;
 }
 
-// Get complete user data by username (for /{username} pages)
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -52,11 +51,13 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-// Get complete user data by ID (for dashboard)
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
-    const user = await database.collection('users').findOne({ _id: new ObjectId(id) });
+    const user = await database.collection('users').findOne(
+      { _id: new ObjectId(id) },
+      { projection: { passwordHash: 1 } }
+    );
     if (!user) return null;
     
     const links = await database.collection('links').find({ userId: user._id }).toArray();
@@ -71,6 +72,7 @@ export async function getUserById(id: string) {
       bio: user.bio || '',
       isEmailVerified: user.isEmailVerified || false,
       createdAt: user.createdAt || new Date().toISOString(),
+      passwordHash: user.passwordHash,
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
@@ -118,10 +120,11 @@ export async function createUser(email: string, password: string, username: stri
 
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ email });
+  const user = await database.collection('users').findOne(
+    { email }, 
+    { projection: { passwordHash: 1 } }
+  );
   if (!user) return null;
-  
-  const links = await database.collection('links').find({ userId: user._id }).toArray();
   
   return {
     _id: user._id.toString(),
@@ -133,13 +136,7 @@ export async function getUserByEmail(email: string) {
     bio: user.bio || '',
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
-    links: links.map((link: any) => ({
-      id: link._id.toString(),
-      url: link.url || '',
-      title: link.title || '',
-      icon: link.icon || '',
-      position: link.position || 0
-    })).sort((a: any, b: any) => a.position - b.position)
+    passwordHash: user.passwordHash
   };
 }
 
@@ -204,6 +201,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updatedUser.bio || '',
     isEmailVerified: updatedUser.isEmailVerified || false,
     createdAt: updatedUser.createdAt || new Date().toISOString(),
+    passwordHash: updatedUser.passwordHash,
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/storage';
+import { connectDB } from '@/lib/storage';
+import { ObjectId } from 'mongodb';
 
 export async function GET() {
   const sessionId = (await cookies()).get('biolink_session')?.value;
@@ -13,8 +15,8 @@ export async function GET() {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
   
-  const database = (await import('@/lib/storage')).connectDB();
-  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  const database = await connectDB();
+  const links = await database.collection('links').find({ userId: new ObjectId(user._id) }).toArray();
   
   return Response.json({
     user: {

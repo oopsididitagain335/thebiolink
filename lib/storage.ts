@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -20,7 +19,6 @@ export async function connectDB() {
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
-  
   if (!user) return null;
   
   const links = await database.collection('links').find({ userId: user._id }).toArray();
@@ -39,13 +37,7 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-export async function createUser(
-  email: string, 
-  password: string, 
-  username: string, 
-  name: string,
-  isVerified = true  // ← Auto-verify users
-) {
+export async function createUser(email: string, password: string, username: string, name: string) {
   const database = await connectDB();
   
   const existingEmail = await database.collection('users').findOne({ email });
@@ -63,11 +55,11 @@ export async function createUser(
     username,
     name,
     passwordHash,
-    isEmailVerified: isVerified, // ← Always true
+    isEmailVerified: true,
     createdAt: new Date()
   });
   
-  return { id: userId.toString(), email, username, name, isEmailVerified: isVerified };
+  return { id: userId.toString(), email, username, name };
 }
 
 export async function getUserByEmail(email: string) {

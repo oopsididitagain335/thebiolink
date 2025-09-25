@@ -7,21 +7,28 @@ interface Link {
   id: string;
   url: string;
   title: string;
-  icon?: string;
+  icon: string;
 }
 
 interface User {
   _id: string;
   name: string;
   username: string;
-  avatar?: string;
-  bio?: string;
+  avatar: string;
+  bio: string;
   isEmailVerified: boolean;
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null);
-  const [links, setLinks] = useState<Link[]>([]);
+  const [user, setUser] = useState<User>({
+    _id: '',
+    name: '',
+    username: '',
+    avatar: '',
+    bio: '',
+    isEmailVerified: true
+  });
+  const [links, setLinks] = useState<Link[]>([{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
@@ -36,7 +43,7 @@ export default function Dashboard() {
         }
         const data = await res.json();
         setUser(data.user);
-        setLinks(data.links || []);
+        setLinks(data.links.length > 0 ? data.links : [{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
       } catch (error) {
         router.push('/auth/login');
       }
@@ -45,7 +52,6 @@ export default function Dashboard() {
   }, [router]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (!user) return;
     setUser({ ...user, [e.target.name]: e.target.value });
   };
 
@@ -64,8 +70,6 @@ export default function Dashboard() {
   };
 
   const handleSave = async () => {
-    if (!user) return;
-    
     setIsSaving(true);
     setMessage(null);
     
@@ -75,12 +79,12 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           profile: { 
-            name: user.name, 
-            username: user.username, 
-            avatar: user.avatar, 
-            bio: user.bio 
+            name: user.name,
+            username: user.username,
+            avatar: user.avatar,
+            bio: user.bio
           },
-          links 
+          links: links.filter(link => link.url.trim() && link.title.trim())
         })
       });
       
@@ -91,16 +95,12 @@ export default function Dashboard() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to save changes' });
       }
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsSaving(false);
     }
   };
-
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -158,11 +158,11 @@ export default function Dashboard() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
                   <input
                     type="url"
                     name="avatar"
-                    value={user.avatar || ''}
+                    value={user.avatar}
                     onChange={handleProfileChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                     placeholder="https://example.com/avatar.jpg"
@@ -170,10 +170,10 @@ export default function Dashboard() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                   <textarea
                     name="bio"
-                    value={user.bio || ''}
+                    value={user.bio}
                     onChange={handleProfileChange}
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -222,7 +222,7 @@ export default function Dashboard() {
                     <div className="flex justify-between items-center">
                       <input
                         type="text"
-                        value={link.icon || ''}
+                        value={link.icon}
                         onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         placeholder="Icon URL (optional)"
@@ -236,12 +236,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-                
-                {links.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No links added yet. Click "Add Link" to get started.
-                  </p>
-                )}
               </div>
             </div>
 
@@ -266,11 +260,19 @@ export default function Dashboard() {
             <div className="bg-white rounded-xl shadow-md p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4">Preview</h2>
               <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-white font-bold">
-                    {user.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="w-20 h-20 rounded-full mx-auto mb-4"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl text-white font-bold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <h3 className="text-lg font-bold text-gray-800 mb-2">{user.name}</h3>
                 {user.bio && <p className="text-gray-600 mb-4 text-sm">{user.bio}</p>}
                 

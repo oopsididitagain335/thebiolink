@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
     
-    // ✅ Create user as already verified
-    const user = await createUser(email, password, username, name, true);
+    const user = await createUser(email, password, username, name);
     
     return Response.json({ 
       success: true, 

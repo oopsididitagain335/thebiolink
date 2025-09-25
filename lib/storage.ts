@@ -92,14 +92,19 @@ export async function saveUserLinks(userId: string, links: any[]) {
   
   if (links.length > 0) {
     const linksToInsert = links.map((link: any, index: number) => ({
-      _id: link.id ? new ObjectId(link.id) : new ObjectId(),
+      _id: new ObjectId(), // Always generate new ObjectId
       userId: objectId,
-      url: link.url.trim(),
-      title: link.title.trim(),
+      url: link.url?.trim() || '',
+      title: link.title?.trim() || '',
       icon: link.icon?.trim() || '',
       position: index
     }));
-    await database.collection('links').insertMany(linksToInsert);
+    
+    const validLinks = linksToInsert.filter(link => link.url && link.title);
+    
+    if (validLinks.length > 0) {
+      await database.collection('links').insertMany(validLinks);
+    }
   }
 }
 

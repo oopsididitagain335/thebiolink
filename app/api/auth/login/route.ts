@@ -1,4 +1,3 @@
-// app/api/auth/login/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserByEmail } from '@/lib/storage';
@@ -22,11 +21,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
     
-    // ✅ CREATE SESSION COOKIE
     (await cookies()).set('biolink_session', user._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
       path: '/',
     });
     

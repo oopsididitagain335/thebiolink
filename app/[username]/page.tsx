@@ -3,6 +3,20 @@ import { getUserByUsername } from '@/lib/storage';
 import BioCard from '@/components/BioCard';
 import LinkCard from '@/components/LinkCard';
 
+interface Link {
+  id: string;
+  url: string;
+  title: string;
+  icon?: string;
+}
+
+interface UserData {
+  name: string;
+  avatar: string;
+  bio: string;
+  links: Link[];
+}
+
 interface PageProps {
   params: Promise<{ username: string }>;
 }
@@ -15,16 +29,16 @@ export default async function UserPage({ params }: PageProps) {
     notFound();
   }
 
-  const { name = '', avatar = '', bio = '', links = [] } = userData;
+  const { name = '', avatar = '', bio = '', links = [] } = userData as UserData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center p-4 transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center p-4 transition-colors duration-200">
       <div className="w-full max-w-md">
         <BioCard name={name} avatar={avatar} bio={bio} />
         <div className="mt-6 space-y-3">
           {links
-            .filter(link => link.url && link.title) // Only show valid links
-            .map((link: any) => (
+            .filter((link: Link) => link.url && link.title)
+            .map((link: Link) => (
               <LinkCard 
                 key={link.id}
                 url={link.url}

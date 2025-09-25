@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 let client: MongoClient;
 let db: any;
 
-async function connectDB() {
+export async function connectDB() {
   if (!client) {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI not set');
@@ -17,7 +17,6 @@ async function connectDB() {
   return db;
 }
 
-// Get user by username (for public bio pages)
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -40,21 +39,20 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-// Create new user
-export async function createUser(email: string, password: string, username: string, name: string) {
+export async function createUser(
+  email: string, 
+  password: string, 
+  username: string, 
+  name: string,
+  isVerified = true  // ← Auto-verify users
+) {
   const database = await connectDB();
   
-  // Check for existing email
   const existingEmail = await database.collection('users').findOne({ email });
-  if (existingEmail) {
-    throw new Error('Email already registered');
-  }
+  if (existingEmail) throw new Error('Email already registered');
   
-  // Check for existing username
   const existingUsername = await database.collection('users').findOne({ username });
-  if (existingUsername) {
-    throw new Error('Username already taken');
-  }
+  if (existingUsername) throw new Error('Username already taken');
   
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
@@ -65,21 +63,18 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     passwordHash,
-    isEmailVerified: false,
-    emailVerificationToken: userId.toString(),
+    isEmailVerified: isVerified, // ← Always true
     createdAt: new Date()
   });
   
-  return { id: userId.toString(), email, username, name };
+  return { id: userId.toString(), email, username, name, isEmailVerified: isVerified };
 }
 
-// Get user by email (for login)
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
   return await database.collection('users').findOne({ email });
 }
 
-// Get user by ID
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
@@ -89,15 +84,12 @@ export async function getUserById(id: string) {
   }
 }
 
-// Save user links
 export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
-  // Delete existing links
   await database.collection('links').deleteMany({ userId: objectId });
   
-  // Insert new links
   if (links.length > 0) {
     const linksToInsert = links.map((link: any, index: number) => ({
       _id: link.id ? new ObjectId(link.id) : new ObjectId(),
@@ -111,20 +103,16 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// Update user profile
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
-  // Check username uniqueness if changing
   if (updates.username) {
     const existing = await database.collection('users').findOne({ 
       username: updates.username,
       _id: { $ne: objectId }
     });
-    if (existing) {
-      throw new Error('Username already taken');
-    }
+    if (existing) throw new Error('Username already taken');
   }
   
   await database.collection('users').updateOne(
@@ -133,22 +121,4 @@ export async function updateUserProfile(userId: string, updates: any) {
   );
   
   return updates;
-}
-
-// Verify email
-export async function verifyUserEmail(token: string) {
-  const database = await connectDB();
-  const user = await database.collection('users').findOne({ emailVerificationToken: token });
-  
-  if (!user) return null;
-  
-  await database.collection('users').updateOne(
-    { _id: user._id },
-    { 
-      $set: { isEmailVerified: true },
-      $unset: { emailVerificationToken: "" }
-    }
-  );
-  
-  return { ...user, isEmailVerified: true, emailVerificationToken: null };
 }

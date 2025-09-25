@@ -1,8 +1,6 @@
-// app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { updateUserProfile, saveUserLinks } from '@/lib/storage';
-import { ObjectId } from 'mongodb';
 
 export async function PUT(request: NextRequest) {
   const sessionId = (await cookies()).get('biolink_session')?.value;
@@ -13,18 +11,15 @@ export async function PUT(request: NextRequest) {
   try {
     const { profile, links } = await request.json();
 
-    // Validate profile
     if (profile) {
       await updateUserProfile(sessionId, profile);
     }
 
-    // Validate and save links
     if (Array.isArray(links)) {
-      // Ensure all links have required fields
       const validatedLinks = links
-        .filter(link => link.url && link.title) // Only save valid links
+        .filter(link => link.url && link.title)
         .map((link, index) => ({
-          id: link.id || new ObjectId().toString(),
+          id: link.id || Date.now().toString(),
           url: link.url.trim(),
           title: link.title.trim(),
           icon: link.icon?.trim() || '',

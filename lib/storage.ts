@@ -1,6 +1,7 @@
 // lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
+import { containsProhibitedWords, containsIPPatterns, isBlacklistedIP, banUserAutomatically, addToBlacklist } from '@/lib/moderation';
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
@@ -40,10 +41,12 @@ interface UserDoc {
     awardedAt: string;
   }>;
   isEmailVerified: boolean;
-  isBanned?: boolean; // ✅ Ban status
-  bannedAt?: string; // ✅ Ban timestamp
   createdAt: Date;
   ipAddress?: string;
+  // ✅ Add ban fields
+  isBanned?: boolean;
+  bannedAt?: string;
+  banReason?: string;
 }
 
 interface LinkDoc {
@@ -55,7 +58,7 @@ interface LinkDoc {
   position: number;
 }
 
-// --- User Functions (Node.js only) ---
+// --- Existing User Functions (unchanged) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -73,11 +76,12 @@ export async function getUserByUsername(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [], // ✅ Include badges
+    badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
+    createdAt: user.createdAt || new Date().toISOString(),
     isBanned: user.isBanned || false, // ✅ Include ban status
     bannedAt: user.bannedAt, // ✅ Include ban timestamp
-    createdAt: user.createdAt || new Date().toISOString(),
+    banReason: user.banReason, // ✅ Include ban reason
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -105,12 +109,13 @@ export async function getUserById(id: string) {
       avatar: user.avatar || '',
       bio: user.bio || '',
       background: user.background || '',
-      badges: user.badges || [], // ✅ Include badges
+      badges: user.badges || [],
       isEmailVerified: user.isEmailVerified || false,
-      isBanned: user.isBanned || false, // ✅ Include ban status
-      bannedAt: user.bannedAt, // ✅ Include ban timestamp
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
+      isBanned: user.isBanned || false, // ✅ Include ban status
+      bannedAt: user.bannedAt, // ✅ Include ban timestamp
+      banReason: user.banReason, // ✅ Include ban reason
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
@@ -127,16 +132,33 @@ export async function getUserById(id: string) {
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const database = await connectDB();
 
-  const existingEmail = await database.collection<UserDoc>('users').findOne({ email });
+  // --- Automoderation: Check IP ---
+  if (isBlacklistedIP(ipAddress)) {
+    throw new Error('Access denied');
+  }
+
+  // --- Automoderation: Check prohibited words and IP patterns ---
+  if (
+    containsProhibitedWords(username) || 
+    containsProhibitedWords(name) ||
+    containsIPPatterns(username) || 
+    containsIPPatterns(name)
+  ) {
+    // Auto-ban IP and throw error
+    await addToBlacklist(ipAddress);
+    throw new Error('Prohibited content detected');
+  }
+
+  const existingEmail = await database.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
 
-  const existingUsername = await database.collection<UserDoc>('users').findOne({ username });
+  const existingUsername = await database.collection('users').findOne({ username });
   if (existingUsername) throw new Error('Username already taken');
 
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
 
-  await database.collection<UserDoc>('users').insertOne({
+  await database.collection('users').insertOne({
     _id: userId,
     email,
     username,
@@ -150,12 +172,12 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date()
   } as UserDoc); // Type assertion to help with complex nested types
 
-  return {
-    id: userId.toString(),
-    email,
-    username,
+  return { 
+    id: userId.toString(), 
+    email, 
+    username, 
     name,
-    background,
+    background, // ✅ Return background
     badges: [], // ✅ Return empty badges
     isEmailVerified: true,
     isBanned: false, // ✅ Return not banned
@@ -165,9 +187,9 @@ export async function createUser(email: string, password: string, username: stri
 
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
-  const user = await database.collection<UserDoc>('users').findOne(
-    { email },
-    { projection: { passwordHash: 1, isBanned: 1 } } // ✅ Include ban status in projection
+  const user = await database.collection('users').findOne(
+    { email }, 
+    { projection: { passwordHash: 1, isBanned: 1, banReason: 1 } } // ✅ Include ban fields
   );
   if (!user) return null;
 
@@ -180,12 +202,13 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [], // ✅ Include badges
+    badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
+    createdAt: user.createdAt || new Date().toISOString(),
+    passwordHash: user.passwordHash,
     isBanned: user.isBanned || false, // ✅ Include ban status
     bannedAt: user.bannedAt, // ✅ Include ban timestamp
-    createdAt: user.createdAt || new Date().toISOString(),
-    passwordHash: user.passwordHash
+    banReason: user.banReason // ✅ Include ban reason
   };
 }
 
@@ -193,14 +216,23 @@ export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
 
+  // --- Automoderation: Check IP patterns in links ---
+  for (const link of links) {
+    if (containsIPPatterns(link.url) || containsIPPatterns(link.title)) {
+      // Auto-ban user and throw error
+      await banUserAutomatically(userId, 'IP pattern detected in link');
+      throw new Error('IP pattern detected in link');
+    }
+  }
+
   await database.collection('links').deleteMany({ userId: objectId });
 
   if (links.length > 0) {
     const linksToInsert = links.map((link: any, index: number) => ({
       _id: new ObjectId(),
       userId: objectId,
-      url: link.url?.trim() || '',
-      title: link.title?.trim() || '',
+      url: link.url.trim(),
+      title: link.title.trim(),
       icon: link.icon?.trim() || '',
       position: index
     }));
@@ -213,10 +245,24 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with proper null check and badge support
+// ✅ FIXED updateUserProfile with null check and IP pattern detection
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
+
+  // --- Automoderation: Check prohibited words and IP patterns ---
+  if (
+    containsProhibitedWords(updates.username) || 
+    containsProhibitedWords(updates.name) ||
+    containsProhibitedWords(updates.bio) ||
+    containsIPPatterns(updates.username) || 
+    containsIPPatterns(updates.name) ||
+    containsIPPatterns(updates.bio)
+  ) {
+    // Auto-ban user and throw error
+    await banUserAutomatically(userId, 'Prohibited content or IP pattern detected');
+    throw new Error('Prohibited content or IP pattern detected');
+  }
 
   const cleanedUpdates = {
     name: updates.name?.trim() || '',
@@ -227,7 +273,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   if (cleanedUpdates.username) {
-    const existing = await database.collection<UserDoc>('users').findOne({
+    const existing = await database.collection<UserDoc>('users').findOne({ 
       username: cleanedUpdates.username,
       _id: { $ne: objectId }
     });
@@ -263,10 +309,11 @@ export async function updateUserProfile(userId: string, updates: any) {
     background: updatedUserDocument.background || '',
     badges: updatedUserDocument.badges || [], // ✅ Return badges
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
-    isBanned: updatedUserDocument.isBanned || false, // ✅ Return ban status
-    bannedAt: updatedUserDocument.bannedAt, // ✅ Return ban timestamp
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
+    isBanned: updatedUserDocument.isBanned || false, // ✅ Return ban status
+    bannedAt: updatedUserDocument.bannedAt, // ✅ Return ban timestamp
+    banReason: updatedUserDocument.banReason, // ✅ Return ban reason
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -275,97 +322,4 @@ export async function updateUserProfile(userId: string, updates: any) {
       position: link.position || 0
     })).sort((a: any, b: any) => a.position - b.position)
   };
-}
-
-// --- ADMIN PANEL FUNCTIONS ---
-
-// ✅ FIXED addUserBadge with correct $push syntax
-export async function addUserBadge(
-  userId: string,
-  badge: { id: string; name: string; icon: string; awardedAt: string }
-) {
-  const database = await connectDB();
-  const userObjectId = new ObjectId(userId);
-
-  // ✅ Fix: Use $each to satisfy MongoDB driver types
-  await database.collection<UserDoc>('users').updateOne(
-    { _id: userObjectId },
-    { $push: { badges: { $each: [badge] } } } // <- Key change
-  );
-}
-
-// Remove badge from user
-export async function removeUserBadge(userId: string, badgeId: string) {
-  const database = await connectDB();
-  const userObjectId = new ObjectId(userId);
-
-  await database.collection<UserDoc>('users').updateOne(
-    { _id: userObjectId },
-    { $pull: { badges: { id: badgeId } } }
-  );
-}
-
-// ✅ Get all users (admin only) - UPDATED TO INCLUDE BAN STATUS
-export async function getAllUsers() {
-  const database = await connectDB();
-  const users = await database.collection<UserDoc>('users').find({}).toArray();
-
-  return users.map((user) => ({
-    id: user._id.toString(),
-    email: user.email,
-    username: user.username,
-    name: user.name,
-    badges: user.badges || [],
-    isBanned: user.isBanned || false, // ✅ Include ban status
-    bannedAt: user.bannedAt // ✅ Include ban timestamp
-  }));
-}
-
-// Create new badge
-export async function createBadge(name: string, icon: string) {
-  const database = await connectDB();
-  const badgeId = new ObjectId().toString();
-
-  await database.collection('badges').insertOne({
-    id: badgeId,
-    name,
-    icon,
-    createdAt: new Date().toISOString()
-  });
-
-  return { id: badgeId, name, icon };
-}
-
-// Get all available badges
-export async function getAllBadges() {
-  const database = await connectDB();
-  const badges = await database.collection('badges').find({}).toArray();
-
-  return badges.map((badge: any) => ({
-    id: badge.id,
-    name: badge.name,
-    icon: badge.icon
-  }));
-}
-
-// ✅ NEW: Ban a user
-export async function banUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection<UserDoc>('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
-  );
-}
-
-// ✅ NEW: Unban a user
-export async function unbanUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection<UserDoc>('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
-  );
 }

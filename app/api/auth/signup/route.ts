@@ -1,84 +1,64 @@
-// app/api/auth/signup/route.ts
+// app/api/badge/create-checkout-session/route.ts
 import { NextRequest } from 'next/server';
-import { createUser } from '@/lib/storage';
-// Removed: import { MongoClient, ObjectId } from 'mongodb'; // Not needed here
+import Stripe from 'stripe';
 
-// ✅ Helper to get client IP correctly
-function getClientIP(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1'
-  );
-}
-
-// --- IP Account Limit Check (Node.js only) ---
-async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-    // In a real app, store this in MongoDB collection
-    // For simplicity, using a mock check here.
-    // You would query a `signup_attempts` collection.
-    console.log(`Checking account limit for IP: ${ipAddress}`);
-    // Simulate: allow if less than 2 accounts in last 24h from this IP
-    // Replace with actual MongoDB query logic
-    return true; // Placeholder
-}
+// Use the API version supported by your Stripe library version
+// Check your Stripe library documentation or node_modules/@types/stripe/package.json for the latest version
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  // Update this to the correct version, likely the one shown in the error or the latest stable
+  apiVersion: '2025-02-24.acacia', // <-- Changed this line
+  // apiVersion: '2024-12-18.acacia', // <-- Or another version supported by your library
+  // apiVersion: '2024-11-20.acacia', // <-- This was the old, incompatible version
+});
 
 export async function POST(request: NextRequest) {
-  const ip = getClientIP(request);
+  const { option } = await request.json();
+  const userId = request.headers.get('user-id'); // Consider using Authorization header or session cookies
 
-  // --- Account Creation Limit Check ---
-  const canCreateAccount = await checkAccountLimit(ip); // Implement this
-  if (!canCreateAccount) {
-    return Response.json({
-      error: 'Account creation limit reached for this IP address'
-    }, { status: 429 });
+  if (!userId || !option) {
+    return Response.json({ error: 'User ID and option are required' }, { status: 400 });
   }
-  // --- End Limit Check ---
+
+  // Map the selected option to a Stripe Price ID
+  const priceIdMap: { [key: string]: string } = {
+    'Common Star': process.env.STRIPE_PRICE_COMMON_STAR_ID!, // Ensure these env vars are set
+    'Common Heart': process.env.STRIPE_PRICE_COMMON_HEART_ID!,
+    'Common Lightning': process.env.STRIPE_PRICE_COMMON_LIGHTNING_ID!,
+    'Uncommon Shield': process.env.STRIPE_PRICE_UNCOMMON_SHIELD_ID!,
+    'Uncommon Crown': process.env.STRIPE_PRICE_UNCOMMON_CROWN_ID!,
+    'Rare Diamond': process.env.STRIPE_PRICE_RARE_DIAMOND_ID!,
+    'Rare Unicorn': process.env.STRIPE_PRICE_RARE_UNICORN_ID!,
+    'Rare Phoenix': process.env.STRIPE_PRICE_RARE_PHOENIX_ID!,
+  };
+
+  const priceId = priceIdMap[option];
+
+  if (!priceId) {
+    return Response.json({ error: 'Invalid option selected' }, { status: 400 });
+  }
 
   try {
-    const { email, password, username, name, background } = await request.json();
-
-    if (!email || !password || !username || !name) {
-      return Response.json({ error: 'All fields required' }, { status: 400 });
-    }
-
-    if (password.length < 8) {
-      return Response.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
-    }
-
-    // Add background validation if provided
-    if (background) {
-        try {
-            const url = new URL(background);
-            const validHosts = ['giphy.com', 'media.giphy.com', 'tenor.com', 'media.tenor.com'];
-            const isValidHost = validHosts.some(host => url.hostname.includes(host));
-            const isValidFormat = background.toLowerCase().endsWith('.gif');
-
-            if (!isValidHost || !isValidFormat) {
-                return Response.json({ error: 'Invalid GIF URL. Must be from Giphy or Tenor (.gif)' }, { status: 400 });
-            }
-        } catch {
-            return Response.json({ error: 'Invalid GIF URL format' }, { status: 400 });
-        }
-    }
-
-
-    // ✅ Call createUser with the correct number of arguments (4 + 2 defaults)
-    const user = await createUser(email, password, username, name, background, ip);
-
-    return Response.json({
-      success: true,
-      message: 'Account created successfully!',
-      // Optionally return the created user data (excluding sensitive info like passwordHash)
-      // user: { id: user.id, email: user.email, username: user.username, name: user.name }
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`, // Ensure NEXT_PUBLIC_BASE_URL is set
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?canceled=true`,
+      metadata: {
+        userId: userId, // Pass user ID to Stripe metadata for webhook processing
+        badgeOption: option, // Pass the selected option
+      },
     });
+
+    // Return the session ID (or session.url if you prefer redirecting client-side)
+    return Response.json({ sessionId: session.id, checkoutUrl: session.url }); // Include session.url if needed for client redirect
   } catch (error: any) {
-    console.error("Signup error:", error);
-    if (error.message.includes('already')) {
-      return Response.json({
-        error: 'This account already exists'
-      }, { status: 409 });
-    }
-    return Response.json({ error: 'Account creation failed' }, { status: 400 });
+    console.error('Stripe checkout session creation error:', error);
+    return Response.json({ error: 'Failed to create checkout session' }, { status: 500 });
   }
 }

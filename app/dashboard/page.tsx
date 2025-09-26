@@ -65,6 +65,15 @@ export default function Dashboard() {
     fetchUserData();
   }, [router]);
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -155,13 +164,21 @@ export default function Dashboard() {
                 </a>
               </p>
             </div>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="btn-primary text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all mt-4 sm:mt-0"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
+            <div className="flex gap-3 mt-4 sm:mt-0">
+              <button
+                onClick={handleLogout}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-xl font-medium transition-colors"
+              >
+                Logout
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="btn-primary text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -304,7 +321,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sticky Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Preview Card */}
             <div className="card p-6 sticky top-8">
@@ -348,7 +365,7 @@ export default function Dashboard() {
 
             {/* Verification Card */}
             {!user.isEmailVerified && (
-              <div className="card p-6 bg-blue-900/30 border-blue-800">
+              <div className="card p-6 bg-blue-900/30 border-blue-800 sticky top-64">
                 <div className="flex items-start">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mt-0.5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -372,8 +389,8 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Stats Card */}
-            <div className="card p-6">
+            {/* Sticky Stats Card */}
+            <div className="card p-6 sticky top-96">
               <h3 className="text-lg font-semibold text-white mb-4">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -385,6 +402,10 @@ export default function Dashboard() {
                   <span className="text-white font-medium">
                     {user.name && user.username ? '100%' : '0%'}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Last Updated</span>
+                  <span className="text-white font-medium">Just now</span>
                 </div>
               </div>
             </div>

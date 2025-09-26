@@ -3,14 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // ✅ Import Link for navigation
 
-interface LinkItem {
+interface Link {
   id: string;
   url: string;
   title: string;
   icon: string;
-  position: number;
 }
 
 interface User {
@@ -20,8 +18,11 @@ interface User {
   avatar: string;
   bio: string;
   background: string;
+  backgroundVideo: string; // ✅ Add video field
+  backgroundAudio: string; // ✅ Add audio field
   isEmailVerified: boolean;
-  email: string; // ✅ Include email in User interface
+  isBanned: boolean;
+  bannedAt?: string;
 }
 
 export default function Dashboard() {
@@ -32,10 +33,13 @@ export default function Dashboard() {
     avatar: '',
     bio: '',
     background: '',
+    backgroundVideo: '', // ✅ Initialize video state
+    backgroundAudio: '', // ✅ Initialize audio state
     isEmailVerified: true,
-    email: '', // ✅ Initialize email state
+    isBanned: false,
+    bannedAt: ''
   });
-  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [links, setLinks] = useState<Link[]>([{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -44,7 +48,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true); // Set loading at the start
+        setLoading(true);
         const res = await fetch('/api/dashboard/data');
         if (!res.ok) {
           router.push('/auth/login');
@@ -52,7 +56,6 @@ export default function Dashboard() {
         }
         const data = await res.json();
         
-        // Set user data including email
         setUser({
           _id: data.user._id,
           name: data.user.name,
@@ -60,11 +63,14 @@ export default function Dashboard() {
           avatar: data.user.avatar,
           bio: data.user.bio,
           background: data.user.background,
+          backgroundVideo: data.user.backgroundVideo || '', // ✅ Load video
+          backgroundAudio: data.user.backgroundAudio || '', // ✅ Load audio
           isEmailVerified: data.user.isEmailVerified,
-          email: data.user.email, // ✅ Load email
+          isBanned: data.user.isBanned,
+          bannedAt: data.user.bannedAt
         });
         
-        setLinks(data.links.length > 0 ? data.links : []);
+        setLinks(data.links.length > 0 ? data.links : [{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
@@ -72,6 +78,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+    
     fetchUserData();
   }, [router]);
 
@@ -89,14 +96,14 @@ export default function Dashboard() {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
 
-  const handleLinkChange = (index: number, field: keyof LinkItem, value: string) => {
+  const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     const newLinks = [...links];
     newLinks[index] = { ...newLinks[index], [field]: value };
     setLinks(newLinks);
   };
 
   const addLink = () => {
-    setLinks([...links, { id: Date.now().toString(), url: '', title: '', icon: '', position: links.length }]);
+    setLinks([...links, { id: Date.now().toString(), url: '', title: '', icon: '' }]);
   };
 
   const removeLink = (index: number) => {
@@ -117,7 +124,9 @@ export default function Dashboard() {
             username: user.username.trim().toLowerCase(), 
             avatar: user.avatar?.trim() || '', 
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || ''
+            background: user.background?.trim() || '',
+            backgroundVideo: user.backgroundVideo?.trim() || '', // ✅ Save video
+            backgroundAudio: user.backgroundAudio?.trim() || '' // ✅ Save audio
           },
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
@@ -125,8 +134,7 @@ export default function Dashboard() {
               id: link.id,
               url: link.url.trim(),
               title: link.title.trim(),
-              icon: link.icon?.trim() || '',
-              position: index
+              icon: link.icon?.trim() || ''
             }))
         })
       });
@@ -136,11 +144,17 @@ export default function Dashboard() {
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to save changes' });
+        setMessage({ 
+          type: 'error', 
+          text: data.error || 'Failed to save changes' 
+        });
       }
     } catch (error: any) {
-      console.error('Save error:', error);
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+      console.error('Network error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: 'Network error. Please try again.' 
+      });
     } finally {
       setIsSaving(false);
     }
@@ -157,7 +171,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with conditional Admin Panel link */}
+        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -175,18 +189,6 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
-              {/* ✅ Conditional Admin Panel Link for lyharry31@gmail.com */}
-              {user.email === 'lyharry31@gmail.com' && (
-                <Link
-                  href="/admin"
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl font-medium transition-colors flex items-center"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                  </svg>
-                  Admin Panel
-                </Link>
-              )}
               <button
                 onClick={handleLogout}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
@@ -222,11 +224,11 @@ export default function Dashboard() {
                     placeholder="John Doe"
                   />
                 </div>
-
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
                   <div className="flex">
-                    <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
+                    <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                       thebiolink.lol/
                     </span>
                     <input
@@ -238,11 +240,11 @@ export default function Dashboard() {
                       placeholder="yourname"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     This will be your public link: thebiolink.lol/{user.username}
                   </p>
                 </div>
-
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
                   <input
@@ -254,23 +256,55 @@ export default function Dashboard() {
                     placeholder="https://example.com/avatar.jpg"
                   />
                 </div>
-
+                
                 {/* ✅ Background GIF Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
                     type="url"
-                    name="background" // Name attribute is crucial for handleProfileChange
-                    value={user.background} // Value is bound to user.background state
-                    onChange={handleProfileChange} // Updates user.background state
+                    name="background"
+                    value={user.background}
+                    onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="https://media.giphy.com/.../background.gif"
                   />
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     Only Giphy/Tenor GIFs allowed (.gif format)
                   </p>
                 </div>
-
+                
+                {/* ✅ Background Video Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Background Video URL</label>
+                  <input
+                    type="url"
+                    name="backgroundVideo"
+                    value={user.backgroundVideo}
+                    onChange={handleProfileChange}
+                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="https://example.com/.../background.mp4"
+                  />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    MP4/WebM videos only. Will autoplay muted in background.
+                  </p>
+                </div>
+                
+                {/* ✅ Background Audio Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Background Audio URL</label>
+                  <input
+                    type="url"
+                    name="backgroundAudio"
+                    value={user.backgroundAudio}
+                    onChange={handleProfileChange}
+                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="https://example.com/.../background.mp3"
+                  />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    MP3/WAV audio only. Will autoplay muted in background.
+                  </p>
+                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
                   <textarea
@@ -287,7 +321,7 @@ export default function Dashboard() {
 
             {/* Links Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-white">Link Manager</h2>
                 <button
                   onClick={addLink}
@@ -296,7 +330,7 @@ export default function Dashboard() {
                   + Add Link
                 </button>
               </div>
-
+              
               <div className="space-y-4">
                 {links.map((link, index) => (
                   <div key={link.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
@@ -339,15 +373,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-
-                {links.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                    </svg>
-                    <p>No links added yet</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -358,15 +383,33 @@ export default function Dashboard() {
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
-                {/* ✅ Display Background GIF */}
-                {user.background && (
-                  <div
+                {/* ✅ Display Background Media */}
+                {user.backgroundVideo ? (
+                  <video
+                    src={user.backgroundVideo}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 z-0 w-full h-full object-cover"
+                  />
+                ) : user.background ? (
+                  <div 
                     className="absolute inset-0 z-0 bg-cover bg-center"
                     style={{
                       backgroundImage: `url(${user.background})`,
                     }}
                   />
-                )}
+                ) : user.backgroundAudio ? (
+                  <audio
+                    src={user.backgroundAudio}
+                    autoPlay
+                    muted
+                    loop
+                    className="hidden"
+                  />
+                ) : null}
+                
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20">
                   {user.avatar ? (
@@ -377,29 +420,31 @@ export default function Dashboard() {
                     />
                   ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl text-white font-bold">
+                      <span className="text-4xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
-                  {user.bio && <p className="text-gray-300 mb-4">{user.bio}</p>}
+                  {user.bio && <p className="text-gray-300 mb-4 text-sm">{user.bio}</p>}
                   
-                  <div className="space-y-3">
-                    {links
-                      .filter((link) => link.url && link.title)
-                      .map((link, index) => (
-                        <a
-                          key={index}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
-                        >
-                          {link.title}
-                        </a>
-                      ))}
+                  <div className="space-y-2">
+                    {links.filter(link => link.url && link.title).map((link, index) => (
+                      <a
+                        key={index}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full bg-indigo-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-indigo-700 transition-colors"
+                      >
+                        {link.title}
+                      </a>
+                    ))}
                   </div>
+                  
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-6">
+                    View live at: thebiolink.lol/{user.username}
+                  </p>
                 </div>
               </div>
             </div>
@@ -420,7 +465,7 @@ export default function Dashboard() {
                         user.name,
                         user.username,
                         user.avatar || user.bio,
-                        user.background,
+                        user.background || user.backgroundVideo || user.backgroundAudio, // ✅ Include media
                       ].filter(Boolean).length;
                       const totalFields = 4;
                       return `${Math.round((completedFields / totalFields) * 100)}%`;

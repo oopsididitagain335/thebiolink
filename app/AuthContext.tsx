@@ -1,6 +1,4 @@
-// app/AuthContext.tsx
 'use client';
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -29,28 +27,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Ensure this runs only on the client
+    if (typeof window === 'undefined') return;
+
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/dashboard/data');
+        const res = await fetch('/api/dashboard/data', {
+          credentials: 'include', // Ensure cookies are sent with the request
+        });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
+          setUser(data.user || null);
         } else {
-          router.push('/login');
+          router.push('/auth/login');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        router.push('/login');
+        router.push('/auth/login');
       } finally {
         setLoading(false);
       }
     };
 
-    const token = document.cookie.split('; ').find(row => row.startsWith('biolink_session='));
+    // Check for session cookie
+    const token = document.cookie
+      ?.split('; ')
+      .find((row) => row.startsWith('biolink_session='))
+      ?.split('=')[1];
+
     if (token) {
       fetchUser();
     } else {
       setLoading(false);
+      router.push('/auth/login');
     }
   }, [router]);
 

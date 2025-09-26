@@ -1,15 +1,17 @@
+// app/api/badge/create-checkout-session/route.ts
 import { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
 import { getUserById } from '@/lib/storage';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia', // Updated to the expected version
+  apiVersion: '2024-11-20.acacia',
 });
 
 export async function POST(request: NextRequest) {
   const headersList = headers();
-  const userId = headersList.get('user-id');
+  // Explicitly cast headersList to a type that includes the `get` method
+  const userId = (headersList as any).get('user-id') as string | null;
 
   if (!userId) {
     return Response.json({ error: 'Not authenticated' }, { status: 401 });
@@ -21,15 +23,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { option } = await request.json();
-
   if (!option) {
     return Response.json({ error: 'Badge option is required' }, { status: 400 });
   }
 
   const PRICES: Record<string, number> = {
-    'Common': 200,
-    'Uncommon': 225,
-    'Rare': 250,
+    Common: 200,
+    Uncommon: 225,
+    Rare: 250,
   };
 
   let price = 200;

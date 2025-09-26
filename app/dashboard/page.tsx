@@ -75,9 +75,12 @@ export default function Dashboard() {
     setMessage(null);
     
     try {
-      const res = await fetch('/api/dashboard/update', {
+      const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ 
           profile: { 
             name: user.name.trim(), 
@@ -88,7 +91,7 @@ export default function Dashboard() {
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
             .map((link, index) => ({
-              id: link.id || Date.now().toString(),
+              id: link.id,
               url: link.url.trim(),
               title: link.title.trim(),
               icon: link.icon?.trim() || ''
@@ -96,16 +99,23 @@ export default function Dashboard() {
         })
       });
       
-      const data = await res.json();
+      const data = await response.json();
       
-      if (res.ok) {
+      if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to save changes' });
+        setMessage({ 
+          type: 'error', 
+          text: data.error || 'Failed to save changes' 
+        });
+        console.error('Save error details:', data);
       }
     } catch (error: any) {
-      console.error('Save error:', error);
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+      console.error('Network error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: 'Network error. Please try again.' 
+      });
     } finally {
       setIsSaving(false);
     }

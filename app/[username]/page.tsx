@@ -16,7 +16,7 @@ interface UserData {
   bio?: string;
   background?: string;
   links: LinkItem[];
-  badgeOption?: string | null; // ✅ Added badge field
+  badgeOption?: string | null;
 }
 
 interface PageProps {
@@ -57,7 +57,7 @@ export default async function UserPage({ params }: PageProps) {
             {/* Profile Card */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center mb-6">
               <div className="flex justify-center mb-4">
-                {/* ✅ Badge Display */}
+                {/* Badge Display */}
                 {badgeOption && (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-500 text-white mr-2">
                     {badgeOption}

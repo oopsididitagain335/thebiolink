@@ -20,20 +20,14 @@ interface User {
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User>({
-    _id: '',
-    name: '',
-    username: '',
-    avatar: '',
-    bio: '',
-    isEmailVerified: true
-  });
+  const [user, setUser] = useState<User | null>(null); // ✅ Start as null
   const [links, setLinks] = useState<Link[]>([]);
+  const [loading, setLoading] = useState(true); // ✅ Add loading state
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
-  // ✅ Load data from MongoDB on mount
+  // ✅ Load data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -44,7 +38,6 @@ export default function Dashboard() {
         }
         const data = await res.json();
         
-        // ✅ Set user data from MongoDB
         setUser({
           _id: data.user._id,
           name: data.user.name,
@@ -54,7 +47,6 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified
         });
         
-        // ✅ Set links with proper IDs from MongoDB
         setLinks(data.links.map((link: any) => ({
           id: link.id,
           url: link.url,
@@ -64,11 +56,23 @@ export default function Dashboard() {
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
+      } finally {
+        setLoading(false); // ✅ Set loading to false after fetch
       }
     };
     
     fetchUserData();
   }, [router]);
+
+  // ✅ Show loading state while fetching
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  // ✅ Handle case where user is not loaded
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">User not found</div>;
+  }
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -118,8 +122,7 @@ export default function Dashboard() {
       
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        // ✅ Update state with saved data
-        // No need to reload - data is already in state
+        // ✅ No reload needed - data is already in state
       } else {
         setMessage({ 
           type: 'error', 
@@ -301,7 +304,7 @@ export default function Dashboard() {
                     alt={user.name} 
                     className="w-20 h-20 rounded-full mx-auto mb-4"
                   />
-                ) : (
+                ) else (
                   <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl text-white font-bold">
                       {user.name.charAt(0).toUpperCase()}

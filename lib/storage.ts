@@ -211,6 +211,7 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
+  // --- Return the updated user data including background ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -219,7 +220,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     email: updatedUserDocument.email || '',
     avatar: updatedUserDocument.avatar || '',
     bio: updatedUserDocument.bio || '',
-    background: updatedUserDocument.background || '',
+    background: updatedUserDocument.background || '', // ✅ Return background
     badges: updatedUserDocument.badges || [], // ✅ Return badges
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
@@ -234,13 +235,14 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 }
 
-// ✅ ADMIN PANEL FUNCTIONS
+// ✅ FIXED ADMIN PANEL FUNCTIONS
 
-// Add badge to user
+// Add badge to user (FIXED TYPE ERROR)
 export async function addUserBadge(userId: string, badge: { id: string; name: string; icon: string; awardedAt: string }) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
+  // ✅ Fix: Pass the badge object directly, not wrapped
   await database.collection('users').updateOne(
     { _id: objectId },
     { $push: { badges: badge } }

@@ -16,9 +16,8 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
-  background: string;
+  background: string; // ✅ Added background field
   isEmailVerified: boolean;
-  links: Link[];
 }
 
 export default function Dashboard() {
@@ -28,9 +27,8 @@ export default function Dashboard() {
     username: '',
     avatar: '',
     bio: '',
-    background: '',
-    isEmailVerified: true,
-    links: []
+    background: '', // ✅ Added background field
+    isEmailVerified: true
   });
   const [links, setLinks] = useState<Link[]>([{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +45,17 @@ export default function Dashboard() {
           return;
         }
         const data = await res.json();
-        setUser(data.user);
+        
+        setUser({
+          _id: data.user._id,
+          name: data.user.name,
+          username: data.user.username,
+          avatar: data.user.avatar,
+          bio: data.user.bio,
+          background: data.user.background || '', // ✅ Added background field
+          isEmailVerified: data.user.isEmailVerified
+        });
+        
         setLinks(data.links.length > 0 ? data.links : [{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -100,7 +108,7 @@ export default function Dashboard() {
             username: user.username.trim().toLowerCase(), 
             avatar: user.avatar?.trim() || '', 
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || ''
+            background: user.background?.trim() || '' // ✅ Added background field
           },
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
@@ -225,6 +233,7 @@ export default function Dashboard() {
                   />
                 </div>
                 
+                {/* ✅ Added Background GIF Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
@@ -308,15 +317,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-                
-                {links.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                    </svg>
-                    <p>No links added yet</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -325,8 +325,9 @@ export default function Dashboard() {
           <div className="lg:col-span-1 space-y-6">
             {/* Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Live Preview</h2>
+              <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
+                {/* ✅ Added Background GIF Preview */}
                 {user.background && (
                   <div 
                     className="absolute inset-0 z-0"
@@ -400,7 +401,7 @@ export default function Dashboard() {
 
             {/* Sticky Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-96">
-              <h3 className="text-lg font-semibold text-white mb-4">Stats</h3>
+              <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Links</span>
@@ -411,10 +412,6 @@ export default function Dashboard() {
                   <span className="text-white font-medium">
                     {user.name && user.username ? '100%' : '0%'}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Last Updated</span>
-                  <span className="text-white font-medium">Just now</span>
                 </div>
               </div>
             </div>

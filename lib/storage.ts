@@ -32,7 +32,8 @@ export async function getUserByUsername(username: string) {
   return user ? { ...user, id: user._id.toString() } : null;
 }
 
-export async function createUser(email: string, password: string, username: string, name: string) {
+// Modified createUser function to accept background and ip
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ip: string = '') {
   const database = await connectDB();
   const existingEmail = await database.collection('users').findOne({ email: email.toLowerCase() });
   if (existingEmail) throw new Error('Email already registered');
@@ -51,14 +52,34 @@ export async function createUser(email: string, password: string, username: stri
     name,
     avatar: '',
     bio: '',
+    // Include the background provided during signup
+    background: background || '',
     isEmailVerified: true, // Auto-verified
     createdAt: new Date().toISOString(),
     badgeOption: null,
     badgePaid: false,
-    badgePurchaseTimestamp: null
+    badgePurchaseTimestamp: null,
+    // Optionally store the IP address used for signup
+    signupIp: ip
   });
 
-  return { id: userId.toString(), email, username, name, avatar: '', bio: '', isEmailVerified: true, createdAt: new Date().toISOString(), badgeOption: null, badgePaid: false, badgePurchaseTimestamp: null };
+  return {
+    id: userId.toString(),
+    email,
+    username,
+    name,
+    avatar: '',
+    bio: '',
+    // Include the background in the returned user object
+    background: background || '',
+    isEmailVerified: true,
+    createdAt: new Date().toISOString(),
+    badgeOption: null,
+    badgePaid: false,
+    badgePurchaseTimestamp: null,
+    // Optionally include the IP in the returned object
+    // signupIp: ip
+  };
 }
 
 export async function updateUserProfile(userId: string, updates: any) {
@@ -70,7 +91,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || ''
+    background: updates.background?.trim() || '' // Include background update
   };
 
   if (cleanedUpdates.username) {
@@ -101,6 +122,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updatedUser.bio || '',
     isEmailVerified: updatedUser.isEmailVerified || false,
     createdAt: updatedUser.createdAt || new Date().toISOString(),
+    // Include the updated background
     background: updatedUser.background || '',
     links: links.map((link: any) => ({
       id: link._id.toString(),

@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/storage';
-import { ObjectId } from 'mongodb';
 
 export async function GET() {
   const sessionId = (await cookies()).get('biolink_session')?.value;
@@ -10,14 +9,7 @@ export async function GET() {
   }
 
   try {
-    let userId: string;
-    try {
-      userId = new ObjectId(sessionId).toString();
-    } catch {
-      return Response.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = await getUserById(userId);
+    const user = await getUserById(sessionId);
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }

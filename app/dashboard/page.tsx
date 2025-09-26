@@ -70,6 +70,7 @@ export default function Dashboard() {
     setLinks(links.filter((_, i) => i !== index));
   };
 
+  // ✅ FIXED save handler - keeps original IDs
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
@@ -78,8 +79,7 @@ export default function Dashboard() {
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           profile: { 
@@ -91,7 +91,7 @@ export default function Dashboard() {
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
             .map((link, index) => ({
-              id: link.id,
+              id: link.id, // ← Keep original ID for state consistency
               url: link.url.trim(),
               title: link.title.trim(),
               icon: link.icon?.trim() || ''
@@ -108,7 +108,6 @@ export default function Dashboard() {
           type: 'error', 
           text: data.error || 'Failed to save changes' 
         });
-        console.error('Save error details:', data);
       }
     } catch (error: any) {
       console.error('Network error:', error);

@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -7,6 +6,7 @@ let db: any = null;
 
 export async function connectDB() {
   if (db) return db;
+  
   if (!client) {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI not set');
@@ -14,13 +14,14 @@ export async function connectDB() {
     client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
   }
+  
   if (!db) {
     db = client.db();
   }
+  
   return db;
 }
 
-// ✅ MUST EXPORT THIS
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -32,7 +33,7 @@ export async function getUserByUsername(username: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    background: user.background || '',
+    background: user.background || '', // ✅ Added background field
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url,
@@ -42,7 +43,6 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-// ✅ MUST EXPORT THIS
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
@@ -57,7 +57,7 @@ export async function getUserById(id: string) {
       username: user.username,
       avatar: user.avatar,
       bio: user.bio,
-      background: user.background,
+      background: user.background, // ✅ Added background field
       isEmailVerified: user.isEmailVerified,
       links: links.map((link: any) => ({
         id: link._id.toString(),
@@ -71,8 +71,8 @@ export async function getUserById(id: string) {
   }
 }
 
-// ✅ MUST EXPORT THIS
-export async function createUser(email: string, password: string, username: string, name: string) {
+// ✅ Updated createUser to include background and IP tracking
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const database = await connectDB();
   
   const existingEmail = await database.collection('users').findOne({ email });
@@ -90,6 +90,8 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     passwordHash,
+    background, // ✅ Save background GIF
+    ipAddress, // ✅ Track IP for rate limiting
     isEmailVerified: true,
     createdAt: new Date()
   });
@@ -99,12 +101,12 @@ export async function createUser(email: string, password: string, username: stri
     email, 
     username, 
     name,
+    background, // ✅ Return background
     isEmailVerified: true,
     createdAt: new Date().toISOString()
   };
 }
 
-// ✅ MUST EXPORT THIS
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne(
@@ -121,14 +123,13 @@ export async function getUserByEmail(email: string) {
     email: user.email || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    background: user.background || '',
+    background: user.background || '', // ✅ Added background field
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash
   };
 }
 
-// ✅ MUST EXPORT THIS
 export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -136,26 +137,47 @@ export async function saveUserLinks(userId: string, links: any[]) {
   await database.collection('links').deleteMany({ userId: objectId });
   
   if (links.length > 0) {
-    const linksToInsert = links.map((link: any) => ({
+    const linksToInsert = links.map((link: any, index: number) => ({
       _id: new ObjectId(),
       userId: objectId,
       url: link.url.trim(),
       title: link.title.trim(),
-      icon: link.icon?.trim() || ''
+      icon: link.icon?.trim() || '',
+      position: index
     }));
     
-    await database.collection('links').insertMany(linksToInsert);
+    const validLinks = linksToInsert.filter(link => link.url && link.title);
+    
+    if (validLinks.length > 0) {
+      await database.collection('links').insertMany(validLinks);
+    }
   }
 }
 
-// ✅ MUST EXPORT THIS
+// ✅ Updated updateUserProfile to include background field
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
+  const cleanedUpdates = {
+    name: updates.name?.trim() || '',
+    username: updates.username?.trim().toLowerCase() || '',
+    avatar: updates.avatar?.trim() || '',
+    bio: updates.bio?.trim() || '',
+    background: updates.background?.trim() || '' // ✅ Added background field
+  };
+  
+  if (cleanedUpdates.username) {
+    const existing = await database.collection('users').findOne({ 
+      username: cleanedUpdates.username,
+      _id: { $ne: objectId }
+    });
+    if (existing) throw new Error('Username already taken');
+  }
+  
   await database.collection('users').updateOne(
     { _id: objectId },
-    { $set: updates }
+    { $set: cleanedUpdates }
   );
   
   const updatedUser = await database.collection('users').findOne({ _id: objectId });
@@ -167,7 +189,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updatedUser.username,
     avatar: updatedUser.avatar,
     bio: updatedUser.bio,
-    background: updatedUser.background,
+    background: updatedUser.background, // ✅ Return background
     isEmailVerified: updatedUser.isEmailVerified,
     links: links.map((link: any) => ({
       id: link._id.toString(),

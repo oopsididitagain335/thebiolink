@@ -1,65 +1,85 @@
+// app/api/auth/login/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserByEmail } from '@/lib/storage';
 import bcrypt from 'bcryptjs';
 
-// Track failed login attempts
+// Simple in-memory rate limiting (use MongoDB for persistence in production)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
+// ✅ Helper to get client IP correctly
+function getClientIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    '127.0.0.1'
+  );
+}
+
 export async function POST(request: NextRequest) {
-  const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
-  
-  // Check for too many failed attempts
+  const ip = getClientIP(request);
+
+  // --- Rate Limiting (Inside Node.js Route) ---
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
   const attempts = failedAttempts.get(ip);
-  if (attempts && attempts.count >= 5) {
-    const lockoutTime = 15 * 60 * 1000; // 15 minutes
-    if (Date.now() - attempts.lastAttempt < lockoutTime) {
-      return Response.json({ 
-        error: 'Too many failed attempts. Try again later.' 
-      }, { status: 429 });
+  if (attempts && attempts.count >= MAX_ATTEMPTS) {
+    const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
+    if (timeSinceLastAttempt < LOCKOUT_DURATION_MS) {
+      return Response.json(
+        { error: 'Too many failed attempts. Try again later.' },
+        { status: 429 }
+      );
+    } else {
+      failedAttempts.delete(ip); // Reset after lockout
     }
   }
+  // --- End Rate Limiting ---
 
   try {
     const { email, password } = await request.json();
-    
+
     if (!email || !password) {
       return Response.json({ error: 'Email and password required' }, { status: 400 });
     }
-    
+
     const user = await getUserByEmail(email);
-    
-    // Always take same time to prevent timing attacks
+
+    // --- Timing Attack Prevention ---
     const dummyHash = await bcrypt.hash('dummy', 12);
     const isValid = user ? await bcrypt.compare(password, user.passwordHash) : await bcrypt.compare(password, dummyHash);
-    
+    // --- End Timing Attack Prevention ---
+
     if (!isValid) {
-      // Track failed attempts
+      // --- Track Failed Attempts ---
       if (attempts) {
-        failedAttempts.set(ip, { 
-          count: attempts.count + 1, 
-          lastAttempt: Date.now() 
+        failedAttempts.set(ip, {
+          count: attempts.count + 1,
+          lastAttempt: Date.now(),
         });
       } else {
         failedAttempts.set(ip, { count: 1, lastAttempt: Date.now() });
       }
-      
+      // --- End Tracking ---
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
-    
-    // Clear failed attempts on success
+
+    // --- Clear Failed Attempts on Success ---
     failedAttempts.delete(ip);
-    
+    // --- End Clearing ---
+
     (await cookies()).set('biolink_session', user._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 30, // 30 days
       path: '/',
-      sameSite: 'lax'
+      sameSite: 'lax',
     });
-    
+
     return Response.json({ success: true });
   } catch (error) {
+    console.error("Login error:", error);
     return Response.json({ error: 'Login failed' }, { status: 500 });
   }
 }

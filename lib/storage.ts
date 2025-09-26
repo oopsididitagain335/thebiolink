@@ -168,7 +168,7 @@ export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection<UserDoc>('users').findOne(
     { email },
-    { projection: { passwordHash: 1 } }
+    { projection: { passwordHash: 1, isBanned: 1 } } // ✅ Include isBanned in projection
   );
   if (!user) return null;
 

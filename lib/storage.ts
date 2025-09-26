@@ -54,10 +54,11 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: false,
     createdAt: new Date().toISOString(),
     badgeOption: null,
-    badgePaid: false
+    badgePaid: false,
+    badgePurchaseTimestamp: null
   });
 
-  return { id: userId.toString(), email, username, name, avatar: '', bio: '', isEmailVerified: false, createdAt: new Date().toISOString(), badgeOption: null, badgePaid: false };
+  return { id: userId.toString(), email, username, name, avatar: '', bio: '', isEmailVerified: false, createdAt: new Date().toISOString(), badgeOption: null, badgePaid: false, badgePurchaseTimestamp: null };
 }
 
 export async function updateUser(userId: string, updates: any) {
@@ -105,7 +106,10 @@ export async function updateUser(userId: string, updates: any) {
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    }))
+    })),
+    badgeOption: updatedUser.badgeOption || null,
+    badgePaid: updatedUser.badgePaid || false,
+    badgePurchaseTimestamp: updatedUser.badgePurchaseTimestamp || null
   };
 }
 

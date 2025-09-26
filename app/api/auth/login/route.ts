@@ -1,9 +1,8 @@
 // app/api/auth/login/route.ts
-import { NextRequest } from 'next/server'; // ✅ Import NextRequest type
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserByEmail } from '@/lib/storage';
 import bcrypt from 'bcryptjs';
-import { MongoClient } from 'mongodb'; // For rate limiting if needed locally
 
 // Simple in-memory store for failed attempts (consider Redis/MongoDB for production scaling)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
@@ -25,7 +24,7 @@ function getClientIP(request: NextRequest): string {
   return '127.0.0.1';
 }
 
-export async function POST(request: NextRequest) { // ✅ NextRequest type is now imported
+export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
 
   // --- Rate Limiting Logic (Inside Node.js Route) ---
@@ -73,14 +72,23 @@ export async function POST(request: NextRequest) { // ✅ NextRequest type is no
       }
       // --- End Tracking ---
       
-      // ✅ CHECK IF USER IS BANNED
-      if (user && user.isBanned) {
-          return Response.json({ error: 'Account has been banned' }, { status: 403 });
-      }
-      // ✅ END BAN CHECK
-      
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    // --- Null Check: Handle case where email doesn't exist ---
+    // Although isValid should be false if user is null, double-checking is safer
+    if (!user) {
+        // This case should theoretically not happen due to isValid check,
+        // but TS requires the check and it's good defensive programming.
+        return Response.json({ error: 'Authentication failed' }, { status: 500 });
+    }
+    // --- End Null Check ---
+
+    // ✅ CHECK IF USER IS BANNED (AFTER VALID AUTHENTICATION)
+    if (user.isBanned) {
+        return Response.json({ error: 'Account has been banned' }, { status: 403 });
+    }
+    // ✅ END BAN CHECK
 
     // --- Clear Failed Attempts on Success ---
     failedAttempts.delete(ip);

@@ -1,13 +1,8 @@
-// app/dashboard/page.tsx
-'use client'; // Keep this as it is
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/AuthContext';
-// Remove these imports as they directly reference server-side code
-// import { getUserBadgeInfo, updateUserBadge } from '@/lib/storage';
 
-// Define your interfaces here or import from a shared types file
 interface Link {
   id: string;
   url: string;
@@ -22,127 +17,77 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
-  background: string;
+  background: string; // ✅ Include background in interface
   isEmailVerified: boolean;
-  badgeOption: string | null;
-  badgePaid: boolean;
-  createdAt?: string;
-  badgePurchaseTimestamp?: string;
 }
 
-const WEEKLY_OPTIONS = [
-  { name: 'Common Star', rarity: 'Common' },
-  { name: 'Common Heart', rarity: 'Common' },
-  { name: 'Common Lightning', rarity: 'Common' },
-  { name: 'Uncommon Shield', rarity: 'Uncommon' },
-  { name: 'Uncommon Crown', rarity: 'Uncommon' },
-  { name: 'Rare Diamond', rarity: 'Rare' },
-  { name: 'Rare Unicorn', rarity: 'Rare' },
-  { name: 'Rare Phoenix', rarity: 'Rare' },
-];
-
-const FREE_BADGE_CODE = 'xovyontop25';
-
 export default function Dashboard() {
-  const router = useRouter();
-  const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User>({
     _id: '',
     name: '',
     username: '',
     avatar: '',
     bio: '',
-    background: '',
+    background: '', // ✅ Initialize background
     isEmailVerified: true,
-    badgeOption: null,
-    badgePaid: false,
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  // State for badge info will now come from API calls or local state updates after actions
-  const [badgeInfo, setBadgeInfo] = useState<{ option: string | null; paid: boolean } | null>(null);
-  const [selectedOption, setSelectedOption] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [codeInput, setCodeInput] = useState('');
+  const router = useRouter();
 
+  // --- Effect to load user data and links on mount ---
   useEffect(() => {
-    if (authUser && !authLoading) {
-      fetchUserData();
-      // Fetch badge info via API route instead of direct storage call
-      fetchBadgeInfoFromAPI();
-    }
-  }, [authUser, authLoading]);
-
-  const fetchUserData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/dashboard/data');
-      if (!res.ok) {
-        if (res.status === 401) {
-          console.warn("Unauthorized, redirecting to login.");
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) {
+          if (res.status === 401) {
+            console.warn("Unauthorized, redirecting to login.");
+          }
+          router.push('/auth/login');
+          return;
         }
+        const data = await res.json();
+        console.log("Fetched user data:", data); // Debug log
+
+        // --- Crucial: Populate user state including background ---
+        setUser({
+          _id: data.user._id || '',
+          name: data.user.name || '',
+          username: data.user.username || '',
+          avatar: data.user.avatar || '',
+          bio: data.user.bio || '',
+          background: data.user.background || '', // ✅ Load background
+          isEmailVerified: data.user.isEmailVerified ?? true,
+        });
+
+        // --- Crucial: Populate links state ---
+        const fetchedLinks = Array.isArray(data.links) ? data.links : [];
+        const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        setLinks(
+          sortedLinks.length > 0
+            ? sortedLinks.map((link: any) => ({
+                id: link.id || Date.now().toString() + Math.random(),
+                url: link.url || '',
+                title: link.title || '',
+                icon: link.icon || '',
+                position: link.position ?? 0,
+              }))
+            : []
+        );
+      } catch (error) {
+        console.error('Fetch error:', error);
         router.push('/auth/login');
-        return;
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
+    };
 
-      setUser({
-        _id: data.user._id || '',
-        name: data.user.name || '',
-        username: data.user.username || '',
-        avatar: data.user.avatar || '',
-        bio: data.user.bio || '',
-        background: data.user.background || '',
-        isEmailVerified: data.user.isEmailVerified ?? true,
-        badgeOption: data.user.badgeOption || null,
-        badgePaid: data.user.badgePaid || false,
-      });
-
-      const fetchedLinks = Array.isArray(data.links) ? data.links : [];
-      const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-      setLinks(
-        sortedLinks.length > 0
-          ? sortedLinks.map((link: any) => ({
-              id: link.id || Date.now().toString() + Math.random(),
-              url: link.url || '',
-              title: link.title || '',
-              icon: link.icon || '',
-              position: link.position ?? 0,
-            }))
-          : []
-      );
-    } catch (error) {
-      console.error('Fetch error:', error);
-      router.push('/auth/login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch badge info via API route
-  const fetchBadgeInfoFromAPI = async () => {
-    if (!authUser?.id) return;
-    try {
-      const res = await fetch(`/api/user/badge?id=${authUser.id}`); // Example API endpoint
-      if (res.ok) {
-        const info = await res.json();
-        setBadgeInfo(info);
-        if (info?.paid && info.option) {
-          setSelectedOption(info.option);
-        }
-      } else {
-          console.error("Failed to fetch badge info via API:", res.status);
-          // Optionally set a default or error state
-          setBadgeInfo({ option: null, paid: false });
-      }
-    } catch (error) {
-      console.error('Error fetching badge info via API:', error);
-      // Optionally set an error state
-      setBadgeInfo({ option: null, paid: false });
-    }
-  };
+    fetchUserData();
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -202,7 +147,7 @@ export default function Dashboard() {
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || '',
+            background: user.background?.trim() || '', // ✅ Send background
           },
           links: linksToSend,
         }),
@@ -224,84 +169,12 @@ export default function Dashboard() {
     }
   };
 
-  const handlePurchase = async () => {
-    if (!authUser || !selectedOption) return;
-
-    setIsProcessing(true);
-    setMessage(null);
-
-    try {
-      const res = await fetch('/api/badge/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': authUser.id, // Consider using Authorization header or session cookies instead
-        },
-        body: JSON.stringify({ option: selectedOption }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // Ensure this URL is correctly constructed by your backend
-        // Example: data.sessionUrl
-        router.push(data.checkoutUrl || `https://checkout.stripe.com/pay/${data.sessionId}`);
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to initiate payment' });
-      }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      setMessage({ type: 'error', text: 'An unexpected error occurred' });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRedeemCode = async () => {
-    if (!authUser || !codeInput.trim()) {
-      setMessage({ type: 'error', text: 'Please enter a code' });
-      return;
-    }
-
-    if (codeInput.trim() === FREE_BADGE_CODE) {
-      try {
-        // Call API route to update the badge
-        const res = await fetch('/api/user/redeem-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: authUser.id, code: codeInput.trim() }),
-        });
-
-        if (res.ok) {
-          const updatedBadgeInfo = await res.json();
-          setBadgeInfo(updatedBadgeInfo);
-          setUser({ ...user, badgeOption: updatedBadgeInfo.option, badgePaid: updatedBadgeInfo.paid });
-          setMessage({ type: 'success', text: 'Free badge redeemed successfully!' });
-          setCodeInput('');
-        } else {
-          const errorData = await res.json();
-          setMessage({ type: 'error', text: errorData.error || 'Failed to redeem code' });
-        }
-      } catch (error) {
-        console.error('Redeem error:', error);
-        setMessage({ type: 'error', text: 'Failed to redeem code' });
-      }
-    } else {
-      setMessage({ type: 'error', text: 'Invalid code' });
-    }
-  };
-
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
-  }
-
-  if (!authUser) {
-    router.push('/auth/login');
-    return null;
   }
 
   return (
@@ -393,14 +266,14 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* Background GIF Input */}
+                {/* ✅ Background GIF Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
                     type="url"
-                    name="background"
-                    value={user.background}
-                    onChange={handleProfileChange}
+                    name="background" // Crucial for handleProfileChange
+                    value={user.background} // Bound to state
+                    onChange={handleProfileChange} // Updates state
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="https://media.giphy.com/.../background.gif"
                   />
@@ -492,86 +365,11 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Custom Badge Card */}
+            {/* ✅ FIXED Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-4 text-white">Custom Badge</h2>
-              <p className="text-gray-300 mb-4 text-sm">Select a badge option for this week. Prices range from £2.00 to £2.50 depending on rarity.</p>
-
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {WEEKLY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.name}
-                    onClick={() => setSelectedOption(opt.name)}
-                    disabled={badgeInfo?.paid} // Use state from API call
-                    className={`p-2 rounded-lg border text-xs ${
-                      selectedOption === opt.name
-                        ? 'border-indigo-500 bg-indigo-900/20'
-                        : 'border-gray-700 hover:border-gray-500'
-                    } ${
-                      badgeInfo?.paid ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                    } transition-colors`}
-                  >
-                    <div className="font-medium">{opt.name}</div>
-                    <div className={`text-xs mt-1 ${
-                      opt.rarity === 'Rare' ? 'text-purple-400' : 
-                      opt.rarity === 'Uncommon' ? 'text-blue-400' : 'text-gray-400'
-                    }`}>
-                      {opt.rarity}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {message && (
-                <div className={`mt-2 p-2 rounded-lg text-xs ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  {message.text}
-                </div>
-              )}
-
-              {!badgeInfo?.paid ? ( // Use state from API call
-                <button
-                  onClick={handlePurchase}
-                  disabled={!selectedOption || isProcessing}
-                  className={`mt-2 w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors text-sm ${
-                    !selectedOption || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isProcessing ? 'Processing...' : 'Buy Badge'}
-                </button>
-              ) : (
-                <div className="mt-2 p-2 bg-green-900/30 text-green-400 rounded-lg text-xs">
-                  You have: <strong>{badgeInfo?.option}</strong> {/* Use state from API call */}
-                </div>
-              )}
-            </div>
-
-            {/* Redeem Code Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
-              <h2 className="text-xl font-semibold mb-4 text-white">Redeem Code</h2>
-              <p className="text-gray-300 mb-4 text-sm">Enter a code to unlock special badges!</p>
-              
-              <div className="flex gap-1">
-                <input
-                  type="text"
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value)}
-                  placeholder="Enter code..."
-                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  onClick={handleRedeemCode}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium text-sm transition-colors"
-                >
-                  Redeem
-                </button>
-              </div>
-            </div>
-
-            {/* Preview Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-96">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
-                {/* Display Background GIF */}
+                {/* ✅ Display Background GIF */}
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
@@ -596,14 +394,6 @@ export default function Dashboard() {
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
-                  {/* Display Badge */}
-                  {user.badgeOption && (
-                    <div className="flex justify-center mb-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-500 text-white mr-2">
-                        {user.badgeOption}
-                      </span>
-                    </div>
-                  )}
                   {user.bio && <p className="text-gray-300 mb-4">{user.bio}</p>}
 
                   <div className="space-y-3">
@@ -625,8 +415,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Stats Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-[1000px]">
+            {/* ✅ FIXED Stats Card */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -636,6 +426,7 @@ export default function Dashboard() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Profile Completion</span>
                   <span className="text-white font-medium">
+                    {/* Simple calculation: name, username, avatar/bio, background are key fields */}
                     {(() => {
                       const completedFields = [
                         user.name,

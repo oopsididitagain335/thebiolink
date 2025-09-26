@@ -27,15 +27,13 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Badge option is required' }, { status: 400 });
   }
 
-  // Define prices (in pence)
   const PRICES: Record<string, number> = {
-    'Common': 200, // £2.00
-    'Uncommon': 225, // £2.25
-    'Rare': 250, // £2.50
+    'Common': 200,
+    'Uncommon': 225,
+    'Rare': 250,
   };
 
-  // Determine rarity and price based on the option
-  let price = 200; // Default to £2.00
+  let price = 200;
   if (option.includes('Rare')) price = 250;
   else if (option.includes('Uncommon')) price = 225;
   else price = 200;

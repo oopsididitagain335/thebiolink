@@ -1,7 +1,7 @@
 // app/api/auth/signup/route.ts
 import { NextRequest } from 'next/server';
 import { createUser } from '@/lib/storage';
-import { MongoClient, ObjectId } from 'mongodb'; // For IP limit check
+// Removed: import { MongoClient, ObjectId } from 'mongodb'; // Not needed here
 
 // ✅ Helper to get client IP correctly
 function getClientIP(request: NextRequest): string {
@@ -63,11 +63,14 @@ export async function POST(request: NextRequest) {
     }
 
 
+    // ✅ Call createUser with the correct number of arguments (4 + 2 defaults)
     const user = await createUser(email, password, username, name, background, ip);
 
     return Response.json({
       success: true,
-      message: 'Account created successfully!'
+      message: 'Account created successfully!',
+      // Optionally return the created user data (excluding sensitive info like passwordHash)
+      // user: { id: user.id, email: user.email, username: user.username, name: user.name }
     });
   } catch (error: any) {
     console.error("Signup error:", error);

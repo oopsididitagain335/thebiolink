@@ -23,7 +23,7 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// --- Update UserDoc Interface to include ban fields ---
+// --- User Schema Interface ---
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -40,11 +40,10 @@ interface UserDoc {
     awardedAt: string;
   }>;
   isEmailVerified: boolean;
+  isBanned?: boolean; // ✅ Ban status
+  bannedAt?: string; // ✅ Ban timestamp
   createdAt: Date;
   ipAddress?: string;
-  // ✅ Add ban fields
-  isBanned?: boolean;
-  bannedAt?: string;
 }
 
 interface LinkDoc {
@@ -56,7 +55,7 @@ interface LinkDoc {
   position: number;
 }
 
-// --- Existing User Functions (unchanged) ---
+// --- User Functions (Node.js only) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -74,7 +73,7 @@ export async function getUserByUsername(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [],
+    badges: user.badges || [], // ✅ Include badges
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false, // ✅ Include ban status
     bannedAt: user.bannedAt, // ✅ Include ban timestamp
@@ -106,7 +105,7 @@ export async function getUserById(id: string) {
       avatar: user.avatar || '',
       bio: user.bio || '',
       background: user.background || '',
-      badges: user.badges || [],
+      badges: user.badges || [], // ✅ Include badges
       isEmailVerified: user.isEmailVerified || false,
       isBanned: user.isBanned || false, // ✅ Include ban status
       bannedAt: user.bannedAt, // ✅ Include ban timestamp
@@ -168,7 +167,7 @@ export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection<UserDoc>('users').findOne(
     { email },
-    { projection: { passwordHash: 1, isBanned: 1 } } // ✅ Include isBanned in projection
+    { projection: { passwordHash: 1, isBanned: 1 } } // ✅ Include ban status in projection
   );
   if (!user) return null;
 
@@ -181,7 +180,7 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [],
+    badges: user.badges || [], // ✅ Include badges
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false, // ✅ Include ban status
     bannedAt: user.bannedAt, // ✅ Include ban timestamp
@@ -214,7 +213,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with null check and badge support
+// ✅ FIXED updateUserProfile with proper null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);

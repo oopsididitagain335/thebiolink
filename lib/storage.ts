@@ -140,27 +140,26 @@ export async function getUserByEmail(email: string) {
   };
 }
 
+// ✅ FIXED saveUserLinks - generates new ObjectIds for MongoDB
 export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   
+  // Delete existing links
   await database.collection('links').deleteMany({ userId: objectId });
   
   if (links.length > 0) {
+    // Generate new ObjectIds for _id field
     const linksToInsert = links.map((link: any, index: number) => ({
-      _id: new ObjectId(),
+      _id: new ObjectId(), // ← Always new ObjectId
       userId: objectId,
-      url: link.url?.trim() || '',
-      title: link.title?.trim() || '',
-      icon: link.icon?.trim() || '',
+      url: link.url,
+      title: link.title,
+      icon: link.icon || '',
       position: index
     }));
     
-    const validLinks = linksToInsert.filter(link => link.url && link.title);
-    
-    if (validLinks.length > 0) {
-      await database.collection('links').insertMany(validLinks);
-    }
+    await database.collection('links').insertMany(linksToInsert);
   }
 }
 

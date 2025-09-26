@@ -10,6 +10,8 @@ interface User {
   username: string;
   name: string;
   badges: Badge[];
+  isBanned: boolean; // ✅ Include ban status
+  bannedAt?: string; // ✅ Include ban timestamp
 }
 
 interface Badge {
@@ -60,6 +62,33 @@ export default function AdminPanel() {
 
     fetchData();
   }, [router]);
+
+  // ✅ Handle ban/unban user
+  const handleBanUser = async (userId: string, action: 'ban' | 'unban') => {
+    try {
+      const res = await fetch('/api/admin/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Update local state to reflect ban status change
+        setUsers(users.map(user => 
+          user.id === userId 
+            ? { ...user, isBanned: action === 'ban' } 
+            : user
+        ));
+        setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
+      } else {
+        setMessage({ type: 'error', text: data.error || `Failed to ${action} user` });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
 
   const handleCreateBadge = async () => {
     if (!newBadge.name || !newBadge.icon) {
@@ -183,7 +212,7 @@ export default function AdminPanel() {
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-900/30 text-green-300 border border-green-800' : 'bg-red-900/30 text-red-300 border border-red-800'}`}>
+          <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-900/30 text-green-300 border border-green-800' : 'bg-red-900/30 text-red-300 border border-red-800'} max-w-sm`}>
             {message.text}
           </div>
         )}
@@ -279,6 +308,12 @@ export default function AdminPanel() {
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-white">{user.name}</h3>
                     <p className="text-gray-400 text-sm">{user.email}</p>
+                    {/* ✅ Show ban status badge */}
+                    {user.isBanned && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-300 mt-1">
+                        Banned
+                      </span>
+                    )}
                   </div>
                 </div>
                 
@@ -304,6 +339,20 @@ export default function AdminPanel() {
                   ) : (
                     <p className="text-gray-500 text-sm">No badges</p>
                   )}
+                </div>
+
+                {/* ✅ Add Ban/Unban Button */}
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <button
+                    onClick={() => handleBanUser(user.id, user.isBanned ? 'unban' : 'ban')}
+                    className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                      user.isBanned
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
+                  >
+                    {user.isBanned ? 'Unban User' : 'Ban User'}
+                  </button>
                 </div>
               </div>
             ))}

@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/storage';
-import { connectDB } from '@/lib/storage';
 import { ObjectId } from 'mongodb';
 
 export async function GET() {
@@ -9,34 +8,34 @@ export async function GET() {
   if (!sessionId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   try {
-    const user = await getUserById(sessionId);
+    // Validate session ID
+    let userId: string;
+    try {
+      userId = new ObjectId(sessionId).toString();
+    } catch {
+      return Response.json({ error: 'Invalid session' }, { status: 401 });
+    }
+
+    const user = await getUserById(userId);
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
-    
-    const database = await connectDB();
-    const links = await database.collection('links').find({ userId: new ObjectId(user._id) }).toArray();
-    
+
     return Response.json({
       user: {
-        _id: user._id.toString(),
+        _id: user._id,
         name: user.name,
         username: user.username,
         avatar: user.avatar,
         bio: user.bio,
         isEmailVerified: user.isEmailVerified
       },
-      links: links.map((link: any) => ({
-        id: link._id.toString(),
-        url: link.url,
-        title: link.title,
-        icon: link.icon
-      }))
+      links: user.links || []
     });
-  } catch (error) {
-    console.error('Database error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Data fetch error:', error);
+    return Response.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
 }

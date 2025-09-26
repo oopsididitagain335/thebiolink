@@ -17,17 +17,17 @@ interface User {
   avatar: string;
   bio: string;
   isEmailVerified: boolean;
+  links: Link[];
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null); // ✅ Start as null
+  const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
-  const [loading, setLoading] = useState(true); // ✅ Add loading state
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
-  // ✅ Load data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -44,7 +44,8 @@ export default function Dashboard() {
           username: data.user.username,
           avatar: data.user.avatar,
           bio: data.user.bio,
-          isEmailVerified: data.user.isEmailVerified
+          isEmailVerified: data.user.isEmailVerified,
+          links: []
         });
         
         setLinks(data.links.map((link: any) => ({
@@ -57,19 +58,17 @@ export default function Dashboard() {
         console.error('Fetch error:', error);
         router.push('/auth/login');
       } finally {
-        setLoading(false); // ✅ Set loading to false after fetch
+        setLoading(false);
       }
     };
     
     fetchUserData();
   }, [router]);
 
-  // ✅ Show loading state while fetching
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  // ✅ Handle case where user is not loaded
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">User not found</div>;
   }
@@ -109,7 +108,7 @@ export default function Dashboard() {
           },
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
-            .map((link, index) => ({
+            .map((link) => ({
               id: link.id,
               url: link.url.trim(),
               title: link.title.trim(),
@@ -118,23 +117,15 @@ export default function Dashboard() {
         })
       });
       
-      const data = await response.json();
-      
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        // ✅ No reload needed - data is already in state
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: data.error || 'Failed to save changes' 
-        });
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to save changes' });
       }
     } catch (error: any) {
       console.error('Network error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: 'Network error. Please try again.' 
-      });
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsSaving(false);
     }
@@ -304,7 +295,7 @@ export default function Dashboard() {
                     alt={user.name} 
                     className="w-20 h-20 rounded-full mx-auto mb-4"
                   />
-                ) else (
+                ) : (
                   <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl text-white font-bold">
                       {user.name.charAt(0).toUpperCase()}

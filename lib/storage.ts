@@ -3,7 +3,7 @@ import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 let client: MongoClient;
-let db: Db; // Properly typed as Db
+let db: Db;
 
 // Define a User type based on your MongoDB schema
 interface User {
@@ -55,22 +55,54 @@ async function connectDB(): Promise<Db> {
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection<User>('users').findOne({ email: email.toLowerCase() });
-  return user ? { ...user, id: user._id.toString() } : null;
+  if (!user) return null;
+  const links = await database.collection<Link>('links').find({ userId: user._id }).toArray();
+  return {
+    ...user,
+    id: user._id.toString(),
+    links: links.map((link) => ({
+      id: link._id.toString(),
+      url: link.url || '',
+      title: link.title || '',
+      icon: link.icon || '',
+    })),
+  };
 }
 
 export async function getUserById(id: string) {
   const database = await connectDB();
   const user = await database.collection<User>('users').findOne({ _id: new ObjectId(id) });
-  return user ? { ...user, id: user._id.toString() } : null;
+  if (!user) return null;
+  const links = await database.collection<Link>('links').find({ userId: user._id }).toArray();
+  return {
+    ...user,
+    id: user._id.toString(),
+    links: links.map((link) => ({
+      id: link._id.toString(),
+      url: link.url || '',
+      title: link.title || '',
+      icon: link.icon || '',
+    })),
+  };
 }
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection<User>('users').findOne({ username: username.toLowerCase() });
-  return user ? { ...user, id: user._id.toString() } : null;
+  if (!user) return null;
+  const links = await database.collection<Link>('links').find({ userId: user._id }).toArray();
+  return {
+    ...user,
+    id: user._id.toString(),
+    links: links.map((link) => ({
+      id: link._id.toString(),
+      url: link.url || '',
+      title: link.title || '',
+      icon: link.icon || '',
+    })),
+  };
 }
 
-// Modified createUser function to accept background and ip
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ip: string = '') {
   const database = await connectDB();
   const existingEmail = await database.collection<User>('users').findOne({ email: email.toLowerCase() });
@@ -108,6 +140,7 @@ export async function createUser(email: string, password: string, username: stri
     badgeOption: null,
     badgePaid: false,
     badgePurchaseTimestamp: null,
+    links: [], // Initialize empty links array
   };
 }
 
@@ -191,9 +224,7 @@ export async function getUserBadgeInfo(userId: string) {
     { _id: new ObjectId(userId) },
     { projection: { badgeOption: 1, badgePaid: 1, badgePurchaseTimestamp: 1 } }
   );
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
   return {
     option: user.badgeOption || null,
     paid: user.badgePaid === true,
@@ -212,5 +243,9 @@ export async function updateUserBadge(userId: string, option: string) {
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database.collection<User>('users').find({}).toArray();
-  return users.map((user: User) => ({ ...user, id: user._id.toString() }));
+  return users.map((user: User) => ({
+    ...user,
+    id: user._id.toString(),
+    links: [], // Not fetching links for all users to avoid performance issues
+  }));
 }

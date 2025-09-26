@@ -12,6 +12,9 @@ const config: Config = {
         'gradient-start': '#6366f1',
         'gradient-end': '#8b5cf6',
       },
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+      }
     },
   },
   plugins: [],

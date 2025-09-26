@@ -1,17 +1,10 @@
 // lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
-import Stripe from 'stripe'; // Import Stripe
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20', // Use the latest stable API version
-});
-
-// - Main App DB Connection (MONGODB_URI) -
 export async function connectDB() {
   if (cachedDb) return cachedDb;
 
@@ -24,35 +17,13 @@ export async function connectDB() {
   }
 
   if (!cachedDb) {
-    cachedDb = cachedClient.db(); // Uses default database from MONGODB_URI
+    cachedDb = cachedClient.db();
   }
 
   return cachedDb;
 }
 
-// - Subscription DB Connection (MONGO_URI) -
-let subscriptionClient: MongoClient | null = null;
-let subscriptionDb: Db | null = null;
-
-export async function connectSubscriptionDB() {
-  if (subscriptionDb && subscriptionClient) return { client: subscriptionClient, db: subscriptionDb };
-
-  if (!subscriptionClient) {
-    if (!process.env.MONGO_URI) {
-      throw new Error('MONGO_URI not set for subscription database');
-    }
-    subscriptionClient = new MongoClient(process.env.MONGO_URI);
-    await subscriptionClient.connect();
-  }
-
-  if (!subscriptionDb) {
-    subscriptionDb = subscriptionClient.db(); // Uses default DB from MONGO_URI
-  }
-
-  return { client: subscriptionClient, db: subscriptionDb };
-}
-
-// - User Functions (Node.js only) -
+// --- User Functions (Node.js only) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -139,21 +110,6 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date()
   });
 
-  // --- CRITICAL: Create user entry in subscription DB immediately after creation ---
-  try {
-    const { db: subsDb } = await connectSubscriptionDB();
-    // Create an initial subscription document with the user ID
-    // The document will be updated later by the webhook or manually if needed
-    await subsDb.collection('subscriptions').updateOne(
-      { userId: userId.toString() }, // Match by the user ID string
-      { $setOnInsert: { userId: userId.toString(), status: 'none', createdAt: new Date() } }, // Only set these fields on insert
-      { upsert: true }
-    );
-  } catch (error) {
-    console.error('Error creating user entry in subscription DB:', error);
-    // Decide: Should we rollback user creation if this fails? For now, log and continue.
-  }
-
   return {
     id: userId.toString(),
     email,
@@ -213,7 +169,6 @@ export async function saveUserLinks(userId: string, links: any[]) {
 }
 
 // ✅ FIXED updateUserProfile with proper null check and background handling
-// ✅ ALSO ensures user ID exists in subscription DB
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -238,19 +193,6 @@ export async function updateUserProfile(userId: string, updates: any) {
     { _id: objectId },
     { $set: cleanedUpdates }
   );
-
-  // --- CRITICAL: Ensure user entry exists in subscription DB on profile update ---
-  try {
-    const { db: subsDb } = await connectSubscriptionDB();
-    await subsDb.collection('subscriptions').updateOne(
-      { userId: userId }, // Match by the user ID string
-      { $setOnInsert: { userId: userId, status: 'none', createdAt: new Date() } }, // Only set these fields on insert
-      { upsert: true }
-    );
-  } catch (error) {
-    console.error('Error ensuring user entry in subscription DB:', error);
-    // Log error but don't necessarily fail the profile update
-  }
 
   // --- Crucial: Fetch the updated user document ---
   const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
@@ -286,85 +228,4 @@ export async function updateUserProfile(userId: string, updates: any) {
       position: link.position || 0
     })).sort((a: any, b: any) => a.position - b.position)
   };
-}
-
-// --- Subscription-related functions (using MONGO_URI) ---
-
-export async function getSubscriptionByUserId(userId: string) {
-  const { db } = await connectSubscriptionDB();
-  const subscription = await db.collection('subscriptions').findOne({ userId });
-  return subscription;
-}
-
-export async function createOrUpdateSubscription(subscriptionData: any) {
-  const { db } = await connectSubscriptionDB();
-  const result = await db.collection('subscriptions').replaceOne(
-    { userId: subscriptionData.userId },
-    { ...subscriptionData, updatedAt: new Date() },
-    { upsert: true }
-  );
-  return result;
-}
-
-// --- Stripe Dynamic Pricing ---
-
-// Define the PlanDetails type
-export type PlanDetails = {
-  id: string; // Stripe Price ID (e.g., price_xxx)
-  productId: string; // Stripe Product ID (e.g., prod_xxx)
-  name: string; // Product name (e.g., "Basic Plan")
-  description: string; // Product description
-  amount: number; // Price amount in smallest currency unit (e.g., cents for USD)
-  currency: string; // Currency code (e.g., "usd")
-  interval: string; // Billing interval (e.g., "month", "year")
-  intervalCount: number; // Number of intervals (e.g., 1 for monthly, 12 for yearly)
-  active: boolean; // Whether the price is active
-  metadata: Record<string, string>; // Any metadata you added in Stripe
-  // Add other fields as needed from Stripe.Price
-};
-
-/**
- * Fetches active subscription plans (products and their default prices) from Stripe dynamically.
- * @returns An array of PlanDetails objects.
- */
-export async function getDynamicStripePlans(): Promise<PlanDetails[]> {
-  try {
-    // List active prices from Stripe
-    const prices = await stripe.prices.list({
-      active: true,
-      expand: ['data.product'], // Expand the product data for each price
-      limit: 100, // Adjust limit as needed
-    });
-
-    const planDetails: PlanDetails[] = [];
-
-    for (const price of prices.data) {
-      if (price.type === 'recurring' && price.product && typeof price.product !== 'string') {
-        // Ensure the product is expanded and not just an ID string
-        planDetails.push({
-          id: price.id,
-          productId: price.product.id,
-          name: price.product.name || 'Unnamed Plan',
-          description: price.product.description || '',
-          amount: price.unit_amount || 0, // Amount in cents
-          currency: price.currency,
-          interval: price.recurring?.interval || 'month',
-          intervalCount: price.recurring?.interval_count || 1,
-          active: price.active,
-          metadata: price.metadata, // Useful for plan features/benefits
-        });
-      }
-    }
-
-    // Sort plans by amount (or any other criteria you prefer)
-    planDetails.sort((a, b) => a.amount - b.amount);
-
-    return planDetails;
-  } catch (error) {
-    console.error('Error fetching Stripe plans:', error);
-    // In production, you might want to log the error and return an empty array
-    // or a specific error indicator, rather than fallback plans.
-    // For now, re-throwing to let the caller handle it.
-    throw error; 
-  }
 }

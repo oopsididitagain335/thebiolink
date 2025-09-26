@@ -28,11 +28,12 @@ export default function Dashboard() {
     bio: '',
     isEmailVerified: true
   });
-  const [links, setLinks] = useState<Link[]>([{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
+  // ✅ Load data from MongoDB on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -42,13 +43,28 @@ export default function Dashboard() {
           return;
         }
         const data = await res.json();
-        setUser(data.user);
-        setLinks(data.links.length > 0 ? data.links : [{ id: Date.now().toString(), url: '', title: '', icon: '' }]);
+        
+        setUser({
+          _id: data.user._id,
+          name: data.user.name,
+          username: data.user.username,
+          avatar: data.user.avatar,
+          bio: data.user.bio,
+          isEmailVerified: data.user.isEmailVerified
+        });
+        
+        setLinks(data.links.map((link: any) => ({
+          id: link.id,
+          url: link.url,
+          title: link.title,
+          icon: link.icon
+        })));
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
       }
     };
+    
     fetchUserData();
   }, [router]);
 
@@ -70,7 +86,6 @@ export default function Dashboard() {
     setLinks(links.filter((_, i) => i !== index));
   };
 
-  // ✅ FIXED save handler - keeps original IDs
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
@@ -78,9 +93,7 @@ export default function Dashboard() {
     try {
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           profile: { 
             name: user.name.trim(), 
@@ -91,7 +104,7 @@ export default function Dashboard() {
           links: links
             .filter(link => link.url?.trim() && link.title?.trim())
             .map((link, index) => ({
-              id: link.id, // ← Keep original ID for state consistency
+              id: link.id,
               url: link.url.trim(),
               title: link.title.trim(),
               icon: link.icon?.trim() || ''
@@ -103,6 +116,8 @@ export default function Dashboard() {
       
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
+        // ✅ Reload to ensure data consistency
+        window.location.reload();
       } else {
         setMessage({ 
           type: 'error', 

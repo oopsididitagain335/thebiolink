@@ -84,4 +84,4 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     return Response.json({ error: 'Failed to remove badge' }, { status: 500 });
   }
-}\
+}

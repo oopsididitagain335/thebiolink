@@ -27,6 +27,19 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Badge option is required' }, { status: 400 });
   }
 
+  // Define prices (in pence)
+  const PRICES: Record<string, number> = {
+    'Common': 200, // £2.00
+    'Uncommon': 225, // £2.25
+    'Rare': 250, // £2.50
+  };
+
+  // Determine rarity and price based on the option
+  let price = 200; // Default to £2.00
+  if (option.includes('Rare')) price = 250;
+  else if (option.includes('Uncommon')) price = 225;
+  else price = 200;
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
@@ -37,7 +50,7 @@ export async function POST(request: NextRequest) {
             name: `Custom Badge: ${option}`,
             description: 'One-time purchase for a custom badge on your profile',
           },
-          unit_amount: 200, // £2.00 in pence
+          unit_amount: price,
         },
         quantity: 1,
       },

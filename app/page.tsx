@@ -97,8 +97,9 @@ export default function HomePage() {
         {/* Footer Note */}
         <div className="mt-12 text-center text-gray-500 dark:text-gray-400">
           <p className="text-sm">
-            Have a BioLink? Visit <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-blue-600 dark:text-blue-400 font-mono">
-              yourusername.thebiolink.lol
+            Have a BioLink? Visit{' '}
+            <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-blue-600 dark:text-blue-400 font-mono">
+              thebiolink.lol/yourusername
             </code>
           </p>
         </div>

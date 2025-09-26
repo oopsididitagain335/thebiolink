@@ -1,39 +1,36 @@
+// app/api/links/[username]/route.ts
 import { NextRequest } from 'next/server';
-import { getUserByUsername, saveUserLinks, updateUserProfile } from '@/lib/storage';
+import { getUserByUsername } from '@/lib/storage';
 import { z } from 'zod';
 
 const ProfileUpdateSchema = z.object({
   name: z.string().min(1).max(50),
-  avatar: z.string().url().optional(),
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
+  avatar: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(200).optional(),
+  background: z.string().url().optional().or(z.literal('')),
 });
-
-const LinksUpdateSchema = z.array(
-  z.object({
-    id: z.string(),
-    url: z.string().url(),
-    title: z.string().min(1),
-    icon: z.string().optional(),
-    position: z.number().int().min(0)
-  })
-).max(20);
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
-  const data = await getUserByUsername(username);
-  
-  if (!data) {
+  const userData = await getUserByUsername(username);
+
+  if (!userData) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
-  
+
   return Response.json({
-    name: data.name,
-    avatar: data.avatar,
-    bio: data.bio,
-    links: data.links
+    user: {
+      name: userData.name,
+      avatar: userData.avatar,
+      bio: userData.bio,
+      background: userData.background,
+      badgeOption: userData.badgeOption,
+    },
+    links: userData.links || [],
   });
 }
 
@@ -42,25 +39,40 @@ export async function PUT(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
-  const body = await request.json();
-  
+  const sessionCookie = request.headers.get('Cookie')?.split('biolink_session=')[1]?.split(';')[0];
+
+  if (!sessionCookie) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    if (body.profile) {
-      const profileData = ProfileUpdateSchema.parse(body.profile);
-      await updateUserProfile(body.userId, profileData);
+    const body = await request.json();
+    const parsedProfile = ProfileUpdateSchema.safeParse(body.profile);
+
+    if (!parsedProfile.success) {
+      return Response.json({ error: 'Invalid input', details: parsedProfile.error.flatten() }, { status: 400 });
     }
-    
-    if (body.links) {
-      const linksData = LinksUpdateSchema.parse(body.links);
-      await saveUserLinks(body.userId, linksData);
+
+    const { name, username: newUsername, avatar, bio, background } = parsedProfile.data;
+
+    if (newUsername !== username) {
+      const existingUser = await getUserByUsername(newUsername);
+      if (existingUser && existingUser._id.toString() !== sessionCookie) {
+        return Response.json({ error: 'Username already taken' }, { status: 400 });
+      }
     }
-    
-    return Response.json({ success: true });
+
+    const updatedUser = await updateUserProfile(sessionCookie, {
+      name,
+      username: newUsername,
+      avatar,
+      bio,
+      background,
+    });
+
+    return Response.json({ user: updatedUser });
   } catch (error) {
-    return Response.json({ 
-      error: error instanceof z.ZodError 
-        ? 'Validation failed' 
-        : 'Failed to update data' 
-    }, { status: 400 });
+    console.error('Update error:', error);
+    return Response.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 }

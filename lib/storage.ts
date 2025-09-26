@@ -7,6 +7,7 @@ let cachedDb: Db | null = null;
 
 export async function connectDB() {
   if (cachedDb) return cachedDb;
+
   if (!cachedClient) {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI not set in environment variables');
@@ -14,13 +15,16 @@ export async function connectDB() {
     cachedClient = new MongoClient(process.env.MONGODB_URI);
     await cachedClient.connect();
   }
+
   if (!cachedDb) {
-    cachedDb = cachedClient.db();
+    cachedDb = cachedClient.db(); // Use default database from URI
   }
+
   return cachedDb;
 }
 
 // --- User Functions (Node.js only) ---
+
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -101,7 +105,7 @@ export async function createUser(email: string, password: string, username: stri
     name,
     passwordHash,
     background, // ✅ Save background
-    ipAddress, // ✅ Track IP for limits
+    ipAddress, // ✅ Track IP for limits (if needed)
     isEmailVerified: true,
     createdAt: new Date()
   });
@@ -121,7 +125,7 @@ export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne(
     { email },
-    { projection: { passwordHash: 1 } } // Only get passwordHash
+    { projection: { passwordHash: 1 } } // Only get passwordHash for auth
   );
   if (!user) return null;
 
@@ -164,6 +168,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ FIXED updateUserProfile with null check
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -189,7 +194,16 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
 
+  // --- Null Check for updatedUser ---
   const updatedUser = await database.collection('users').findOne({ _id: objectId });
+  if (!updatedUser) {
+    // This scenario is unlikely if the update succeeded, but TS requires the check.
+    // Consider throwing an error or handling differently based on your app's logic.
+    console.error(`Failed to retrieve user after update for ID: ${userId}`);
+    throw new Error('User not found after update');
+  }
+  // --- End Null Check ---
+
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
   return {
@@ -203,7 +217,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     background: updatedUser.background || '', // ✅ Return background
     isEmailVerified: updatedUser.isEmailVerified || false,
     createdAt: updatedUser.createdAt || new Date().toISOString(),
-    passwordHash: updatedUser.passwordHash,
+    passwordHash: updatedUser.passwordHash, // Include if needed by calling function
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',

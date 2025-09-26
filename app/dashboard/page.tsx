@@ -8,7 +8,7 @@ interface Link {
   url: string;
   title: string;
   icon: string;
-  position: number; // Add position for ordering if needed by your backend
+  position: number;
 }
 
 interface User {
@@ -17,9 +17,8 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
-  background: string; // ✅ Crucial: Include background in the state type
+  background: string; // ✅ Include background in interface
   isEmailVerified: boolean;
-  // links are managed separately in the `links` state
 }
 
 export default function Dashboard() {
@@ -29,12 +28,10 @@ export default function Dashboard() {
     username: '',
     avatar: '',
     bio: '',
-    background: '', // ✅ Initialize background state
+    background: '', // ✅ Initialize background
     isEmailVerified: true,
   });
-  const [links, setLinks] = useState<Link[]>([
-    { id: Date.now().toString(), url: '', title: '', icon: '', position: 0 },
-  ]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -47,16 +44,14 @@ export default function Dashboard() {
         setLoading(true);
         const res = await fetch('/api/dashboard/data');
         if (!res.ok) {
-          // Handle 401 Unauthorized (e.g., invalid/expired session cookie)
           if (res.status === 401) {
-             console.warn("Unauthorized access, redirecting to login.");
-             // Clear potentially bad cookie if needed or just redirect
+            console.warn("Unauthorized, redirecting to login.");
           }
           router.push('/auth/login');
           return;
         }
         const data = await res.json();
-        console.log("Data fetched from API:", data); // Log for debugging
+        console.log("Fetched user data:", data); // Debug log
 
         // --- Crucial: Populate user state including background ---
         setUser({
@@ -65,14 +60,13 @@ export default function Dashboard() {
           username: data.user.username || '',
           avatar: data.user.avatar || '',
           bio: data.user.bio || '',
-          background: data.user.background || '', // ✅ Load background from API
+          background: data.user.background || '', // ✅ Load background
           isEmailVerified: data.user.isEmailVerified ?? true,
         });
 
         // --- Crucial: Populate links state ---
-        // Ensure links is always an array, sort by position if available
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
-        const sortedLinks = fetchedLinks.sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+        const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
           sortedLinks.length > 0
             ? sortedLinks.map((link: any) => ({
@@ -82,41 +76,28 @@ export default function Dashboard() {
                 icon: link.icon || '',
                 position: link.position ?? 0,
               }))
-            : [{ id: Date.now().toString(), url: '', title: '', icon: '', position: 0 }]
+            : []
         );
       } catch (error) {
         console.error('Fetch error:', error);
-        // Optional: Show user-friendly error message
-        // setMessage({ type: 'error', text: 'Failed to load dashboard data.' });
-        router.push('/auth/login'); // Redirect on error
+        router.push('/auth/login');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-    // Run once on mount, router is a stable dependency
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]); // Add router to dependency array
+  }, [router]);
 
   const handleLogout = async () => {
     try {
-      // Call the logout API to clear the session cookie
-      const response = await fetch('/api/auth/logout', { method: 'POST' });
-      if (response.ok) {
-        console.log("Logout successful");
-      } else {
-        console.error("Logout API returned non-OK status:", response.status);
-      }
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Logout error:', error);
-      // Optionally, still redirect even if API call fails
     } finally {
-      // Always redirect to login page after attempting logout
       router.push('/auth/login');
     }
   };
-
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -126,7 +107,6 @@ export default function Dashboard() {
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     setLinks((prevLinks) => {
       const newLinks = [...prevLinks];
-      // Ensure the link object has all properties before updating
       newLinks[index] = { ...newLinks[index], [field]: value };
       return newLinks;
     });
@@ -148,30 +128,26 @@ export default function Dashboard() {
     setMessage(null);
 
     try {
-      // Prepare data to send to the backend
-      // Ensure links have correct structure before sending
       const linksToSend = links
-        .filter((link) => link.url.trim() && link.title.trim()) // Basic validation
+        .filter((link) => link.url.trim() && link.title.trim())
         .map((link, index) => ({
           id: link.id,
           url: link.url.trim(),
           title: link.title.trim(),
           icon: link.icon?.trim() || '',
-          position: index, // Backend often manages position based on array order
+          position: index,
         }));
 
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profile: {
             name: user.name.trim(),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || '', // ✅ Send background to API
+            background: user.background?.trim() || '', // ✅ Send background
           },
           links: linksToSend,
         }),
@@ -181,16 +157,12 @@ export default function Dashboard() {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        // Optional: Refetch data to ensure UI matches server state exactly
-        // await refetchUserData();
       } else {
-        // Handle specific error messages from backend
         const errorMessage = data.error || 'Failed to save changes.';
-        console.error('Save error from backend:', errorMessage);
         setMessage({ type: 'error', text: errorMessage });
       }
     } catch (error: any) {
-      console.error('Network or unexpected save error:', error);
+      console.error('Save error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsSaving(false);
@@ -201,15 +173,6 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Optional: Handle case where user data failed to load but didn't redirect
-  if (!user._id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-        Error loading user data. Please try logging in again.
       </div>
     );
   }
@@ -303,14 +266,14 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* ✅ Crucial: Background GIF Input Field */}
+                {/* ✅ Background GIF Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
                     type="url"
-                    name="background" // Name attribute is crucial for handleProfileChange
-                    value={user.background} // Value is bound to user.background state
-                    onChange={handleProfileChange} // Updates user.background state
+                    name="background" // Crucial for handleProfileChange
+                    value={user.background} // Bound to state
+                    onChange={handleProfileChange} // Updates state
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="https://media.giphy.com/.../background.gif"
                   />
@@ -392,7 +355,6 @@ export default function Dashboard() {
                   <div className="text-center py-8 text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
                     </svg>
                     <p>No links added yet</p>
                   </div>
@@ -403,11 +365,11 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Preview Card */}
+            {/* ✅ FIXED Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
-                {/* ✅ Display Background GIF in Preview */}
+                {/* ✅ Display Background GIF */}
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
@@ -453,19 +415,33 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Stats Card */}
+            {/* ✅ FIXED Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Links</span>
+                  <span className="text-gray-400">Total Links</span>
                   <span className="text-white font-medium">{links.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Profile Complete</span>
+                  <span className="text-gray-400">Profile Completion</span>
                   <span className="text-white font-medium">
-                    {user.name && user.username ? '100%' : '0%'}
+                    {/* Simple calculation: name, username, avatar/bio, background are key fields */}
+                    {(() => {
+                      const completedFields = [
+                        user.name,
+                        user.username,
+                        user.avatar || user.bio,
+                        user.background,
+                      ].filter(Boolean).length;
+                      const totalFields = 4;
+                      return `${Math.round((completedFields / totalFields) * 100)}%`;
+                    })()}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Last Updated</span>
+                  <span className="text-white font-medium">Just now</span>
                 </div>
               </div>
             </div>
@@ -474,13 +450,7 @@ export default function Dashboard() {
 
         {/* Status Message */}
         {message && (
-          <div
-            className={`fixed bottom-6 right-6 p-4 rounded-xl ${
-              message.type === 'success'
-                ? 'bg-green-900/80 text-green-200 border border-green-800'
-                : 'bg-red-900/80 text-red-200 border border-red-800'
-            } max-w-sm`}
-          >
+          <div className={`fixed bottom-6 right-6 p-4 rounded-xl ${message.type === 'success' ? 'bg-green-900/80 text-green-200 border border-green-800' : 'bg-red-900/80 text-red-200 border border-red-800'} max-w-sm`}>
             {message.text}
           </div>
         )}

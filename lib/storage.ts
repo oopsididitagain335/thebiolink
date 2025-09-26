@@ -51,17 +51,17 @@ export async function createUser(email: string, password: string, username: stri
     name,
     avatar: '',
     bio: '',
-    isEmailVerified: false,
+    isEmailVerified: true, // Auto-verified
     createdAt: new Date().toISOString(),
     badgeOption: null,
     badgePaid: false,
     badgePurchaseTimestamp: null
   });
 
-  return { id: userId.toString(), email, username, name, avatar: '', bio: '', isEmailVerified: false, createdAt: new Date().toISOString(), badgeOption: null, badgePaid: false, badgePurchaseTimestamp: null };
+  return { id: userId.toString(), email, username, name, avatar: '', bio: '', isEmailVerified: true, createdAt: new Date().toISOString(), badgeOption: null, badgePaid: false, badgePurchaseTimestamp: null };
 }
 
-export async function updateUser(userId: string, updates: any) {
+export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
 
@@ -87,6 +87,8 @@ export async function updateUser(userId: string, updates: any) {
   );
 
   const updatedUser = await database.collection('users').findOne({ _id: objectId });
+  if (!updatedUser) throw new Error('Failed to retrieve updated user');
+
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
   return {
@@ -133,14 +135,12 @@ export async function saveUserLinks(userId: string, links: any[]) {
     await database.collection('links').insertMany(cleanedLinks);
   }
 
-  const savedLinks = await database.collection('links').find({ userId: objectId }).toArray();
-
-  return savedLinks.map((link: any) => ({
-    id: link._id.toString(),
+  return links.map((link, index) => ({
+    id: link.id || cleanedLinks[index]._id.toString(),
     url: link.url,
     title: link.title,
     icon: link.icon,
-    position: link.position
+    position: index
   }));
 }
 

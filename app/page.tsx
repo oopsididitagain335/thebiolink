@@ -67,7 +67,7 @@ export default function HomePage() {
         
         <div className="text-center text-gray-500">
           <p className="text-sm">
-            Already have a BioLink? Visit <span className="font-mono text-indigo-400">yourname.thebiolink.lol</span>
+            Already have a BioLink? Visit <span className="font-mono text-indigo-400">thebiolink.lol/youruser</span>
           </p>
         </div>
       </div>

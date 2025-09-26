@@ -40,7 +40,8 @@ export async function getUserByUsername(username: string) {
     email: user.email || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    background: user.background || '', // ✅ Background field
+    background: user.background || '',
+    badges: user.badges || [], // ✅ Include badges
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
     links: links.map((link: any) => ({
@@ -69,7 +70,8 @@ export async function getUserById(id: string) {
       email: user.email || '',
       avatar: user.avatar || '',
       bio: user.bio || '',
-      background: user.background || '', // ✅ Background field
+      background: user.background || '',
+      badges: user.badges || [], // ✅ Include badges
       isEmailVerified: user.isEmailVerified || false,
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
@@ -104,8 +106,9 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     passwordHash,
-    background, // ✅ Save background
+    background,
     ipAddress,
+    badges: [], // ✅ Initialize empty badges array
     isEmailVerified: true,
     createdAt: new Date()
   });
@@ -115,7 +118,8 @@ export async function createUser(email: string, password: string, username: stri
     email,
     username,
     name,
-    background, // ✅ Return background
+    background,
+    badges: [], // ✅ Return empty badges
     isEmailVerified: true,
     createdAt: new Date().toISOString()
   };
@@ -137,7 +141,8 @@ export async function getUserByEmail(email: string) {
     email: user.email || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    background: user.background || '', // ✅ Return background
+    background: user.background || '',
+    badges: user.badges || [], // ✅ Include badges
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash
@@ -168,7 +173,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with proper null check and background handling
+// ✅ FIXED updateUserProfile with null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -178,7 +183,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || '' // ✅ Handle background
+    background: updates.background?.trim() || ''
   };
 
   if (cleanedUpdates.username) {
@@ -199,7 +204,6 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
-    // This is an unexpected error, but TS requires the check.
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
@@ -207,7 +211,6 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
-  // --- Return the updated user data including background ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -216,7 +219,8 @@ export async function updateUserProfile(userId: string, updates: any) {
     email: updatedUserDocument.email || '',
     avatar: updatedUserDocument.avatar || '',
     bio: updatedUserDocument.bio || '',
-    background: updatedUserDocument.background || '', // ✅ Return background
+    background: updatedUserDocument.background || '',
+    badges: updatedUserDocument.badges || [], // ✅ Return badges
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
@@ -228,4 +232,69 @@ export async function updateUserProfile(userId: string, updates: any) {
       position: link.position || 0
     })).sort((a: any, b: any) => a.position - b.position)
   };
+}
+
+// ✅ ADMIN PANEL FUNCTIONS
+
+// Add badge to user
+export async function addUserBadge(userId: string, badge: { id: string; name: string; icon: string; awardedAt: string }) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+  
+  await database.collection('users').updateOne(
+    { _id: objectId },
+    { $push: { badges: badge } }
+  );
+}
+
+// Remove badge from user
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+  
+  await database.collection('users').updateOne(
+    { _id: objectId },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+// Get all users (admin only)
+export async function getAllUsers() {
+  const database = await connectDB();
+  const users = await database.collection('users').find({}).toArray();
+  
+  return users.map((user: any) => ({
+    id: user._id.toString(),
+    email: user.email,
+    username: user.username,
+    name: user.name,
+    badges: user.badges || []
+  }));
+}
+
+// Create new badge
+export async function createBadge(name: string, icon: string) {
+  const database = await connectDB();
+  const badgeId = new ObjectId().toString();
+  
+  await database.collection('badges').insertOne({
+    id: badgeId,
+    name,
+    icon,
+    createdAt: new Date().toISOString()
+  });
+  
+  return { id: badgeId, name, icon };
+}
+
+// Get all available badges
+export async function getAllBadges() {
+  const database = await connectDB();
+  const badges = await database.collection('badges').find({}).toArray();
+  
+  return badges.map((badge: any) => ({
+    id: badge.id,
+    name: badge.name,
+    icon: badge.icon
+  }));
 }

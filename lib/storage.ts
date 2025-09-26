@@ -33,8 +33,8 @@ interface UserDoc {
   avatar?: string;
   bio?: string;
   background?: string;
-  backgroundVideo?: string; // ✅ Add video field
-  backgroundAudio?: string; // ✅ Add audio field
+  backgroundVideo?: string;
+  backgroundAudio?: string;
   badges: Array<{
     id: string;
     name: string;
@@ -71,8 +71,8 @@ export async function getUserByUsername(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    backgroundVideo: user.backgroundVideo || '', // ✅ Return video
-    backgroundAudio: user.backgroundAudio || '', // ✅ Return audio
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     links: links.map((link: any) => ({
       id: link._id.toString(),
@@ -100,8 +100,8 @@ export async function getUserById(id: string) {
       avatar: user.avatar || '',
       bio: user.bio || '',
       background: user.background || '',
-      backgroundVideo: user.backgroundVideo || '', // ✅ Return video
-      backgroundAudio: user.backgroundAudio || '', // ✅ Return audio
+      backgroundVideo: user.backgroundVideo || '',
+      backgroundAudio: user.backgroundAudio || '',
       badges: user.badges || [],
       isEmailVerified: user.isEmailVerified || false,
       isBanned: user.isBanned || false,
@@ -140,8 +140,6 @@ export async function createUser(email: string, password: string, username: stri
     name,
     passwordHash,
     background,
-    backgroundVideo: '', // ✅ Initialize empty video
-    backgroundAudio: '', // ✅ Initialize empty audio
     ipAddress,
     badges: [],
     isEmailVerified: true,
@@ -155,8 +153,6 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     background,
-    backgroundVideo: '', // ✅ Return empty video
-    backgroundAudio: '', // ✅ Return empty audio
     badges: [],
     isEmailVerified: true,
     isBanned: false,
@@ -181,8 +177,8 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    backgroundVideo: user.backgroundVideo || '', // ✅ Return video
-    backgroundAudio: user.backgroundAudio || '', // ✅ Return audio
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -216,7 +212,6 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with media fields
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -227,12 +222,12 @@ export async function updateUserProfile(userId: string, updates: any) {
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
-    backgroundVideo: updates.backgroundVideo?.trim() || '', // ✅ Add video field
-    backgroundAudio: updates.backgroundAudio?.trim() || '' // ✅ Add audio field
+    backgroundVideo: updates.backgroundVideo?.trim() || '',
+    backgroundAudio: updates.backgroundAudio?.trim() || ''
   };
 
   if (cleanedUpdates.username) {
-    const existing = await database.collection('users').findOne({ 
+    const existing = await database.collection('users').findOne({
       username: cleanedUpdates.username,
       _id: { $ne: objectId }
     });
@@ -244,19 +239,15 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
 
-  // --- Crucial: Fetch the updated user document ---
   const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
 
-  // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
-  // --- End Null Check ---
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
-  // --- Return the updated user data including media fields ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -266,8 +257,8 @@ export async function updateUserProfile(userId: string, updates: any) {
     avatar: updatedUserDocument.avatar || '',
     bio: updatedUserDocument.bio || '',
     background: updatedUserDocument.background || '',
-    backgroundVideo: updatedUserDocument.backgroundVideo || '', // ✅ Return video
-    backgroundAudio: updatedUserDocument.backgroundAudio || '', // ✅ Return audio
+    backgroundVideo: updatedUserDocument.backgroundVideo || '',
+    backgroundAudio: updatedUserDocument.backgroundAudio || '',
     badges: updatedUserDocument.badges || [],
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     isBanned: updatedUserDocument.isBanned || false,
@@ -282,4 +273,71 @@ export async function updateUserProfile(userId: string, updates: any) {
       position: link.position || 0
     })).sort((a: any, b: any) => a.position - b.position)
   };
+}
+
+// --- ADMIN PANEL FUNCTIONS ---
+
+// ✅ Add badge to user
+export async function addUserBadge(userId: string, badge: { id: string; name: string; icon: string; awardedAt: string }) {
+  const database = await connectDB();
+  const userObjectId = new ObjectId(userId);
+
+  await database.collection('users').updateOne(
+    { _id: userObjectId },
+    { $push: { badges: badge } }
+  );
+}
+
+// Remove badge from user
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const database = await connectDB();
+  const userObjectId = new ObjectId(userId);
+
+  await database.collection('users').updateOne(
+    { _id: userObjectId },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+// Get all users (admin only)
+export async function getAllUsers() {
+  const database = await connectDB();
+  const users = await database.collection('users').find({}).toArray();
+
+  return users.map((user) => ({
+    id: user._id.toString(),
+    email: user.email,
+    username: user.username,
+    name: user.name || '',
+    badges: user.badges || [],
+    isBanned: user.isBanned || false,
+    bannedAt: user.bannedAt
+  }));
+}
+
+// ✅ Create new badge
+export async function createBadge(name: string, icon: string) {
+  const database = await connectDB();
+  const badgeId = new ObjectId().toString();
+
+  await database.collection('badges').insertOne({
+    id: badgeId,
+    name,
+    icon,
+    createdAt: new Date().toISOString()
+  });
+
+  return { id: badgeId, name, icon };
+}
+
+// ✅ Get all available badges
+export async function getAllBadges() {
+  const database = await connectDB();
+  const badges = await database.collection('badges').find({}).toArray();
+
+  return badges.map((badge: any) => ({
+    id: badge.id,
+    name: badge.name,
+    icon: badge.icon
+  }));
 }

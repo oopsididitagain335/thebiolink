@@ -1,3 +1,4 @@
+// app/[username]/page.tsx
 import { notFound } from 'next/navigation';
 import { getUserByUsername } from '@/lib/storage';
 import Link from 'next/link';
@@ -13,8 +14,9 @@ interface UserData {
   name: string;
   avatar?: string;
   bio?: string;
-  background?: string; // ✅ Added background field
+  background?: string;
   links: LinkItem[];
+  badgeOption?: string | null; // ✅ Added badge field
 }
 
 interface PageProps {
@@ -30,11 +32,11 @@ export default async function UserPage({ params }: PageProps) {
       notFound();
     }
 
-    const { name = '', avatar = '', bio = '', background = '', links = [] } = userData as UserData;
+    const { name = '', avatar = '', bio = '', background = '', links = [], badgeOption = null } = userData as UserData;
 
     return (
       <div className="min-h-screen relative">
-        {/* ✅ Added Background GIF */}
+        {/* Background GIF */}
         {background && (
           <div 
             className="absolute inset-0 z-0"
@@ -54,6 +56,15 @@ export default async function UserPage({ params }: PageProps) {
           <div className="w-full max-w-md">
             {/* Profile Card */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center mb-6">
+              <div className="flex justify-center mb-4">
+                {/* ✅ Badge Display */}
+                {badgeOption && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-500 text-white mr-2">
+                    {badgeOption}
+                  </span>
+                )}
+              </div>
+              
               {avatar ? (
                 <img 
                   src={avatar} 

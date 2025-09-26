@@ -23,14 +23,45 @@ export async function connectDB() {
   return cachedDb;
 }
 
+// --- User Schema Interface ---
+interface UserDoc {
+  _id: ObjectId;
+  email: string;
+  username: string;
+  name: string;
+  passwordHash: string;
+  avatar?: string;
+  bio?: string;
+  background?: string;
+  badges: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    awardedAt: string;
+  }>;
+  isEmailVerified: boolean;
+  createdAt: Date;
+  ipAddress?: string; // For account limits
+}
+
+// --- Link Schema Interface ---
+interface LinkDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  url: string;
+  title: string;
+  icon?: string;
+  position: number;
+}
+
 // --- User Functions (Node.js only) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ username });
+  const user = await database.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
 
-  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  const links = await database.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
 
   return {
     _id: user._id.toString(),
@@ -41,26 +72,26 @@ export async function getUserByUsername(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [], // ✅ Include badges
+    badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
-    links: links.map((link: any) => ({
+    links: links.map((link) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a: any, b: any) => a.position - b.position)
+    })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
   };
 }
 
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
-    const user = await database.collection('users').findOne({ _id: new ObjectId(id) });
+    const user = await database.collection<UserDoc>('users').findOne({ _id: new ObjectId(id) });
     if (!user) return null;
 
-    const links = await database.collection('links').find({ userId: user._id }).toArray();
+    const links = await database.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
 
     return {
       _id: user._id.toString(),
@@ -71,36 +102,43 @@ export async function getUserById(id: string) {
       avatar: user.avatar || '',
       bio: user.bio || '',
       background: user.background || '',
-      badges: user.badges || [], // ✅ Include badges
+      badges: user.badges || [],
       isEmailVerified: user.isEmailVerified || false,
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
-      links: links.map((link: any) => ({
+      links: links.map((link) => ({
         id: link._id.toString(),
         url: link.url || '',
         title: link.title || '',
         icon: link.icon || '',
         position: link.position || 0
-      })).sort((a: any, b: any) => a.position - b.position)
+      })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     };
   } catch {
     return null;
   }
 }
 
-export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
+export async function createUser(
+  email: string, 
+  password: string, 
+  username: string, 
+  name: string, 
+  background: string = '', 
+  ipAddress: string
+) {
   const database = await connectDB();
 
-  const existingEmail = await database.collection('users').findOne({ email });
+  const existingEmail = await database.collection<UserDoc>('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
 
-  const existingUsername = await database.collection('users').findOne({ username });
+  const existingUsername = await database.collection<UserDoc>('users').findOne({ username });
   if (existingUsername) throw new Error('Username already taken');
 
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
 
-  await database.collection('users').insertOne({
+  await database.collection<UserDoc>('users').insertOne({
     _id: userId,
     email,
     username,
@@ -108,10 +146,10 @@ export async function createUser(email: string, password: string, username: stri
     passwordHash,
     background,
     ipAddress,
-    badges: [], // ✅ Initialize empty badges array
+    badges: [],
     isEmailVerified: true,
     createdAt: new Date()
-  });
+  } as UserDoc); // Type assertion to help with complex nested types
 
   return {
     id: userId.toString(),
@@ -119,7 +157,7 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     background,
-    badges: [], // ✅ Return empty badges
+    badges: [],
     isEmailVerified: true,
     createdAt: new Date().toISOString()
   };
@@ -127,7 +165,7 @@ export async function createUser(email: string, password: string, username: stri
 
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne(
+  const user = await database.collection<UserDoc>('users').findOne(
     { email },
     { projection: { passwordHash: 1 } }
   );
@@ -142,7 +180,7 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
-    badges: user.badges || [], // ✅ Include badges
+    badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash
@@ -173,7 +211,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with null check and badge support
+// ✅ FIXED updateUserProfile with proper null check and badge handling
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -187,20 +225,20 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   if (cleanedUpdates.username) {
-    const existing = await database.collection('users').findOne({
+    const existing = await database.collection<UserDoc>('users').findOne({
       username: cleanedUpdates.username,
       _id: { $ne: objectId }
     });
     if (existing) throw new Error('Username already taken');
   }
 
-  await database.collection('users').updateOne(
+  await database.collection<UserDoc>('users').updateOne(
     { _id: objectId },
     { $set: cleanedUpdates }
   );
 
   // --- Crucial: Fetch the updated user document ---
-  const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
+  const updatedUserDocument = await database.collection<UserDoc>('users').findOne({ _id: objectId });
 
   // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
@@ -209,9 +247,9 @@ export async function updateUserProfile(userId: string, updates: any) {
   }
   // --- End Null Check ---
 
-  const links = await database.collection('links').find({ userId: objectId }).toArray();
+  const links = await database.collection<LinkDoc>('links').find({ userId: objectId }).toArray();
 
-  // --- Return the updated user data including background ---
+  // --- Return the updated user data including background and badges ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -220,42 +258,45 @@ export async function updateUserProfile(userId: string, updates: any) {
     email: updatedUserDocument.email || '',
     avatar: updatedUserDocument.avatar || '',
     bio: updatedUserDocument.bio || '',
-    background: updatedUserDocument.background || '', // ✅ Return background
+    background: updatedUserDocument.background || '',
     badges: updatedUserDocument.badges || [], // ✅ Return badges
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
-    links: links.map((link: any) => ({
+    links: links.map((link) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a: any, b: any) => a.position - b.position)
+    })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
   };
 }
 
-// ✅ FIXED ADMIN PANEL FUNCTIONS
+// --- ADMIN PANEL FUNCTIONS ---
 
-// Add badge to user (FIXED TYPE ERROR)
-export async function addUserBadge(userId: string, badge: { id: string; name: string; icon: string; awardedAt: string }) {
+// ✅ FIXED addUserBadge with correct $push syntax
+export async function addUserBadge(
+  userId: string, 
+  badge: { id: string; name: string; icon: string; awardedAt: string }
+) {
   const database = await connectDB();
-  const objectId = new ObjectId(userId);
+  const userObjectId = new ObjectId(userId);
   
-  // ✅ Fix: Pass the badge object directly, not wrapped
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $push: { badges: badge } }
+  // ✅ Fix: Use $each to satisfy MongoDB driver types
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $push: { badges: { $each: [badge] } } } // <- Key change
   );
 }
 
 // Remove badge from user
 export async function removeUserBadge(userId: string, badgeId: string) {
   const database = await connectDB();
-  const objectId = new ObjectId(userId);
+  const userObjectId = new ObjectId(userId);
   
-  await database.collection('users').updateOne(
-    { _id: objectId },
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
     { $pull: { badges: { id: badgeId } } }
   );
 }
@@ -263,9 +304,9 @@ export async function removeUserBadge(userId: string, badgeId: string) {
 // Get all users (admin only)
 export async function getAllUsers() {
   const database = await connectDB();
-  const users = await database.collection('users').find({}).toArray();
+  const users = await database.collection<UserDoc>('users').find({}).toArray();
   
-  return users.map((user: any) => ({
+  return users.map((user) => ({
     id: user._id.toString(),
     email: user.email,
     username: user.username,

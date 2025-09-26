@@ -1,7 +1,4 @@
-"use client";
-
-import Image from 'next/image';
-
+// components/BioCard.tsx
 interface BioCardProps {
   name: string;
   avatar?: string;
@@ -9,50 +6,30 @@ interface BioCardProps {
 }
 
 export default function BioCard({ name, avatar, bio }: BioCardProps) {
-  // Use original avatar URL without Next.js Image optimization for external URLs
-  const safeAvatar = avatar ? encodeURI(decodeURI(avatar)) : '';
-  
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center transition-colors duration-200">
+    <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center">
       {avatar ? (
-        <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-md">
-          {/* Use regular img tag for external URLs */}
-          <img
-            src={safeAvatar}
-            alt={name}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                parent.innerHTML = `
-                  <div class="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span class="text-4xl text-white font-bold">${name.charAt(0).toUpperCase()}</span>
-                  </div>
-                `;
-              }
-            }}
-          />
-        </div>
+        <img 
+          src={avatar} 
+          alt={name} 
+          className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+        />
       ) : (
-        <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-          <span className="text-4xl text-white font-bold">{name.charAt(0).toUpperCase()}</span>
+        <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-4xl text-white font-bold">
+            {name.charAt(0).toUpperCase()}
+          </span>
         </div>
       )}
       
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{name}</h1>
+      <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
       
-      {bio && (
-        <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-xs mx-auto">
-          {bio}
-        </p>
-      )}
+      {bio && <p className="text-gray-200 mb-6 max-w-xs mx-auto">{bio}</p>}
       
       <div className="flex justify-center space-x-2 mt-2">
-        <div className="w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-        <div className="w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-        <div className="w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+        <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+        <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
       </div>
     </div>
   );

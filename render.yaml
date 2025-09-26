@@ -8,9 +8,9 @@ services:
     startCommand: "npm start"
     envVars:
       - key: NODE_VERSION
-        value: "20"
-      - key: NEXT_PUBLIC_BASE_URL
-        value: "https://thebiolink.lol"
+        value: "22.16.0"
+      - key: MONGODB_URI
+        sync: true
     disk:
       name: biolink-data
       mountPath: /var/data

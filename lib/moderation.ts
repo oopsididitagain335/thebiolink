@@ -2,14 +2,14 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
 // --- Prohibited Words List ---
-const PROHIBITED_WORDS = [
+const PROHIBITED_WORDS: string[] = [
   'nigger', 'nigga', 'faggot', 'paki', 'chink', 'gook', 'spic', 'coon',
   'dyke', 'tranny', 'kike', 'homo', 'retard', 'cunt', 'bitch', 'whore',
   'slut', 'rape', 'rapist', 'pedo', 'pedophile', 'incest', 'bestiality'
 ];
 
 // --- Blacklisted IPs ---
-const BLACKLISTED_IPS = [
+const BLACKLISTED_IPS: string[] = [
   // Add known spammer/scammer IPs here
   // '123.456.789.000',
   // '987.654.321.000'

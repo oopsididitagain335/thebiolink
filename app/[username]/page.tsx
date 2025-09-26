@@ -1,8 +1,6 @@
 // app/[username]/page.tsx
 import { notFound } from 'next/navigation';
 import { getUserByUsername } from '@/lib/storage';
-import BioCard from '@/components/BioCard';
-import LinkCard from '@/components/LinkCard';
 
 // ✅ Define interfaces for type safety
 interface Badge {
@@ -104,49 +102,71 @@ export default async function UserPage({ params }: PageProps) {
         {/* ✅ Transparent container in front of GIF */}
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
-            {/* ✅ BioCard with transparency */}
-            <BioCard 
-              name={name} 
-              avatar={avatar} 
-              bio={bio} 
-            />
-            
-            {/* ✅ Badges Section (Non-transparent) */}
-            {badges.length > 0 && (
-              <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Badges</h2>
-                <div className="flex flex-wrap gap-3">
-                  {badges.map((badge: Badge) => (
-                    <div 
-                      key={badge.id} 
-                      className="group relative"
-                      title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
-                    >
-                      <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-4 py-2 transition-all">
-                        <img 
-                          src={badge.icon} 
-                          alt={badge.name} 
-                          className="w-6 h-6 mr-2" 
-                        />
-                        <span className="text-white font-medium text-sm">{badge.name}</span>
-                      </div>
-                    </div>
-                  ))}
+            {/* ✅ Profile Box with Transparent Background */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+              {/* ✅ User Info */}
+              <div className="flex items-center mb-4">
+                {avatar ? (
+                  <img 
+                    src={avatar} 
+                    alt={name} 
+                    className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                  />
+                ) : (
+                  <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl text-white font-bold">
+                      {name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div className="ml-4">
+                  <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
+                  {bio && <p className="text-gray-300 mb-4">{bio}</p>}
                 </div>
               </div>
-            )}
-            
-            {/* ✅ Links Section */}
+
+              {/* ✅ Badges Section - Same Box */}
+              {badges.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/20">
+                  <h2 className="text-lg font-semibold text-white mb-3">Badges</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {badges.map((badge: Badge) => (
+                      <div 
+                        key={badge.id} 
+                        className="group relative"
+                        title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
+                      >
+                        <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
+                          <img 
+                            src={badge.icon} 
+                            alt={badge.name} 
+                            className="w-5 h-5 mr-2" 
+                          />
+                          <span className="text-white text-sm font-medium">{badge.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ✅ Links Section - Transparent Background */}
             <div className="mt-6 space-y-3">
               {links
                 .filter((link: Link) => link.url && link.title)
                 .map((link: Link) => (
-                  <LinkCard 
+                  <div 
                     key={link.id}
-                    url={link.url}
-                    title={link.title}
-                    icon={link.icon}
-                  />
+                    className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium">{link.title}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
                 ))}
             </div>
             

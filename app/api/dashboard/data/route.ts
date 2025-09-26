@@ -10,7 +10,6 @@ export async function GET() {
   }
 
   try {
-    // Validate session ID
     let userId: string;
     try {
       userId = new ObjectId(sessionId).toString();

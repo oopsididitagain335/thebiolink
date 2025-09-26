@@ -17,7 +17,7 @@ export async function connectDB() {
   }
 
   if (!cachedDb) {
-    cachedDb = cachedClient.db(); // Use default database from URI
+    cachedDb = cachedClient.db();
   }
 
   return cachedDb;
@@ -72,7 +72,7 @@ export async function getUserById(id: string) {
       background: user.background || '', // ✅ Background field
       isEmailVerified: user.isEmailVerified || false,
       createdAt: user.createdAt || new Date().toISOString(),
-      passwordHash: user.passwordHash, // For auth
+      passwordHash: user.passwordHash,
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
@@ -105,7 +105,7 @@ export async function createUser(email: string, password: string, username: stri
     name,
     passwordHash,
     background, // ✅ Save background
-    ipAddress, // ✅ Track IP for limits (if needed)
+    ipAddress,
     isEmailVerified: true,
     createdAt: new Date()
   });
@@ -125,7 +125,7 @@ export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne(
     { email },
-    { projection: { passwordHash: 1 } } // Only get passwordHash for auth
+    { projection: { passwordHash: 1 } }
   );
   if (!user) return null;
 
@@ -168,7 +168,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with null check
+// ✅ FIXED updateUserProfile with proper null check and background handling
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -178,7 +178,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || '' // ✅ Background field
+    background: updates.background?.trim() || '' // ✅ Handle background
   };
 
   if (cleanedUpdates.username) {
@@ -194,11 +194,12 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
 
-  // --- Null Check for updatedUser ---
-  const updatedUser = await database.collection('users').findOne({ _id: objectId });
-  if (!updatedUser) {
-    // This scenario is unlikely if the update succeeded, but TS requires the check.
-    // Consider throwing an error or handling differently based on your app's logic.
+  // --- Crucial: Fetch the updated user document ---
+  const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
+
+  // --- Crucial: Null check for updatedUserDocument ---
+  if (!updatedUserDocument) {
+    // This is an unexpected error, but TS requires the check.
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
@@ -206,18 +207,19 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
+  // --- Return the updated user data including background ---
   return {
-    _id: updatedUser._id.toString(),
-    id: updatedUser._id.toString(),
-    username: updatedUser.username,
-    name: updatedUser.name || '',
-    email: updatedUser.email || '',
-    avatar: updatedUser.avatar || '',
-    bio: updatedUser.bio || '',
-    background: updatedUser.background || '', // ✅ Return background
-    isEmailVerified: updatedUser.isEmailVerified || false,
-    createdAt: updatedUser.createdAt || new Date().toISOString(),
-    passwordHash: updatedUser.passwordHash, // Include if needed by calling function
+    _id: updatedUserDocument._id.toString(),
+    id: updatedUserDocument._id.toString(),
+    username: updatedUserDocument.username,
+    name: updatedUserDocument.name || '',
+    email: updatedUserDocument.email || '',
+    avatar: updatedUserDocument.avatar || '',
+    bio: updatedUserDocument.bio || '',
+    background: updatedUserDocument.background || '', // ✅ Return background
+    isEmailVerified: updatedUserDocument.isEmailVerified || false,
+    createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
+    passwordHash: updatedUserDocument.passwordHash,
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',

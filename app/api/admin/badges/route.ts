@@ -11,6 +11,7 @@ export async function GET() {
 
   try {
     const user = await getUserById(sessionId);
+    // --- Authorization Check ---
     if (!user || user.email !== 'lyharry31@gmail.com') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -18,6 +19,7 @@ export async function GET() {
     const badges = await getAllBadges();
     return Response.json(badges);
   } catch (error) {
+    console.error("Admin GET Badges Error:", error);
     return Response.json({ error: 'Failed to fetch badges' }, { status: 500 });
   }
 }
@@ -30,19 +32,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await getUserById(sessionId);
+    // --- Authorization Check ---
     if (!user || user.email !== 'lyharry31@gmail.com') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { name, icon } = await request.json();
-    
+
     if (!name || !icon) {
       return Response.json({ error: 'Name and icon are required' }, { status: 400 });
     }
-    
+
     const badge = await createBadge(name, icon);
     return Response.json(badge);
   } catch (error) {
+    console.error("Admin POST Create Badge Error:", error);
     return Response.json({ error: 'Failed to create badge' }, { status: 500 });
   }
 }

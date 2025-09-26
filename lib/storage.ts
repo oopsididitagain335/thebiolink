@@ -23,7 +23,7 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// --- User Schema Interface ---
+// --- Update UserDoc Interface to include ban fields ---
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -41,10 +41,12 @@ interface UserDoc {
   }>;
   isEmailVerified: boolean;
   createdAt: Date;
-  ipAddress?: string; // For account limits
+  ipAddress?: string;
+  // ✅ Add ban fields
+  isBanned?: boolean;
+  bannedAt?: string;
 }
 
-// --- Link Schema Interface ---
 interface LinkDoc {
   _id: ObjectId;
   userId: ObjectId;
@@ -54,7 +56,7 @@ interface LinkDoc {
   position: number;
 }
 
-// --- User Functions (Node.js only) ---
+// --- Existing User Functions (unchanged) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -74,14 +76,16 @@ export async function getUserByUsername(username: string) {
     background: user.background || '',
     badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
+    isBanned: user.isBanned || false, // ✅ Include ban status
+    bannedAt: user.bannedAt, // ✅ Include ban timestamp
     createdAt: user.createdAt || new Date().toISOString(),
-    links: links.map((link) => ({
+    links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    })).sort((a: any, b: any) => a.position - b.position)
   };
 }
 
@@ -104,29 +108,24 @@ export async function getUserById(id: string) {
       background: user.background || '',
       badges: user.badges || [],
       isEmailVerified: user.isEmailVerified || false,
+      isBanned: user.isBanned || false, // ✅ Include ban status
+      bannedAt: user.bannedAt, // ✅ Include ban timestamp
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
-      links: links.map((link) => ({
+      links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
         title: link.title || '',
         icon: link.icon || '',
         position: link.position || 0
-      })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      })).sort((a: any, b: any) => a.position - b.position)
     };
   } catch {
     return null;
   }
 }
 
-export async function createUser(
-  email: string, 
-  password: string, 
-  username: string, 
-  name: string, 
-  background: string = '', 
-  ipAddress: string
-) {
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const database = await connectDB();
 
   const existingEmail = await database.collection<UserDoc>('users').findOne({ email });
@@ -146,8 +145,9 @@ export async function createUser(
     passwordHash,
     background,
     ipAddress,
-    badges: [],
+    badges: [], // ✅ Initialize empty badges
     isEmailVerified: true,
+    isBanned: false, // ✅ Initialize not banned
     createdAt: new Date()
   } as UserDoc); // Type assertion to help with complex nested types
 
@@ -157,8 +157,9 @@ export async function createUser(
     username,
     name,
     background,
-    badges: [],
+    badges: [], // ✅ Return empty badges
     isEmailVerified: true,
+    isBanned: false, // ✅ Return not banned
     createdAt: new Date().toISOString()
   };
 }
@@ -182,6 +183,8 @@ export async function getUserByEmail(email: string) {
     background: user.background || '',
     badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
+    isBanned: user.isBanned || false, // ✅ Include ban status
+    bannedAt: user.bannedAt, // ✅ Include ban timestamp
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash
   };
@@ -211,7 +214,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED updateUserProfile with proper null check and badge handling
+// ✅ FIXED updateUserProfile with null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -261,15 +264,17 @@ export async function updateUserProfile(userId: string, updates: any) {
     background: updatedUserDocument.background || '',
     badges: updatedUserDocument.badges || [], // ✅ Return badges
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
+    isBanned: updatedUserDocument.isBanned || false, // ✅ Return ban status
+    bannedAt: updatedUserDocument.bannedAt, // ✅ Return ban timestamp
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
-    links: links.map((link) => ({
+    links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    })).sort((a: any, b: any) => a.position - b.position)
   };
 }
 
@@ -277,12 +282,12 @@ export async function updateUserProfile(userId: string, updates: any) {
 
 // ✅ FIXED addUserBadge with correct $push syntax
 export async function addUserBadge(
-  userId: string, 
+  userId: string,
   badge: { id: string; name: string; icon: string; awardedAt: string }
 ) {
   const database = await connectDB();
   const userObjectId = new ObjectId(userId);
-  
+
   // ✅ Fix: Use $each to satisfy MongoDB driver types
   await database.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
@@ -294,24 +299,26 @@ export async function addUserBadge(
 export async function removeUserBadge(userId: string, badgeId: string) {
   const database = await connectDB();
   const userObjectId = new ObjectId(userId);
-  
+
   await database.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
     { $pull: { badges: { id: badgeId } } }
   );
 }
 
-// Get all users (admin only)
+// ✅ Get all users (admin only) - UPDATED TO INCLUDE BAN STATUS
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database.collection<UserDoc>('users').find({}).toArray();
-  
+
   return users.map((user) => ({
     id: user._id.toString(),
     email: user.email,
     username: user.username,
     name: user.name,
-    badges: user.badges || []
+    badges: user.badges || [],
+    isBanned: user.isBanned || false, // ✅ Include ban status
+    bannedAt: user.bannedAt // ✅ Include ban timestamp
   }));
 }
 
@@ -319,14 +326,14 @@ export async function getAllUsers() {
 export async function createBadge(name: string, icon: string) {
   const database = await connectDB();
   const badgeId = new ObjectId().toString();
-  
+
   await database.collection('badges').insertOne({
     id: badgeId,
     name,
     icon,
     createdAt: new Date().toISOString()
   });
-  
+
   return { id: badgeId, name, icon };
 }
 
@@ -334,10 +341,32 @@ export async function createBadge(name: string, icon: string) {
 export async function getAllBadges() {
   const database = await connectDB();
   const badges = await database.collection('badges').find({}).toArray();
-  
+
   return badges.map((badge: any) => ({
     id: badge.id,
     name: badge.name,
     icon: badge.icon
   }));
+}
+
+// ✅ NEW: Ban a user
+export async function banUser(userId: string) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
+  );
+}
+
+// ✅ NEW: Unban a user
+export async function unbanUser(userId: string) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
+  );
 }

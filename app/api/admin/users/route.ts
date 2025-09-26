@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
     return Response.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Admin POST Add Badge Error:", error);
     // Check for specific MongoDB errors or return a generic one
     if (error instanceof Error && error.message.includes('ObjectId')) {
@@ -99,7 +99,7 @@ export async function DELETE(request: NextRequest) {
     await removeUserBadge(userId, badgeId);
 
     return Response.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Admin DELETE Remove Badge Error:", error);
     // Check for specific MongoDB errors or return a generic one
     if (error instanceof Error && error.message.includes('ObjectId')) {

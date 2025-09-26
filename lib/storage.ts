@@ -1,9 +1,9 @@
 // lib/storage.ts
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 let client: MongoClient;
-let db: any; // Consider typing this properly if possible, e.g., import { Db } from 'mongodb'
+let db: Db; // Properly typed as Db
 
 // Define a User type based on your MongoDB schema
 interface User {
@@ -43,7 +43,7 @@ interface ProfileUpdateData {
   background?: string;
 }
 
-async function connectDB() {
+async function connectDB(): Promise<Db> {
   if (!client) {
     client = new MongoClient(process.env.MONGODB_URI!);
     await client.connect();
@@ -177,7 +177,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     await database.collection<Link>('links').insertMany(cleanedLinks);
   }
   return links.map((link, index) => ({
-    id: link.id || cleanedLinks[index]._id.toString(),
+    id: link.id || cleanedLinks[index]?._id.toString(),
     url: link.url,
     title: link.title,
     icon: link.icon,

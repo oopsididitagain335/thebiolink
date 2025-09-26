@@ -13,7 +13,7 @@ interface UserData {
   name: string;
   avatar?: string;
   bio?: string;
-  background?: string;
+  background?: string; // ✅ Added background field
   links: LinkItem[];
 }
 
@@ -34,7 +34,7 @@ export default async function UserPage({ params }: PageProps) {
 
     return (
       <div className="min-h-screen relative">
-        {/* Background GIF */}
+        {/* ✅ Added Background GIF */}
         {background && (
           <div 
             className="absolute inset-0 z-0"

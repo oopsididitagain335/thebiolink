@@ -3,7 +3,45 @@ import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 let client: MongoClient;
-let db: any;
+let db: any; // Consider typing this properly if possible, e.g., import { Db } from 'mongodb'
+
+// Define a User type based on your MongoDB schema
+interface User {
+  _id: ObjectId;
+  id?: string; // Added for the toString() conversion
+  email: string;
+  passwordHash: string;
+  username: string;
+  name: string;
+  avatar: string;
+  bio: string;
+  background: string;
+  isEmailVerified: boolean;
+  createdAt: string;
+  badgeOption: string | null;
+  badgePaid: boolean;
+  badgePurchaseTimestamp: string | null;
+  signupIp?: string;
+}
+
+// Define a Link type for the links collection
+interface Link {
+  _id: ObjectId;
+  userId: ObjectId;
+  url: string;
+  title: string;
+  icon: string;
+  position: number;
+}
+
+// Define the shape of profile updates
+interface ProfileUpdateData {
+  name: string;
+  username: string;
+  avatar?: string;
+  bio?: string;
+  background?: string;
+}
 
 async function connectDB() {
   if (!client) {
@@ -16,35 +54,32 @@ async function connectDB() {
 
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ email: email.toLowerCase() });
+  const user = await database.collection<User>('users').findOne({ email: email.toLowerCase() });
   return user ? { ...user, id: user._id.toString() } : null;
 }
 
 export async function getUserById(id: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ _id: new ObjectId(id) });
+  const user = await database.collection<User>('users').findOne({ _id: new ObjectId(id) });
   return user ? { ...user, id: user._id.toString() } : null;
 }
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ username: username.toLowerCase() });
+  const user = await database.collection<User>('users').findOne({ username: username.toLowerCase() });
   return user ? { ...user, id: user._id.toString() } : null;
 }
 
 // Modified createUser function to accept background and ip
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ip: string = '') {
   const database = await connectDB();
-  const existingEmail = await database.collection('users').findOne({ email: email.toLowerCase() });
+  const existingEmail = await database.collection<User>('users').findOne({ email: email.toLowerCase() });
   if (existingEmail) throw new Error('Email already registered');
-
-  const existingUsername = await database.collection('users').findOne({ username: username.toLowerCase() });
+  const existingUsername = await database.collection<User>('users').findOne({ username: username.toLowerCase() });
   if (existingUsername) throw new Error('Username already taken');
-
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
-
-  await database.collection('users').insertOne({
+  await database.collection<User>('users').insertOne({
     _id: userId,
     email: email.toLowerCase(),
     passwordHash,
@@ -52,17 +87,14 @@ export async function createUser(email: string, password: string, username: stri
     name,
     avatar: '',
     bio: '',
-    // Include the background provided during signup
     background: background || '',
-    isEmailVerified: true, // Auto-verified
+    isEmailVerified: true,
     createdAt: new Date().toISOString(),
     badgeOption: null,
     badgePaid: false,
     badgePurchaseTimestamp: null,
-    // Optionally store the IP address used for signup
-    signupIp: ip
+    signupIp: ip,
   });
-
   return {
     id: userId.toString(),
     email,
@@ -70,48 +102,39 @@ export async function createUser(email: string, password: string, username: stri
     name,
     avatar: '',
     bio: '',
-    // Include the background in the returned user object
     background: background || '',
     isEmailVerified: true,
     createdAt: new Date().toISOString(),
     badgeOption: null,
     badgePaid: false,
     badgePurchaseTimestamp: null,
-    // Optionally include the IP in the returned object
-    // signupIp: ip
   };
 }
 
-export async function updateUserProfile(userId: string, updates: any) {
+export async function updateUserProfile(userId: string, updates: ProfileUpdateData) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
-  const cleanedUpdates = {
+  const cleanedUpdates: Partial<User> = {
     name: updates.name?.trim() || '',
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || '' // Include background update
+    background: updates.background?.trim() || '',
   };
-
   if (cleanedUpdates.username) {
-    const existing = await database.collection('users').findOne({
+    const existing = await database.collection<User>('users').findOne({
       username: cleanedUpdates.username,
-      _id: { $ne: objectId }
+      _id: { $ne: objectId },
     });
     if (existing) throw new Error('Username already taken');
   }
-
-  await database.collection('users').updateOne(
+  await database.collection<User>('users').updateOne(
     { _id: objectId },
     { $set: cleanedUpdates }
   );
-
-  const updatedUser = await database.collection('users').findOne({ _id: objectId });
+  const updatedUser = await database.collection<User>('users').findOne({ _id: objectId });
   if (!updatedUser) throw new Error('Failed to retrieve updated user');
-
-  const links = await database.collection('links').find({ userId: objectId }).toArray();
-
+  const links = await database.collection<Link>('links').find({ userId: objectId }).toArray();
   return {
     _id: updatedUser._id.toString(),
     id: updatedUser._id.toString(),
@@ -122,25 +145,23 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updatedUser.bio || '',
     isEmailVerified: updatedUser.isEmailVerified || false,
     createdAt: updatedUser.createdAt || new Date().toISOString(),
-    // Include the updated background
     background: updatedUser.background || '',
-    links: links.map((link: any) => ({
+    links: links.map((link) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
-      position: link.position || 0
+      position: link.position || 0,
     })),
     badgeOption: updatedUser.badgeOption || null,
     badgePaid: updatedUser.badgePaid || false,
-    badgePurchaseTimestamp: updatedUser.badgePurchaseTimestamp || null
+    badgePurchaseTimestamp: updatedUser.badgePurchaseTimestamp || null,
   };
 }
 
 export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
   const cleanedLinks = links
     .filter((link) => link.url?.trim() && link.title?.trim())
     .map((link, index) => ({
@@ -149,44 +170,40 @@ export async function saveUserLinks(userId: string, links: any[]) {
       url: link.url.trim(),
       title: link.title.trim(),
       icon: link.icon?.trim() || '',
-      position: index
+      position: index,
     }));
-
-  await database.collection('links').deleteMany({ userId: objectId });
+  await database.collection<Link>('links').deleteMany({ userId: objectId });
   if (cleanedLinks.length > 0) {
-    await database.collection('links').insertMany(cleanedLinks);
+    await database.collection<Link>('links').insertMany(cleanedLinks);
   }
-
   return links.map((link, index) => ({
     id: link.id || cleanedLinks[index]._id.toString(),
     url: link.url,
     title: link.title,
     icon: link.icon,
-    position: index
+    position: index,
   }));
 }
 
 export async function getUserBadgeInfo(userId: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne(
+  const user = await database.collection<User>('users').findOne(
     { _id: new ObjectId(userId) },
     { projection: { badgeOption: 1, badgePaid: 1, badgePurchaseTimestamp: 1 } }
   );
-
   if (!user) {
     return null;
   }
-
   return {
     option: user.badgeOption || null,
     paid: user.badgePaid === true,
-    purchaseTimestamp: user.badgePurchaseTimestamp || null
+    purchaseTimestamp: user.badgePurchaseTimestamp || null,
   };
 }
 
 export async function updateUserBadge(userId: string, option: string) {
   const database = await connectDB();
-  await database.collection('users').updateOne(
+  await database.collection<User>('users').updateOne(
     { _id: new ObjectId(userId) },
     { $set: { badgeOption: option, badgePaid: true, badgePurchaseTimestamp: new Date().toISOString() } }
   );
@@ -194,6 +211,6 @@ export async function updateUserBadge(userId: string, option: string) {
 
 export async function getAllUsers() {
   const database = await connectDB();
-  const users = await database.collection('users').find({}).toArray();
-  return users.map(user => ({ ...user, id: user._id.toString() }));
+  const users = await database.collection<User>('users').find({}).toArray();
+  return users.map((user: User) => ({ ...user, id: user._id.toString() }));
 }

@@ -200,11 +200,13 @@ export default function AdminPanel() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <p className="text-gray-400 mt-2">Manage users and badges</p>
+              <p className="text-gray-400 mt-2">
+                Manage users and badges
+              </p>
             </div>
             <button
               onClick={() => router.push('/dashboard')}
-              className="mt-4 sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="mt-4 sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
             >
               Back to Dashboard
             </button>
@@ -212,7 +214,7 @@ export default function AdminPanel() {
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-900/30 text-green-300 border border-green-800' : 'bg-red-900/30 text-red-300 border border-red-800'} max-w-sm`}>
+          <div className={`mb-6 p-4 rounded-xl ${message.type === 'success' ? 'bg-green-900/80 text-green-200 border border-green-800' : 'bg-red-900/80 text-red-200 border border-red-800'} max-w-sm`}>
             {message.text}
           </div>
         )}

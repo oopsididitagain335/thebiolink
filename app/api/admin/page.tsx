@@ -9,16 +9,20 @@ interface User {
   email: string;
   username: string;
   name: string;
-  badges: Badge[];
-  isBanned: boolean; // ✅ Include ban status
-  bannedAt?: string; // ✅ Include ban timestamp
+  badges: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    awardedAt: string;
+  }>;
+  isBanned: boolean;
+  bannedAt?: string;
 }
 
 interface Badge {
   id: string;
   name: string;
   icon: string;
-  awardedAt?: string;
 }
 
 export default function AdminPanel() {
@@ -28,6 +32,7 @@ export default function AdminPanel() {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedBadge, setSelectedBadge] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
@@ -63,32 +68,13 @@ export default function AdminPanel() {
     fetchData();
   }, [router]);
 
-  // ✅ Handle ban/unban user
-  const handleBanUser = async (userId: string, action: 'ban' | 'unban') => {
-    try {
-      const res = await fetch('/api/admin/ban', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // Update local state to reflect ban status change
-        setUsers(users.map(user => 
-          user.id === userId 
-            ? { ...user, isBanned: action === 'ban' } 
-            : user
-        ));
-        setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
-      } else {
-        setMessage({ type: 'error', text: data.error || `Failed to ${action} user` });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handleCreateBadge = async () => {
     if (!newBadge.name || !newBadge.icon) {
@@ -112,7 +98,7 @@ export default function AdminPanel() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to create badge' });
       }
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     }
   };
@@ -185,13 +171,31 @@ export default function AdminPanel() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const handleBanUser = async (userId: string, action: 'ban' | 'unban') => {
+    try {
+      const res = await fetch('/api/admin/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Update local state to reflect ban status change
+        setUsers(users.map(user => 
+          user.id === userId 
+            ? { ...user, isBanned: action === 'ban' } 
+            : user
+        ));
+        setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
+      } else {
+        setMessage({ type: 'error', text: data.error || `Failed to ${action} user` });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 py-8">
@@ -206,7 +210,7 @@ export default function AdminPanel() {
             </div>
             <button
               onClick={() => router.push('/dashboard')}
-              className="mt-4 sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
+              className="mt-4 sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors border border-gray-700"
             >
               Back to Dashboard
             </button>
@@ -214,7 +218,7 @@ export default function AdminPanel() {
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-xl ${message.type === 'success' ? 'bg-green-900/80 text-green-200 border border-green-800' : 'bg-red-900/80 text-red-200 border border-red-800'} max-w-sm`}>
+          <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-900/30 text-green-300 border border-green-800' : 'bg-red-900/30 text-red-300 border border-red-800'} max-w-sm`}>
             {message.text}
           </div>
         )}
@@ -230,23 +234,25 @@ export default function AdminPanel() {
                   type="text"
                   value={newBadge.name}
                   onChange={(e) => setNewBadge({ ...newBadge, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Early Adopter"
                 />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Badge Icon URL</label>
                 <input
                   type="url"
                   value={newBadge.icon}
                   onChange={(e) => setNewBadge({ ...newBadge, icon: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="https://example.com/badge.png"
                 />
               </div>
+              
               <button
                 onClick={handleCreateBadge}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
                 Create Badge
               </button>
@@ -262,7 +268,7 @@ export default function AdminPanel() {
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Choose a user</option>
                   {users.map((user) => (
@@ -277,7 +283,7 @@ export default function AdminPanel() {
                 <select
                   value={selectedBadge}
                   onChange={(e) => setSelectedBadge(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Choose a badge</option>
                   {badges.map((badge) => (
@@ -289,7 +295,7 @@ export default function AdminPanel() {
               </div>
               <button
                 onClick={handleAddBadge}
-                className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
+                className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
                 Add Badge to User
               </button>
@@ -305,7 +311,7 @@ export default function AdminPanel() {
               <div key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">{user.name.charAt(0)}</span>
+                    <span className="text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-white">{user.name}</h3>

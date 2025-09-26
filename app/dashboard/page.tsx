@@ -1,11 +1,13 @@
 // app/dashboard/page.tsx
-'use client';
+'use client'; // Keep this as it is
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/AuthContext';
-import { getUserBadgeInfo, updateUserBadge } from '@/lib/storage';
+// Remove these imports as they directly reference server-side code
+// import { getUserBadgeInfo, updateUserBadge } from '@/lib/storage';
 
+// Define your interfaces here or import from a shared types file
 interface Link {
   id: string;
   url: string;
@@ -24,6 +26,8 @@ interface User {
   isEmailVerified: boolean;
   badgeOption: string | null;
   badgePaid: boolean;
+  createdAt?: string;
+  badgePurchaseTimestamp?: string;
 }
 
 const WEEKLY_OPTIONS = [
@@ -57,6 +61,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // State for badge info will now come from API calls or local state updates after actions
   const [badgeInfo, setBadgeInfo] = useState<{ option: string | null; paid: boolean } | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,7 +70,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (authUser && !authLoading) {
       fetchUserData();
-      fetchBadgeInfo();
+      // Fetch badge info via API route instead of direct storage call
+      fetchBadgeInfoFromAPI();
     }
   }, [authUser, authLoading]);
 
@@ -115,16 +121,26 @@ export default function Dashboard() {
     }
   };
 
-  const fetchBadgeInfo = async () => {
+  // Fetch badge info via API route
+  const fetchBadgeInfoFromAPI = async () => {
     if (!authUser?.id) return;
     try {
-      const info = await getUserBadgeInfo(authUser.id);
-      setBadgeInfo(info);
-      if (info?.paid && info.option) {
-        setSelectedOption(info.option);
+      const res = await fetch(`/api/user/badge?id=${authUser.id}`); // Example API endpoint
+      if (res.ok) {
+        const info = await res.json();
+        setBadgeInfo(info);
+        if (info?.paid && info.option) {
+          setSelectedOption(info.option);
+        }
+      } else {
+          console.error("Failed to fetch badge info via API:", res.status);
+          // Optionally set a default or error state
+          setBadgeInfo({ option: null, paid: false });
       }
     } catch (error) {
-      console.error('Error fetching badge info:', error);
+      console.error('Error fetching badge info via API:', error);
+      // Optionally set an error state
+      setBadgeInfo({ option: null, paid: false });
     }
   };
 
@@ -219,7 +235,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'user-id': authUser.id,
+          'user-id': authUser.id, // Consider using Authorization header or session cookies instead
         },
         body: JSON.stringify({ option: selectedOption }),
       });
@@ -227,7 +243,9 @@ export default function Dashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push(`https://checkout.stripe.com/pay/${data.sessionId}`);
+        // Ensure this URL is correctly constructed by your backend
+        // Example: data.sessionUrl
+        router.push(data.checkoutUrl || `https://checkout.stripe.com/pay/${data.sessionId}`);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to initiate payment' });
       }
@@ -247,11 +265,23 @@ export default function Dashboard() {
 
     if (codeInput.trim() === FREE_BADGE_CODE) {
       try {
-        await updateUserBadge(authUser.id, 'Xovy x TheBioLink');
-        setBadgeInfo({ option: 'Xovy x TheBioLink', paid: true });
-        setUser({ ...user, badgeOption: 'Xovy x TheBioLink', badgePaid: true });
-        setMessage({ type: 'success', text: 'Free badge redeemed successfully!' });
-        setCodeInput('');
+        // Call API route to update the badge
+        const res = await fetch('/api/user/redeem-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: authUser.id, code: codeInput.trim() }),
+        });
+
+        if (res.ok) {
+          const updatedBadgeInfo = await res.json();
+          setBadgeInfo(updatedBadgeInfo);
+          setUser({ ...user, badgeOption: updatedBadgeInfo.option, badgePaid: updatedBadgeInfo.paid });
+          setMessage({ type: 'success', text: 'Free badge redeemed successfully!' });
+          setCodeInput('');
+        } else {
+          const errorData = await res.json();
+          setMessage({ type: 'error', text: errorData.error || 'Failed to redeem code' });
+        }
       } catch (error) {
         console.error('Redeem error:', error);
         setMessage({ type: 'error', text: 'Failed to redeem code' });
@@ -270,7 +300,7 @@ export default function Dashboard() {
   }
 
   if (!authUser) {
-    router.push('/login');
+    router.push('/auth/login');
     return null;
   }
 
@@ -472,7 +502,7 @@ export default function Dashboard() {
                   <button
                     key={opt.name}
                     onClick={() => setSelectedOption(opt.name)}
-                    disabled={badgeInfo?.paid}
+                    disabled={badgeInfo?.paid} // Use state from API call
                     className={`p-2 rounded-lg border text-xs ${
                       selectedOption === opt.name
                         ? 'border-indigo-500 bg-indigo-900/20'
@@ -498,7 +528,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {!badgeInfo?.paid ? (
+              {!badgeInfo?.paid ? ( // Use state from API call
                 <button
                   onClick={handlePurchase}
                   disabled={!selectedOption || isProcessing}
@@ -510,7 +540,7 @@ export default function Dashboard() {
                 </button>
               ) : (
                 <div className="mt-2 p-2 bg-green-900/30 text-green-400 rounded-lg text-xs">
-                  You have: <strong>{badgeInfo.option}</strong>
+                  You have: <strong>{badgeInfo?.option}</strong> {/* Use state from API call */}
                 </div>
               )}
             </div>

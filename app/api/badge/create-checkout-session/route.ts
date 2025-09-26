@@ -1,11 +1,10 @@
-// app/api/badge/create-checkout-session/route.ts
 import { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
 import { getUserById } from '@/lib/storage';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-02-24.acacia', // Updated to the expected version
 });
 
 export async function POST(request: NextRequest) {

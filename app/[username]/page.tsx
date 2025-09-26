@@ -2,7 +2,6 @@
 import { notFound } from 'next/navigation';
 import { getUserByUsername } from '@/lib/storage';
 
-// ✅ Define interfaces for type safety
 interface Badge {
   id: string;
   name: string;
@@ -23,8 +22,8 @@ interface UserData {
   bio?: string;
   background?: string;
   links: Link[];
-  badges: Badge[]; // ✅ Include badges
-  isBanned: boolean; // ✅ Include ban status
+  badges: Badge[];
+  isBanned: boolean;
 }
 
 interface PageProps {
@@ -37,12 +36,11 @@ export default async function UserPage({ params }: PageProps) {
   try {
     const userData = await getUserByUsername(username);
     
-    // ✅ Handle case where user doesn't exist
     if (!userData) {
       notFound();
     }
 
-    // ✅ Handle banned user
+    // Handle banned user
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
@@ -64,7 +62,7 @@ export default async function UserPage({ params }: PageProps) {
               </p>
             </div>
             
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mt-6">
               Powered by The BioLink
             </p>
             <a 
@@ -78,12 +76,11 @@ export default async function UserPage({ params }: PageProps) {
       );
     }
 
-    // ✅ Destructure with defaults
     const { name = '', avatar = '', bio = '', background = '', links = [], badges = [] } = userData as UserData;
 
     return (
       <div className="min-h-screen relative">
-        {/* ✅ Background GIF */}
+        {/* Background GIF */}
         {background && (
           <div 
             className="absolute inset-0 z-0"
@@ -96,54 +93,45 @@ export default async function UserPage({ params }: PageProps) {
           />
         )}
         
-        {/* ✅ Overlay for readability */}
+        {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/70 z-10"></div>
         
-        {/* ✅ Transparent container in front of GIF */}
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
-            {/* ✅ Profile Box with Transparent Background */}
+            {/* Profile Card with Transparent Background */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
-              {/* ✅ User Info */}
-              <div className="flex items-center mb-4">
-                {avatar ? (
-                  <img 
-                    src={avatar} 
-                    alt={name} 
-                    className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
-                  />
-                ) : (
-                  <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl text-white font-bold">
-                      {name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <div className="ml-4">
-                  <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
-                  {bio && <p className="text-gray-300 mb-4">{bio}</p>}
+              {/* User Info */}
+              {avatar ? (
+                <img 
+                  src={avatar} 
+                  alt={name} 
+                  className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl text-white font-bold">
+                    {name.charAt(0).toUpperCase()}
+                  </span>
                 </div>
-              </div>
-
-              {/* ✅ Badges Section - Same Box */}
+              )}
+              
+              <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
+              
+              {bio && <p className="text-gray-300 mb-6">{bio}</p>}
+              
+              {/* Badges Section */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
-                  <h2 className="text-lg font-semibold text-white mb-3">Badges</h2>
+                  <h3 className="text-md font-semibold text-gray-300 mb-2">Badges</h3>
                   <div className="flex flex-wrap gap-2">
-                    {badges.map((badge: Badge) => (
+                    {badges.map((badge) => (
                       <div 
                         key={badge.id} 
-                        className="group relative"
+                        className="flex items-center bg-white/20 border border-white/30 rounded-full px-3 py-1.5"
                         title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
                       >
-                        <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
-                          <img 
-                            src={badge.icon} 
-                            alt={badge.name} 
-                            className="w-5 h-5 mr-2" 
-                          />
-                          <span className="text-white text-sm font-medium">{badge.name}</span>
-                        </div>
+                        <img src={badge.icon} alt={badge.name} className="w-5 h-5 mr-2" />
+                        <span className="text-white text-sm font-medium">{badge.name}</span>
                       </div>
                     ))}
                   </div>
@@ -151,31 +139,68 @@ export default async function UserPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* ✅ Links Section - Transparent Background */}
+            {/* Links with Proper Click Handling */}
             <div className="mt-6 space-y-3">
               {links
-                .filter((link: Link) => link.url && link.title)
+                .filter((link: Link) => link.url && link.title) // Only show valid links
                 .map((link: Link) => (
-                  <div 
+                  <a
                     key={link.id}
-                    className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4"
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl p-4 transition-all duration-200 hover:translate-x-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-white font-medium">{link.title}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="flex items-center">
+                        {link.icon ? (
+                          <div className="relative w-6 h-6 mr-3">
+                            <img 
+                              src={link.icon} 
+                              alt={link.title} 
+                              className="object-contain w-full h-full"
+                              onError={(e) => {
+                                // Fallback to default icon if image fails
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
+                                    </svg>
+                                  `;
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 mr-3 text-gray-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
+                            </svg>
+                          </div>
+                        )}
+                        <span className="text-white font-medium">{link.title}</span>
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                  </div>
+                    <p className="text-sm text-gray-400 mt-1 truncate">
+                      {link.url.replace(/^https?:\/\//, '')}
+                    </p>
+                  </a>
                 ))}
             </div>
-            
-            {/* ✅ Footer */}
-            <div className="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+
+            <div className="mt-8 text-center text-gray-500 text-sm">
               <p>Powered by The BioLink</p>
               <a 
                 href="/" 
-                className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline transition-colors"
+                className="text-indigo-400 hover:text-indigo-300 hover:underline"
               >
                 Create your own
               </a>
@@ -195,7 +220,6 @@ export async function generateMetadata({ params }: PageProps) {
   try {
     const userData = await getUserByUsername(username);
     
-    // ✅ Handle banned user in metadata
     if (!userData || userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }

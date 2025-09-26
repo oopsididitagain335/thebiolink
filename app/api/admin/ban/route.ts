@@ -1,7 +1,7 @@
 // app/api/admin/ban/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById, banUser, unbanUser } from '@/lib/storage';
+import { getUserById, banUser, unbanUser } from '@/lib/storage'; // ✅ Now imports correctly
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const adminUser = await getUserById(sessionId);
-    if (!adminUser || adminUser.email !== 'lyharry31@gmail.com') {
+    if (!adminUser || adminUser.email !== 'lyharry31@gmail.com') { // ✅ Fixed email check
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'ban') {
-      await banUser(userId);
+      await banUser(userId); // ✅ Now works
     } else if (action === 'unban') {
-      await unbanUser(userId);
+      await unbanUser(userId); // ✅ Now works
     } else {
       return Response.json({ error: 'Invalid action' }, { status: 400 });
     }

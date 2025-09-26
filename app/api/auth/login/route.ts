@@ -1,13 +1,13 @@
 // app/api/auth/login/route.ts
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers'; // Correct import for App Router
 import { getUserByEmail } from '@/lib/storage';
 import bcrypt from 'bcryptjs';
 
 // Simple in-memory rate limiting (use MongoDB for persistence in production)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
-// ✅ Helper to get client IP correctly
+// Helper to get client IP correctly
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -46,9 +46,23 @@ export async function POST(request: NextRequest) {
 
     const user = await getUserByEmail(email);
 
+    // --- Null Check ---
+    if (!user) {
+        // Track failed attempt for invalid email too
+        if (attempts) {
+            failedAttempts.set(ip, {
+            count: attempts.count + 1,
+            lastAttempt: Date.now(),
+            });
+        } else {
+            failedAttempts.set(ip, { count: 1, lastAttempt: Date.now() });
+        }
+        return Response.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+    // --- End Null Check ---
+
     // --- Timing Attack Prevention ---
-    const dummyHash = await bcrypt.hash('dummy', 12);
-    const isValid = user ? await bcrypt.compare(password, user.passwordHash) : await bcrypt.compare(password, dummyHash);
+    const isValid = await bcrypt.compare(password, user.passwordHash);
     // --- End Timing Attack Prevention ---
 
     if (!isValid) {
@@ -69,6 +83,7 @@ export async function POST(request: NextRequest) {
     failedAttempts.delete(ip);
     // --- End Clearing ---
 
+    // Set cookie using the correct App Router method
     (await cookies()).set('biolink_session', user._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

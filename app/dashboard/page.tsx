@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/AuthContext';
-import { getUserBadgeInfo } from '@/lib/storage';
+import { getUserBadgeInfo, updateUserBadge } from '@/lib/storage';
 
 const WEEKLY_OPTIONS = [
   { name: 'Common Star', rarity: 'Common' },
@@ -17,6 +17,8 @@ const WEEKLY_OPTIONS = [
   { name: 'Rare Phoenix', rarity: 'Rare' },
 ];
 
+const FREE_BADGE_CODE = 'xovyontop25';
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -24,6 +26,7 @@ export default function DashboardPage() {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [codeInput, setCodeInput] = useState('');
 
   useEffect(() => {
     if (user?.id) {
@@ -72,6 +75,27 @@ export default function DashboardPage() {
       setMessage({ type: 'error', text: 'An unexpected error occurred' });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleRedeemCode = async () => {
+    if (!user || !codeInput.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a code' });
+      return;
+    }
+
+    if (codeInput.trim() === FREE_BADGE_CODE) {
+      try {
+        await updateUserBadge(user.id, 'Xovy x TheBioLink');
+        setBadgeInfo({ option: 'Xovy x TheBioLink', paid: true });
+        setMessage({ type: 'success', text: 'Free badge redeemed successfully!' });
+        setCodeInput('');
+      } catch (error) {
+        console.error('Redeem error:', error);
+        setMessage({ type: 'error', text: 'Failed to redeem code' });
+      }
+    } else {
+      setMessage({ type: 'error', text: 'Invalid code' });
     }
   };
 
@@ -150,6 +174,28 @@ export default function DashboardPage() {
               You have purchased the <strong>{badgeInfo.option}</strong> badge.
             </div>
           )}
+        </div>
+
+        {/* Redeem Code Section */}
+        <div className="bg-gray-800 rounded-xl p-6">
+          <h2 className="text-xl font-semibold mb-4">Redeem Code</h2>
+          <p className="text-gray-300 mb-4">Enter a code to unlock special badges!</p>
+          
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value)}
+              placeholder="Enter code..."
+              className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={handleRedeemCode}
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors"
+            >
+              Redeem
+            </button>
+          </div>
         </div>
       </div>
     </div>

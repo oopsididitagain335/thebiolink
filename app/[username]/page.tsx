@@ -21,8 +21,8 @@ interface UserData {
   avatar?: string;
   bio?: string;
   background?: string;
-  links: Link[];
   badges: Badge[];
+  links: Link[];
   isBanned: boolean;
 }
 
@@ -76,7 +76,7 @@ export default async function UserPage({ params }: PageProps) {
       );
     }
 
-    const { name = '', avatar = '', bio = '', background = '', links = [], badges = [] } = userData as UserData;
+    const { name = '', avatar = '', bio = '', background = '', badges = [], links = [] } = userData as UserData;
 
     return (
       <div className="min-h-screen relative">
@@ -99,8 +99,7 @@ export default async function UserPage({ params }: PageProps) {
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {/* Profile Card with Transparent Background */}
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
-              {/* User Info */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center mb-6">
               {avatar ? (
                 <img 
                   src={avatar} 
@@ -117,67 +116,55 @@ export default async function UserPage({ params }: PageProps) {
               
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
               
-              {bio && <p className="text-gray-300 mb-6">{bio}</p>}
+              {bio && <p className="text-gray-200 mb-6 max-w-xs mx-auto">{bio}</p>}
               
               {/* Badges Section */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <h3 className="text-md font-semibold text-gray-300 mb-2">Badges</h3>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {badges.map((badge) => (
                       <div 
                         key={badge.id} 
-                        className="flex items-center bg-white/20 border border-white/30 rounded-full px-3 py-1.5"
+                        className="group relative"
                         title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
                       >
-                        <img src={badge.icon} alt={badge.name} className="w-5 h-5 mr-2" />
-                        <span className="text-white text-sm font-medium">{badge.name}</span>
+                        <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
+                          <img src={badge.icon} alt={badge.name} className="w-5 h-5 mr-2" />
+                          <span className="text-white text-sm font-medium">{badge.name}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+              
+              <div className="flex justify-center space-x-2 mt-6">
+                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+              </div>
             </div>
 
-            {/* Links with Proper Click Handling */}
-            <div className="mt-6 space-y-3">
+            {/* Links with Transparent Background */}
+            <div className="space-y-3 mb-8">
               {links
-                .filter((link: Link) => link.url && link.title) // Only show valid links
-                .map((link: Link) => (
+                .filter(link => link.url && link.title)
+                .map(link => (
                   <a
                     key={link.id}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl p-4 transition-all duration-200 hover:translate-x-1"
+                    className="block w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl p-4 text-left transition-all duration-200 hover:translate-x-1"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {link.icon ? (
-                          <div className="relative w-6 h-6 mr-3">
-                            <img 
-                              src={link.icon} 
-                              alt={link.title} 
-                              className="object-contain w-full h-full"
-                              onError={(e) => {
-                                // Fallback to default icon if image fails
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
-                                    </svg>
-                                  `;
-                                }
-                              }}
-                            />
-                          </div>
+                          <img src={link.icon} alt={link.title} className="w-6 h-6 mr-3" />
                         ) : (
-                          <div className="w-6 h-6 mr-3 text-gray-400 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
                             </svg>
@@ -185,22 +172,19 @@ export default async function UserPage({ params }: PageProps) {
                         )}
                         <span className="text-white font-medium">{link.title}</span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                    <p className="text-sm text-gray-400 mt-1 truncate">
-                      {link.url.replace(/^https?:\/\//, '')}
-                    </p>
                   </a>
                 ))}
             </div>
 
-            <div className="mt-8 text-center text-gray-500 text-sm">
-              <p>Powered by The BioLink</p>
+            <div className="text-center text-gray-300 text-sm">
+              <p className="mb-2">Powered by The BioLink</p>
               <a 
                 href="/" 
-                className="text-indigo-400 hover:text-indigo-300 hover:underline"
+                className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors"
               >
                 Create your own
               </a>
@@ -220,7 +204,12 @@ export async function generateMetadata({ params }: PageProps) {
   try {
     const userData = await getUserByUsername(username);
     
-    if (!userData || userData.isBanned) {
+    if (!userData) {
+      return { title: 'User Not Found | The BioLink' };
+    }
+    
+    // Handle banned user in metadata
+    if (userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }
     

@@ -1,51 +1,68 @@
 // app/dashboard/page.tsx
 'use client';
 
+// import { useSession } from 'next-auth/react'; // Remove this import
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { getUserById, updateUserProfile, getLinksByUserId, saveUserLinks, getDynamicStripePlans, PlanDetails } from '@/lib/storage';
 import { User, Link } from '@/types'; // Ensure you have a Link type defined if not already
+import { cookies } from 'next/headers'; // Import cookies if needed for direct fetching
 
 // Define your Link type if not already in types.ts
 // export type Link = { id: string; title: string; url: string; icon?: string; position: number };
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  // const { data: session, status } = useSession(); // Remove this hook
   const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
   const [newLink, setNewLink] = useState({ title: '', url: '', icon: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [dynamicPlans, setDynamicPlans] = useState<PlanDetails[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated' | 'error'>('loading');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/login');
-    }
-    if (status === 'authenticated' && session?.user?.id) {
-      fetchUserData(session.user.id);
-      fetchDynamicPlans(); // Fetch plans when component mounts
-    }
-  }, [session, status]);
+    const checkSessionAndLoadData = async () => {
+      try {
+        // Get session ID from cookie
+        const sessionId = (await import('next/headers')).cookies().get('biolink_session')?.value;
+        if (!sessionId) {
+          setStatus('unauthenticated');
+          return;
+        }
 
-  const fetchUserData = async (userId: string) => {
-    try {
-      const userData = await getUserById(userId);
-      if (userData) {
-        setUser(userData);
-        const userLinks = await getLinksByUserId(userId);
-        // Sort links by position
-        userLinks.sort((a, b) => a.position - b.position);
-        setLinks(userLinks);
-      } else {
-        console.error('User not found');
-        // Optionally redirect or show an error
+        // Validate session ID format if necessary (e.g., check if it's a valid ObjectId)
+        let userId;
+        try {
+          userId = sessionId; // Or validate sessionId format here if needed
+        } catch {
+          setStatus('unauthenticated');
+          return;
+        }
+
+        // Fetch user data using the session ID (which should be the user ID)
+        const userData = await getUserById(userId);
+        if (userData) {
+          setStatus('authenticated');
+          setUser(userData);
+          const userLinks = await getLinksByUserId(userId);
+          // Sort links by position
+          userLinks.sort((a, b) => a.position - b.position);
+          setLinks(userLinks);
+        } else {
+          setStatus('unauthenticated'); // Or 'error' depending on your logic
+        }
+      } catch (error) {
+        console.error('Error checking session or fetching user data:', error);
+        setStatus('error');
+      } finally {
+        setLoadingPlans(false);
       }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
+    };
+
+    checkSessionAndLoadData();
+    fetchDynamicPlans(); // Fetch plans when component mounts
+  }, []);
 
   const fetchDynamicPlans = async () => {
     try {
@@ -145,8 +162,12 @@ export default function DashboardPage() {
     return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>;
   }
 
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">User not found.</div>;
+  if (status === 'unauthenticated') {
+    redirect('/auth/login'); // Redirect to your login page
+  }
+
+  if (status === 'error' || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Error loading dashboard.</div>;
   }
 
   return (

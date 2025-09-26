@@ -365,4 +365,126 @@ export default function Dashboard() {
                           type="url"
                           value={link.url}
                           onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gra
+                          className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <input
+                        type="text"
+                        value={link.icon}
+                        onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
+                        className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                        placeholder="Icon URL (optional)"
+                      />
+                      <button
+                        onClick={() => removeLink(index)}
+                        className="text-red-400 hover:text-red-300 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {links.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
+                    </svg>
+                    <p>No links added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Preview Card */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
+              <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
+              <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
+                {/* ✅ Display Background GIF in Preview */}
+                {user.background && (
+                  <div
+                    className="absolute inset-0 z-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${user.background})`,
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/70 z-10"></div>
+                <div className="relative z-20">
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl text-white font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                  {user.bio && <p className="text-gray-300 mb-4">{user.bio}</p>}
+
+                  <div className="space-y-3">
+                    {links
+                      .filter((link) => link.url && link.title)
+                      .map((link, index) => (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                        >
+                          {link.title}
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Card */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
+              <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Links</span>
+                  <span className="text-white font-medium">{links.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Profile Complete</span>
+                  <span className="text-white font-medium">
+                    {user.name && user.username ? '100%' : '0%'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Message */}
+        {message && (
+          <div
+            className={`fixed bottom-6 right-6 p-4 rounded-xl ${
+              message.type === 'success'
+                ? 'bg-green-900/80 text-green-200 border border-green-800'
+                : 'bg-red-900/80 text-red-200 border border-red-800'
+            } max-w-sm`}
+          >
+            {message.text}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

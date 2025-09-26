@@ -9,18 +9,18 @@ interface BioCardProps {
 }
 
 export default function BioCard({ name, avatar, bio }: BioCardProps) {
+  // Use original avatar URL without Next.js Image optimization for external URLs
   const safeAvatar = avatar ? encodeURI(decodeURI(avatar)) : '';
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center transition-colors duration-200">
       {avatar ? (
         <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-md">
-          <Image
+          {/* Use regular img tag for external URLs */}
+          <img
             src={safeAvatar}
             alt={name}
-            fill
-            className="object-cover"
-            sizes="96px"
+            className="object-cover w-full h-full"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';

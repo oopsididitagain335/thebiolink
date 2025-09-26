@@ -57,7 +57,7 @@ interface LinkDoc {
   position: number;
 }
 
-// --- User Functions ---
+// --- User Functions (Node.js only) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -156,10 +156,10 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date()
   } as UserDoc);
 
-  return { 
-    id: userId.toString(), 
-    email, 
-    username, 
+  return {
+    id: userId.toString(),
+    email,
+    username,
     name,
     background,
     badges: [],
@@ -172,7 +172,7 @@ export async function createUser(email: string, password: string, username: stri
 export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne(
-    { email }, 
+    { email },
     { projection: { passwordHash: 1 } }
   );
   if (!user) return null;
@@ -221,6 +221,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ FIXED updateUserProfile with null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -236,7 +237,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   if (cleanedUpdates.username) {
-    const existing = await database.collection('users').findOne({ 
+    const existing = await database.collection('users').findOne({
       username: cleanedUpdates.username,
       _id: { $ne: objectId }
     });
@@ -248,15 +249,19 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
 
+  // --- Crucial: Fetch the updated user document ---
   const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
 
+  // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
+  // --- End Null Check ---
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
+  // --- Return the updated user data including background and badges ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -286,6 +291,29 @@ export async function updateUserProfile(userId: string, updates: any) {
 
 // --- ADMIN PANEL FUNCTIONS ---
 
+// Add badge to user
+export async function addUserBadge(userId: string, badge: { id: string; name: string; icon: string; awardedAt: string }) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+
+  await database.collection('users').updateOne(
+    { _id: objectId },
+    { $push: { badges: badge } }
+  );
+}
+
+// ✅ FIXED Remove badge from user (correct typing)
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+  
+  // Use $pull with query condition to remove badge by ID
+  await database.collection('users').updateOne(
+    { _id: objectId },
+    { $pull: { badges: { id: badgeId } } } // ✅ Correct syntax
+  );
+}
+
 // Get all users (admin only)
 export async function getAllUsers() {
   const database = await connectDB();
@@ -300,50 +328,6 @@ export async function getAllUsers() {
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt
   }));
-}
-
-// Ban a user
-export async function banUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
-  );
-}
-
-// Unban a user
-export async function unbanUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
-  );
-}
-
-// Add badge to user
-export async function addUserBadge(userId: string, badge: any) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $push: { badges: badge } }
-  );
-}
-
-// Remove badge from user
-export async function removeUserBadge(userId: string, badgeId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $pull: { badges: { id: badgeId } } }
-  );
 }
 
 // Create new badge

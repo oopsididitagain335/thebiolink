@@ -1,6 +1,6 @@
 // app/api/links/[username]/route.ts
 import { NextRequest } from 'next/server';
-import { getUserByUsername } from '@/lib/storage';
+import { getUserByUsername, updateUserProfile } from '@/lib/storage'; // Import updateUserProfile
 import { z } from 'zod';
 
 const ProfileUpdateSchema = z.object({
@@ -17,11 +17,9 @@ export async function GET(
 ) {
   const { username } = await params;
   const userData = await getUserByUsername(username);
-
   if (!userData) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
-
   return Response.json({
     user: {
       name: userData.name,
@@ -40,7 +38,6 @@ export async function PUT(
 ) {
   const { username } = await params;
   const sessionCookie = request.headers.get('Cookie')?.split('biolink_session=')[1]?.split(';')[0];
-
   if (!sessionCookie) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -48,7 +45,6 @@ export async function PUT(
   try {
     const body = await request.json();
     const parsedProfile = ProfileUpdateSchema.safeParse(body.profile);
-
     if (!parsedProfile.success) {
       return Response.json({ error: 'Invalid input', details: parsedProfile.error.flatten() }, { status: 400 });
     }

@@ -9,22 +9,20 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { profile, links } = await request.json(); // ✅ AWAIT request.json()
+    const { profile, links } = await request.json();
 
     if (profile) {
       await updateUserProfile(sessionId, profile);
     }
 
     if (Array.isArray(links)) {
-      // ✅ Don't regenerate IDs on save - keep existing ones
       const validatedLinks = links
         .filter(link => link.url?.trim() && link.title?.trim())
-        .map((link, index) => ({
-          id: link.id, // ← Keep original ID
+        .map((link) => ({
+          id: link.id,
           url: link.url.trim(),
           title: link.title.trim(),
-          icon: link.icon?.trim() || '',
-          position: index
+          icon: link.icon?.trim() || ''
         }));
       
       await saveUserLinks(sessionId, validatedLinks);
@@ -32,7 +30,7 @@ export async function PUT(request: NextRequest) {
 
     return Response.json({ success: true });
   } catch (error: any) {
-    console.error('Save error:', error);
-    return Response.json({ error: error.message }, { status: 400 });
+    console.error('Update error:', error);
+    return Response.json({ error: error.message || 'Failed to update data' }, { status: 400 });
   }
 }

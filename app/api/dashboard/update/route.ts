@@ -10,11 +10,9 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    // ✅ AWAIT request.json()
     const body = await request.json();
     const { profile, links } = body;
 
-    // Validate session ID is a valid ObjectId
     let userId: string;
     try {
       userId = new ObjectId(sessionId).toString();
@@ -22,12 +20,10 @@ export async function PUT(request: NextRequest) {
       return Response.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Update profile if provided
     if (profile) {
       await updateUserProfile(userId, profile);
     }
 
-    // Save links if provided
     if (Array.isArray(links)) {
       const validatedLinks = links
         .filter(link => link.url?.trim() && link.title?.trim())
@@ -46,8 +42,7 @@ export async function PUT(request: NextRequest) {
   } catch (error: any) {
     console.error('Update error:', error);
     return Response.json({ 
-      error: error.message || 'Failed to update data',
-      details: error.toString()
+      error: error.message || 'Failed to update data'
     }, { status: 400 });
   }
 }

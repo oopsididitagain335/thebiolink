@@ -44,6 +44,7 @@ export default function Dashboard() {
         }
         const data = await res.json();
         
+        // ✅ Set user data from MongoDB
         setUser({
           _id: data.user._id,
           name: data.user.name,
@@ -53,6 +54,7 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified
         });
         
+        // ✅ Set links with proper IDs from MongoDB
         setLinks(data.links.map((link: any) => ({
           id: link.id,
           url: link.url,
@@ -116,8 +118,8 @@ export default function Dashboard() {
       
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        // ✅ Reload to ensure data consistency
-        window.location.reload();
+        // ✅ Update state with saved data
+        // No need to reload - data is already in state
       } else {
         setMessage({ 
           type: 'error', 

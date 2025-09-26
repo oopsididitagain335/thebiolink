@@ -1,9 +1,11 @@
+// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // ✅ Import Link for navigation
 
-interface Link {
+interface LinkItem {
   id: string;
   url: string;
   title: string;
@@ -17,8 +19,9 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
-  background: string; // ✅ Include background in interface
+  background: string;
   isEmailVerified: boolean;
+  email: string; // ✅ Include email in User interface
 }
 
 export default function Dashboard() {
@@ -28,56 +31,40 @@ export default function Dashboard() {
     username: '',
     avatar: '',
     bio: '',
-    background: '', // ✅ Initialize background
+    background: '',
     isEmailVerified: true,
+    email: '', // ✅ Initialize email state
   });
-  const [links, setLinks] = useState<Link[]>([]);
+  const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
-  // --- Effect to load user data and links on mount ---
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true);
+        setLoading(true); // Set loading at the start
         const res = await fetch('/api/dashboard/data');
         if (!res.ok) {
-          if (res.status === 401) {
-            console.warn("Unauthorized, redirecting to login.");
-          }
           router.push('/auth/login');
           return;
         }
         const data = await res.json();
-        console.log("Fetched user data:", data); // Debug log
-
-        // --- Crucial: Populate user state including background ---
+        
+        // Set user data including email
         setUser({
-          _id: data.user._id || '',
-          name: data.user.name || '',
-          username: data.user.username || '',
-          avatar: data.user.avatar || '',
-          bio: data.user.bio || '',
-          background: data.user.background || '', // ✅ Load background
-          isEmailVerified: data.user.isEmailVerified ?? true,
+          _id: data.user._id,
+          name: data.user.name,
+          username: data.user.username,
+          avatar: data.user.avatar,
+          bio: data.user.bio,
+          background: data.user.background,
+          isEmailVerified: data.user.isEmailVerified,
+          email: data.user.email, // ✅ Load email
         });
-
-        // --- Crucial: Populate links state ---
-        const fetchedLinks = Array.isArray(data.links) ? data.links : [];
-        const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-        setLinks(
-          sortedLinks.length > 0
-            ? sortedLinks.map((link: any) => ({
-                id: link.id || Date.now().toString() + Math.random(),
-                url: link.url || '',
-                title: link.title || '',
-                icon: link.icon || '',
-                position: link.position ?? 0,
-              }))
-            : []
-        );
+        
+        setLinks(data.links.length > 0 ? data.links : []);
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
@@ -85,7 +72,6 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, [router]);
 
@@ -100,66 +86,57 @@ export default function Dashboard() {
   };
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setUser((prevUser) => ({ ...prevUser, [name]: value }));
+    setUser({ ...user, [e.target.name]: e.target.value });
   };
 
-  const handleLinkChange = (index: number, field: keyof Link, value: string) => {
-    setLinks((prevLinks) => {
-      const newLinks = [...prevLinks];
-      newLinks[index] = { ...newLinks[index], [field]: value };
-      return newLinks;
-    });
+  const handleLinkChange = (index: number, field: keyof LinkItem, value: string) => {
+    const newLinks = [...links];
+    newLinks[index] = { ...newLinks[index], [field]: value };
+    setLinks(newLinks);
   };
 
   const addLink = () => {
-    setLinks((prevLinks) => [
-      ...prevLinks,
-      { id: Date.now().toString(), url: '', title: '', icon: '', position: prevLinks.length },
-    ]);
+    setLinks([...links, { id: Date.now().toString(), url: '', title: '', icon: '', position: links.length }]);
   };
 
   const removeLink = (index: number) => {
-    setLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
+    setLinks(links.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
-
+    
     try {
-      const linksToSend = links
-        .filter((link) => link.url.trim() && link.title.trim())
-        .map((link, index) => ({
-          id: link.id,
-          url: link.url.trim(),
-          title: link.title.trim(),
-          icon: link.icon?.trim() || '',
-          position: index,
-        }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile: {
-            name: user.name.trim(),
-            username: user.username.trim().toLowerCase(),
-            avatar: user.avatar?.trim() || '',
+        body: JSON.stringify({ 
+          profile: { 
+            name: user.name.trim(), 
+            username: user.username.trim().toLowerCase(), 
+            avatar: user.avatar?.trim() || '', 
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || '', // ✅ Send background
+            background: user.background?.trim() || ''
           },
-          links: linksToSend,
-        }),
+          links: links
+            .filter(link => link.url?.trim() && link.title?.trim())
+            .map((link, index) => ({
+              id: link.id,
+              url: link.url.trim(),
+              title: link.title.trim(),
+              icon: link.icon?.trim() || '',
+              position: index
+            }))
+        })
       });
-
+      
       const data = await response.json();
-
+      
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
       } else {
-        const errorMessage = data.error || 'Failed to save changes.';
-        setMessage({ type: 'error', text: errorMessage });
+        setMessage({ type: 'error', text: data.error || 'Failed to save changes' });
       }
     } catch (error: any) {
       console.error('Save error:', error);
@@ -180,15 +157,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header with conditional Admin Panel link */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Your BioLink Dashboard</h1>
               <p className="text-gray-400 mt-2">
                 Customize your bio link page at{' '}
-                <a
-                  href={`https://thebiolink.lol/${user.username}`}
+                <a 
+                  href={`https://thebiolink.lol/${user.username}`} 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
@@ -198,6 +175,18 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
+              {/* ✅ Conditional Admin Panel Link for lyharry31@gmail.com */}
+              {user.email === 'lyharry31@gmail.com' && (
+                <Link
+                  href="/admin"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl font-medium transition-colors flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                  Admin Panel
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
@@ -271,9 +260,9 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
                     type="url"
-                    name="background" // Crucial for handleProfileChange
-                    value={user.background} // Bound to state
-                    onChange={handleProfileChange} // Updates state
+                    name="background" // Name attribute is crucial for handleProfileChange
+                    value={user.background} // Value is bound to user.background state
+                    onChange={handleProfileChange} // Updates user.background state
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="https://media.giphy.com/.../background.gif"
                   />
@@ -365,7 +354,7 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* ✅ FIXED Preview Card */}
+            {/* Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
@@ -381,9 +370,9 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20">
                   {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
                   ) : (
@@ -395,7 +384,7 @@ export default function Dashboard() {
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
                   {user.bio && <p className="text-gray-300 mb-4">{user.bio}</p>}
-
+                  
                   <div className="space-y-3">
                     {links
                       .filter((link) => link.url && link.title)
@@ -415,18 +404,17 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ✅ FIXED Stats Card */}
+            {/* Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Total Links</span>
+                  <span className="text-gray-400">Links</span>
                   <span className="text-white font-medium">{links.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Profile Completion</span>
+                  <span className="text-gray-400">Profile Complete</span>
                   <span className="text-white font-medium">
-                    {/* Simple calculation: name, username, avatar/bio, background are key fields */}
                     {(() => {
                       const completedFields = [
                         user.name,
@@ -438,10 +426,6 @@ export default function Dashboard() {
                       return `${Math.round((completedFields / totalFields) * 100)}%`;
                     })()}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Last Updated</span>
-                  <span className="text-white font-medium">Just now</span>
                 </div>
               </div>
             </div>

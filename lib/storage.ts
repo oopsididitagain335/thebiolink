@@ -23,7 +23,41 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// --- USER FUNCTIONS ---
+// --- User Schema Interface ---
+interface UserDoc {
+  _id: ObjectId;
+  email: string;
+  username: string;
+  name: string;
+  passwordHash: string;
+  avatar?: string;
+  bio?: string;
+  background?: string;
+  backgroundVideo?: string;
+  backgroundAudio?: string;
+  badges: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    awardedAt: string;
+  }>;
+  isEmailVerified: boolean;
+  isBanned?: boolean;
+  bannedAt?: string;
+  createdAt: Date;
+  ipAddress?: string;
+}
+
+interface LinkDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  url: string;
+  title: string;
+  icon?: string;
+  position: number;
+}
+
+// --- User Functions (Node.js only) ---
 
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
@@ -41,6 +75,8 @@ export async function getUserByUsername(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -73,6 +109,8 @@ export async function getUserById(id: string) {
       avatar: user.avatar || '',
       bio: user.bio || '',
       background: user.background || '',
+      backgroundVideo: user.backgroundVideo || '',
+      backgroundAudio: user.backgroundAudio || '',
       badges: user.badges || [],
       isEmailVerified: user.isEmailVerified || false,
       isBanned: user.isBanned || false,
@@ -116,7 +154,7 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date()
-  });
+  } as UserDoc);
 
   return {
     id: userId.toString(),
@@ -148,6 +186,8 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     background: user.background || '',
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -181,6 +221,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ FIXED updateUserProfile with null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -190,7 +231,9 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || ''
+    background: updates.background?.trim() || '',
+    backgroundVideo: updates.backgroundVideo?.trim() || '',
+    backgroundAudio: updates.backgroundAudio?.trim() || ''
   };
 
   if (cleanedUpdates.username) {
@@ -206,14 +249,19 @@ export async function updateUserProfile(userId: string, updates: any) {
     { $set: cleanedUpdates }
   );
 
+  // --- Crucial: Fetch the updated user document ---
   const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
+
+  // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
+  // --- End Null Check ---
 
   const links = await database.collection('links').find({ userId: objectId }).toArray();
 
+  // --- Return the updated user data including background and badges ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -223,6 +271,8 @@ export async function updateUserProfile(userId: string, updates: any) {
     avatar: updatedUserDocument.avatar || '',
     bio: updatedUserDocument.bio || '',
     background: updatedUserDocument.background || '',
+    backgroundVideo: updatedUserDocument.backgroundVideo || '',
+    backgroundAudio: updatedUserDocument.backgroundAudio || '',
     badges: updatedUserDocument.badges || [],
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     isBanned: updatedUserDocument.isBanned || false,
@@ -241,11 +291,38 @@ export async function updateUserProfile(userId: string, updates: any) {
 
 // --- ADMIN PANEL FUNCTIONS ---
 
+// ✅ FIXED addUserBadge with correct $push syntax
+export async function addUserBadge(
+  userId: string,
+  badge: { id: string; name: string; icon: string; awardedAt: string }
+) {
+  const database = await connectDB();
+  const userObjectId = new ObjectId(userId);
+
+  // ✅ Fix: Use $each to satisfy MongoDB driver types
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $push: { badges: { $each: [badge] } } } // <- Key change
+  );
+}
+
+// Remove badge from user
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const database = await connectDB();
+  const userObjectId = new ObjectId(userId);
+
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+// Get all users (admin only)
 export async function getAllUsers() {
   const database = await connectDB();
-  const users = await database.collection('users').find({}).toArray();
+  const users = await database.collection<UserDoc>('users').find({}).toArray();
 
-  return users.map((user: any) => ({
+  return users.map((user) => ({
     id: user._id.toString(),
     email: user.email,
     username: user.username,
@@ -256,46 +333,7 @@ export async function getAllUsers() {
   }));
 }
 
-export async function banUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
-  );
-}
-
-export async function unbanUser(userId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
-  );
-}
-
-export async function addUserBadge(userId: string, badge: any) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $push: { badges: badge } }
-  );
-}
-
-export async function removeUserBadge(userId: string, badgeId: string) {
-  const database = await connectDB();
-  const objectId = new ObjectId(userId);
-
-  await database.collection('users').updateOne(
-    { _id: objectId },
-    { $pull: { badges: { id: badgeId } } as any } // ✅ fixed here
-  );
-}
-
+// Create new badge
 export async function createBadge(name: string, icon: string) {
   const database = await connectDB();
   const badgeId = new ObjectId().toString();
@@ -310,6 +348,7 @@ export async function createBadge(name: string, icon: string) {
   return { id: badgeId, name, icon };
 }
 
+// Get all available badges
 export async function getAllBadges() {
   const database = await connectDB();
   const badges = await database.collection('badges').find({}).toArray();
@@ -321,61 +360,24 @@ export async function getAllBadges() {
   }));
 }
 
-// --- VIEW COUNT FUNCTIONS ---
-
-export async function getViewCount(username: string) {
+// ✅ NEW: Ban a user
+export async function banUser(userId: string) {
   const database = await connectDB();
-  
-  try {
-    const viewDoc = await database.collection('views').findOne({ username });
-    return viewDoc ? viewDoc.count : 0;
-  } catch {
-    return 0;
-  }
+  const objectId = new ObjectId(userId);
+
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
+  );
 }
 
-export async function incrementViewCount(username: string) {
+// ✅ NEW: Unban a user
+export async function unbanUser(userId: string) {
   const database = await connectDB();
-  
-  try {
-    const result = await database.collection('views').updateOne(
-      { username },
-      { $inc: { count: 1 } },
-      { upsert: true }
-    );
-    
-    if (result.modifiedCount === 0 && result.upsertedCount === 1) {
-      return 1;
-    }
-    
-    const viewDoc = await database.collection('views').findOne({ username });
-    return viewDoc ? viewDoc.count : 1;
-  } catch {
-    return 0;
-  }
-}
+  const objectId = new ObjectId(userId);
 
-export async function getAllViewCounts() {
-  const database = await connectDB();
-  
-  try {
-    const views = await database.collection('views').find({}).toArray();
-    return views.map((view: any) => ({
-      username: view.username,
-      count: view.count || 0
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export async function resetViewCount(username: string) {
-  const database = await connectDB();
-  
-  try {
-    await database.collection('views').deleteOne({ username });
-    return true;
-  } catch {
-    return false;
-  }
+  await database.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
+  );
 }

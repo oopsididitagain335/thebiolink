@@ -28,13 +28,15 @@ interface UserData {
 
 interface PageProps {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ clientId?: string }>;
 }
 
-export default async function UserPage({ params }: PageProps) {
+export default async function UserPage({ params, searchParams }: PageProps) {
   const { username } = await params;
+  const { clientId = '' } = await searchParams;
 
   try {
-    const userData = await getUserByUsername(username);
+    const userData = await getUserByUsername(username, clientId || crypto.randomUUID());
 
     if (!userData) {
       notFound();
@@ -80,6 +82,27 @@ export default async function UserPage({ params }: PageProps) {
 
     return (
       <div className="min-h-screen relative">
+        {/* Client-side script to set clientId in localStorage */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                let clientId = localStorage.getItem('clientId');
+                if (!clientId) {
+                  clientId = crypto.randomUUID();
+                  localStorage.setItem('clientId', clientId);
+                }
+                // Redirect to include clientId in search params if not present
+                if (!window.location.search.includes('clientId')) {
+                  const url = new URL(window.location);
+                  url.searchParams.set('clientId', clientId);
+                  window.history.replaceState({}, '', url);
+                }
+              })();
+            `,
+          }}
+        />
+
         {/* Background GIF */}
         {background && (
           <div

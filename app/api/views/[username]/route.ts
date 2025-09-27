@@ -3,9 +3,9 @@ import { getViewCount } from '@/lib/storage';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
-  const { username } = params;
+  const { username } = await params;
   try {
     const count = await getViewCount(username);
     return NextResponse.json({ count }, { status: 200 });

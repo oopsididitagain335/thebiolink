@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 import { notFound } from 'next/navigation';
 import { getUserByUsername } from '@/lib/storage';
 
@@ -24,6 +23,7 @@ interface UserData {
   badges: Badge[];
   links: Link[];
   isBanned: boolean;
+  profileViews: number; // Added profileViews
 }
 
 interface PageProps {
@@ -32,10 +32,10 @@ interface PageProps {
 
 export default async function UserPage({ params }: PageProps) {
   const { username } = await params;
-  
+
   try {
     const userData = await getUserByUsername(username);
-    
+
     if (!userData) {
       notFound();
     }
@@ -50,23 +50,23 @@ export default async function UserPage({ params }: PageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
-            
+
             <h1 className="text-2xl font-bold text-white mb-2">Account Suspended</h1>
             <p className="text-gray-400 mb-6">
               This user's account has been suspended due to violation of our terms of service.
             </p>
-            
+
             <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-300">
                 If you are the account holder and believe this is an error, please contact support.
               </p>
             </div>
-            
+
             <p className="text-xs text-gray-500 mt-6">
               Powered by The BioLink
             </p>
-            <a 
-              href="/" 
+            <a
+              href="/"
               className="text-indigo-400 hover:text-indigo-300 hover:underline"
             >
               Create your own
@@ -76,13 +76,13 @@ export default async function UserPage({ params }: PageProps) {
       );
     }
 
-    const { name = '', avatar = '', bio = '', background = '', badges = [], links = [] } = userData as UserData;
+    const { name = '', avatar = '', bio = '', background = '', badges = [], links = [], profileViews = 0 } = userData as UserData;
 
     return (
       <div className="min-h-screen relative">
         {/* Background GIF */}
         {background && (
-          <div 
+          <div
             className="absolute inset-0 z-0"
             style={{
               backgroundImage: `url(${background})`,
@@ -92,18 +92,18 @@ export default async function UserPage({ params }: PageProps) {
             }}
           />
         )}
-        
+
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/70 z-10"></div>
-        
+
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {/* Profile Card with Transparent Background */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center mb-6">
               {avatar ? (
-                <img 
-                  src={avatar} 
-                  alt={name} 
+                <img
+                  src={avatar}
+                  alt={name}
                   className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                 />
               ) : (
@@ -113,19 +113,30 @@ export default async function UserPage({ params }: PageProps) {
                   </span>
                 </div>
               )}
-              
+
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
-              
-              {bio && <p className="text-gray-200 mb-6 max-w-xs mx-auto">{bio}</p>}
-              
+
+              {bio && <p className="text-gray-200 mb-4 max-w-xs mx-auto">{bio}</p>}
+
+              {/* Profile Views Display */}
+              <div className="text-gray-300 text-sm mb-4">
+                <span className="flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {profileViews.toLocaleString()} {profileViews === 1 ? 'view' : 'views'}
+                </span>
+              </div>
+
               {/* Badges Section */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <h3 className="text-md font-semibold text-gray-300 mb-2">Badges</h3>
                   <div className="flex flex-wrap justify-center gap-2">
                     {badges.map((badge) => (
-                      <div 
-                        key={badge.id} 
+                      <div
+                        key={badge.id}
                         className="group relative"
                         title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
                       >
@@ -138,7 +149,7 @@ export default async function UserPage({ params }: PageProps) {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex justify-center space-x-2 mt-6">
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
@@ -182,8 +193,8 @@ export default async function UserPage({ params }: PageProps) {
 
             <div className="text-center text-gray-300 text-sm">
               <p className="mb-2">Powered by The BioLink</p>
-              <a 
-                href="/" 
+              <a
+                href="/"
                 className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors"
               >
                 Create your own
@@ -203,16 +214,16 @@ export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
   try {
     const userData = await getUserByUsername(username);
-    
+
     if (!userData) {
       return { title: 'User Not Found | The BioLink' };
     }
-    
+
     // Handle banned user in metadata
     if (userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }
-    
+
     return {
       title: `${userData.name || username} | The BioLink`,
       description: userData.bio || `Check out ${userData.name || username}'s links`,

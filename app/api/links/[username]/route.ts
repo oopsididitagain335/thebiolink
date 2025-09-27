@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getUserByUsername, saveUserLinks, updateUserProfile } from '@/lib/storage';
+import { getUserByUsernameForMetadata, saveUserLinks, updateUserProfile } from '@/lib/storage';
 import { z } from 'zod';
 
 const ProfileUpdateSchema = z.object({
@@ -23,12 +23,12 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
-  const data = await getUserByUsername(username);
-  
+  const data = await getUserByUsernameForMetadata(username);
+
   if (!data) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
-  
+
   return Response.json({
     name: data.name,
     avatar: data.avatar,
@@ -43,24 +43,24 @@ export async function PUT(
 ) {
   const { username } = await params;
   const body = await request.json();
-  
+
   try {
     if (body.profile) {
       const profileData = ProfileUpdateSchema.parse(body.profile);
       await updateUserProfile(body.userId, profileData);
     }
-    
+
     if (body.links) {
       const linksData = LinksUpdateSchema.parse(body.links);
       await saveUserLinks(body.userId, linksData);
     }
-    
+
     return Response.json({ success: true });
   } catch (error) {
-    return Response.json({ 
-      error: error instanceof z.ZodError 
-        ? 'Validation failed' 
-        : 'Failed to update data' 
+    return Response.json({
+      error: error instanceof z.ZodError
+        ? 'Validation failed'
+        : 'Failed to update data'
     }, { status: 400 });
   }
 }

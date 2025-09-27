@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getUserByUsername } from '@/lib/storage';
+import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
 
 interface Badge {
   id: string;
@@ -23,7 +23,7 @@ interface UserData {
   badges: Badge[];
   links: Link[];
   isBanned: boolean;
-  profileViews: number; // Added profileViews
+  profileViews: number;
 }
 
 interface PageProps {
@@ -213,7 +213,7 @@ export default async function UserPage({ params }: PageProps) {
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
   try {
-    const userData = await getUserByUsername(username);
+    const userData = await getUserByUsernameForMetadata(username);
 
     if (!userData) {
       return { title: 'User Not Found | The BioLink' };

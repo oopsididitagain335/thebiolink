@@ -36,7 +36,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   const { clientId = '' } = await searchParams;
 
   try {
-    const userData = await getUserByUsername(username, clientId || crypto.randomUUID());
+    // Use clientId from searchParams, but don't generate a new UUID here
+    const userData = await getUserByUsername(username, clientId);
 
     if (!userData) {
       notFound();
@@ -92,9 +93,9 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   clientId = crypto.randomUUID();
                   localStorage.setItem('clientId', clientId);
                 }
-                // Redirect to include clientId in search params if not present
-                if (!window.location.search.includes('clientId')) {
-                  const url = new URL(window.location);
+                // Always set clientId in URL to ensure consistency
+                const url = new URL(window.location);
+                if (url.searchParams.get('clientId') !== clientId) {
                   url.searchParams.set('clientId', clientId);
                   window.history.replaceState({}, '', url);
                 }

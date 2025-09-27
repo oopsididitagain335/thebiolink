@@ -1,27 +1,35 @@
+'use client'; // Marks the Header as a Client Component
+
 import Link from 'next/link';
+
+function Header() {
+  return (
+    <div className="flex justify-between items-center mb-12">
+      <div className="flex items-center space-x-2">
+        <span className="text-2xl font-bold">thebiolink.lol</span>
+        <span className="text-sm text-gray-400">Username</span>
+      </div>
+      <div className="space-x-4">
+        <a href="#help-center" className="text-gray-400 hover:text-white">Help Center</a>
+        <a href="https://discord.gg/29yDsapcXh" className="text-gray-400 hover:text-white">Discord</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); alert('Coming Soon'); }} className="text-gray-400 hover:text-white">Pricing</a>
+        <Link href="/auth/login" className="text-gray-400 hover:text-white">Login</Link>
+        <Link
+          href="/auth/signup"
+          className="bg-purple-600 px-4 py-2 rounded-full hover:bg-purple-700 transition-colors"
+        >
+          Sign Up Free
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-indigo-900 to-black text-white p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-12">
-        <div className="flex items-center space-x-2">
-          <span className="text-2xl font-bold">thebiolink.lol</span>
-          <span className="text-sm text-gray-400">Username</span>
-        </div>
-        <div className="space-x-4">
-          <a href="#help-center" className="text-gray-400 hover:text-white">Help Center</a>
-          <a href="https://discord.gg/29yDsapcXh" className="text-gray-400 hover:text-white">Discord</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); alert('Coming Soon'); }} className="text-gray-400 hover:text-white">Pricing</a>
-          <Link href="/auth/login" className="text-gray-400 hover:text-white">Login</Link>
-          <Link
-            href="/auth/signup"
-            className="bg-purple-600 px-4 py-2 rounded-full hover:bg-purple-700 transition-colors"
-          >
-            Sign Up Free
-          </Link>
-        </div>
-      </div>
+      <Header />
 
       {/* Main Content */}
       <div className="text-center max-w-6xl mx-auto">

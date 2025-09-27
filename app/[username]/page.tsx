@@ -13,6 +13,7 @@ interface Link {
   url: string;
   title: string;
   icon?: string;
+  position?: number;
 }
 
 interface UserData {
@@ -20,6 +21,8 @@ interface UserData {
   avatar?: string;
   bio?: string;
   background?: string;
+  backgroundVideo?: string;
+  backgroundAudio?: string;
   badges: Badge[];
   links: Link[];
   isBanned: boolean;
@@ -34,17 +37,27 @@ interface PageProps {
 export default async function UserPage({ params, searchParams }: PageProps) {
   const { username } = await params;
   const { clientId = '' } = await searchParams;
+  console.log('UserPage:', { username, clientId });
 
   try {
-    // Use clientId from searchParams, but don't generate a new UUID here
     const userData = await getUserByUsername(username, clientId);
-
     if (!userData) {
-      notFound();
+      console.log(`User not found for username: ${username}`);
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+            <h1 className="text-2xl font-bold text-white mb-2">User Not Found</h1>
+            <p className="text-gray-400 mb-6">The user profile you are looking for does not exist.</p>
+            <a href="/" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+              Return Home
+            </a>
+          </div>
+        </div>
+      );
     }
 
-    // Handle banned user
     if (userData.isBanned) {
+      console.log(`User banned: ${username}`);
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
@@ -53,25 +66,19 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
-
             <h1 className="text-2xl font-bold text-white mb-2">Account Suspended</h1>
             <p className="text-gray-400 mb-6">
               This user's account has been suspended due to violation of our terms of service.
             </p>
-
             <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-300">
                 If you are the account holder and believe this is an error, please contact support.
               </p>
             </div>
-
             <p className="text-xs text-gray-500 mt-6">
               Powered by The BioLink
             </p>
-            <a
-              href="/"
-              className="text-indigo-400 hover:text-indigo-300 hover:underline"
-            >
+            <a href="/" className="text-indigo-400 hover:text-indigo-300 hover:underline">
               Create your own
             </a>
           </div>
@@ -79,7 +86,11 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    const { name = '', avatar = '', bio = '', background = '', badges = [], links = [], profileViews = 0 } = userData as UserData;
+    const { name = '', avatar = '', bio = '', background = '', backgroundVideo = '', backgroundAudio = '', badges = [], links = [], profileViews = 0 } = userData as UserData;
+
+    // Validate background and backgroundVideo URLs
+    const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
+    const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
 
     return (
       <div className="min-h-screen relative">
@@ -93,7 +104,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   clientId = crypto.randomUUID();
                   localStorage.setItem('clientId', clientId);
                 }
-                // Always set clientId in URL to ensure consistency
                 const url = new URL(window.location);
                 if (url.searchParams.get('clientId') !== clientId) {
                   url.searchParams.set('clientId', clientId);
@@ -103,23 +113,46 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             `,
           }}
         />
-
-        {/* Background GIF */}
-        {background && (
+        {/* Background Video or GIF with fallback */}
+        {backgroundVideo && isValidBackgroundVideo ? (
+          <video
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={backgroundVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            onError={() => console.log(`Failed to load background video: ${backgroundVideo}`)}
+          />
+        ) : isValidBackground ? (
           <div
             className="absolute inset-0 z-0"
             style={{
               backgroundImage: `url(${background})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
+              backgroundRepeat: 'no-repeat',
+              objectFit: 'cover',
             }}
           />
+        ) : (
+          <div
+            className="absolute inset-0 z-0"
+            style={{ backgroundColor: 'rgba(17, 24, 39, 1)' }} // Tailwind gray-900
+          />
         )}
-
+        {/* Background Audio */}
+        {backgroundAudio && (
+          <audio
+            autoPlay
+            loop
+            onError={() => console.log(`Failed to load background audio: ${backgroundAudio}`)}
+          >
+            <source src={backgroundAudio} type="audio/mpeg" />
+          </audio>
+        )}
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/70 z-10"></div>
-
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {/* Profile Card with Transparent Background */}
@@ -129,6 +162,10 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   src={avatar}
                   alt={name}
                   className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                  onError={(e) => {
+                    e.currentTarget.src = '/fallback-avatar.png';
+                    console.log(`Failed to load avatar for ${name}: ${avatar}`);
+                  }}
                 />
               ) : (
                 <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -137,11 +174,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   </span>
                 </div>
               )}
-
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
-
               {bio && <p className="text-gray-200 mb-4 max-w-xs mx-auto">{bio}</p>}
-
               {/* Profile Views Display */}
               <div className="text-gray-300 text-sm mb-4">
                 <span className="flex items-center justify-center gap-2">
@@ -152,7 +186,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   {profileViews.toLocaleString()} {profileViews === 1 ? 'view' : 'views'}
                 </span>
               </div>
-
               {/* Badges Section */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
@@ -165,7 +198,15 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                         title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
                       >
                         <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
-                          <img src={badge.icon} alt={badge.name} className="w-5 h-5 mr-2" />
+                          <img
+                            src={badge.icon}
+                            alt={badge.name}
+                            className="w-5 h-5 mr-2"
+                            onError={(e) => {
+                              e.currentTarget.src = '/fallback-badge.png';
+                              console.log(`Failed to load badge icon for ${badge.name}: ${badge.icon}`);
+                            }}
+                          />
                           <span className="text-white text-sm font-medium">{badge.name}</span>
                         </div>
                       </div>
@@ -173,14 +214,12 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   </div>
                 </div>
               )}
-
               <div className="flex justify-center space-x-2 mt-6">
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
               </div>
             </div>
-
             {/* Links with Transparent Background */}
             <div className="space-y-3 mb-8">
               {links
@@ -196,7 +235,15 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {link.icon ? (
-                          <img src={link.icon} alt={link.title} className="w-6 h-6 mr-3" />
+                          <img
+                            src={link.icon}
+                            alt={link.title}
+                            className="w-6 h-6 mr-3"
+                            onError={(e) => {
+                              e.currentTarget.src = '/fallback-link-icon.png';
+                              console.log(`Failed to load link icon for ${link.title}: ${link.icon}`);
+                            }}
+                          />
                         ) : (
                           <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,13 +261,9 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   </a>
                 ))}
             </div>
-
             <div className="text-center text-gray-300 text-sm">
               <p className="mb-2">Powered by The BioLink</p>
-              <a
-                href="/"
-                className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors"
-              >
+              <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors">
                 Create your own
               </a>
             </div>
@@ -228,26 +271,40 @@ export default async function UserPage({ params, searchParams }: PageProps) {
         </div>
       </div>
     );
-  } catch (error) {
-    console.error('Database error:', error);
-    notFound();
+  } catch (error: any) {
+    console.error('UserPage error:', {
+      username,
+      clientId,
+      error: error.message,
+      stack: error.stack,
+    });
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+          <h1 className="text-2xl font-bold text-white mb-2">Error</h1>
+          <p className="text-gray-400 mb-6">Something went wrong while loading this profile.</p>
+          <a href="/" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+            Return Home
+          </a>
+        </div>
+      </div>
+    );
   }
 }
 
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
+  console.log('Generating metadata for username:', username);
   try {
     const userData = await getUserByUsernameForMetadata(username);
-
     if (!userData) {
+      console.log(`Metadata: User not found for username: ${username}`);
       return { title: 'User Not Found | The BioLink' };
     }
-
-    // Handle banned user in metadata
     if (userData.isBanned) {
+      console.log(`Metadata: User banned for username: ${username}`);
       return { title: 'User Not Found | The BioLink' };
     }
-
     return {
       title: `${userData.name || username} | The BioLink`,
       description: userData.bio || `Check out ${userData.name || username}'s links`,
@@ -257,7 +314,12 @@ export async function generateMetadata({ params }: PageProps) {
         images: userData.avatar ? [userData.avatar] : [],
       },
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Metadata error:', {
+      username,
+      error: error.message,
+      stack: error.stack,
+    });
     return { title: 'User Not Found | The BioLink' };
   }
 }

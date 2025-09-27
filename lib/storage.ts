@@ -399,7 +399,7 @@ export async function unbanUser(userId: string) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   await database.collection<UserDoc>('users').updateOne(
-    { _id: userId },
+    { _id: objectId },
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
 }

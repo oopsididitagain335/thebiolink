@@ -17,19 +17,16 @@ interface UserData {
   links: LinkItem[];
 }
 
-// ✅ Let Next.js supply params typing
 export default async function UserPage({
   params,
 }: {
-  params: { username: string };
+  params: { username: string }; // ✅ explicit type, no Promise
 }) {
   const { username } = params;
 
   try {
     const userData = await getUserByUsername(username.toLowerCase());
-    if (!userData) {
-      notFound();
-    }
+    if (!userData) notFound();
 
     const { name = '', avatar = '', bio = '', background = '', links = [] } =
       userData as UserData;
@@ -138,7 +135,6 @@ export default async function UserPage({
   }
 }
 
-// ✅ Same fix for metadata
 export async function generateMetadata({
   params,
 }: {

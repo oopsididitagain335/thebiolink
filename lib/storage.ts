@@ -42,7 +42,7 @@ interface UserDoc {
   bannedAt?: string;
   createdAt: Date;
   ipAddress?: string;
-  profileViews: number; // Added profileViews
+  profileViews: number;
 }
 
 interface LinkDoc {
@@ -84,7 +84,42 @@ export async function getUserByUsername(username: string) {
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
-    profileViews: user.profileViews || 0, // Include profileViews
+    profileViews: user.profileViews || 0,
+    links: links.map((link: any) => ({
+      id: link._id.toString(),
+      url: link.url || '',
+      title: link.title || '',
+      icon: link.icon || '',
+      position: link.position || 0
+    })).sort((a: any, b: any) => a.position - b.position)
+  };
+}
+
+// New function to fetch user data without incrementing views
+export async function getUserByUsernameForMetadata(username: string) {
+  const database = await connectDB();
+  const user = await database.collection('users').findOne({ username });
+
+  if (!user) return null;
+
+  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  return {
+    _id: user._id.toString(),
+    id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    email: user.email || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    background: user.background || '',
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
+    badges: user.badges || [],
+    isEmailVerified: user.isEmailVerified || false,
+    isBanned: user.isBanned || false,
+    bannedAt: user.bannedAt,
+    createdAt: user.createdAt || new Date().toISOString(),
+    profileViews: user.profileViews || 0,
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -118,7 +153,7 @@ export async function getUserById(id: string) {
       bannedAt: user.bannedAt,
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
-      profileViews: user.profileViews || 0, // Include profileViews
+      profileViews: user.profileViews || 0,
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
@@ -152,7 +187,7 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date(),
-    profileViews: 0 // Initialize profileViews
+    profileViews: 0
   } as UserDoc);
   return {
     id: userId.toString(),
@@ -164,7 +199,7 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date().toISOString(),
-    profileViews: 0 // Include profileViews
+    profileViews: 0
   };
 }
 
@@ -192,7 +227,7 @@ export async function getUserByEmail(email: string) {
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash,
-    profileViews: user.profileViews || 0 // Include profileViews
+    profileViews: user.profileViews || 0
   };
 }
 
@@ -262,7 +297,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bannedAt: updatedUserDocument.bannedAt,
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
-    profileViews: updatedUserDocument.profileViews || 0, // Include profileViews
+    profileViews: updatedUserDocument.profileViews || 0,
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -306,7 +341,7 @@ export async function getAllUsers() {
     badges: user.badges || [],
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
-    profileViews: user.profileViews || 0 // Include profileViews
+    profileViews: user.profileViews || 0
   }));
 }
 

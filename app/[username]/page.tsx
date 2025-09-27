@@ -17,15 +17,16 @@ interface UserData {
   links: LinkItem[];
 }
 
-interface PageProps {
-  params: { username: string }; // ✅ fixed: no Promise
-}
-
-export default async function UserPage({ params }: PageProps) {
-  const { username } = params; // ✅ no await
+// ✅ Let Next.js supply params typing
+export default async function UserPage({
+  params,
+}: {
+  params: { username: string };
+}) {
+  const { username } = params;
 
   try {
-    const userData = await getUserByUsername(username.toLowerCase()); // ✅ normalize usernames
+    const userData = await getUserByUsername(username.toLowerCase());
     if (!userData) {
       notFound();
     }
@@ -137,8 +138,13 @@ export default async function UserPage({ params }: PageProps) {
   }
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { username } = params; // ✅ fixed
+// ✅ Same fix for metadata
+export async function generateMetadata({
+  params,
+}: {
+  params: { username: string };
+}) {
+  const { username } = params;
   try {
     const userData = await getUserByUsername(username.toLowerCase());
     if (!userData) {

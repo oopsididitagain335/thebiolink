@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -7,7 +6,6 @@ let cachedDb: Db | null = null;
 
 export async function connectDB() {
   if (cachedDb) return cachedDb;
-
   if (!cachedClient) {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI not set in environment variables');
@@ -15,11 +13,9 @@ export async function connectDB() {
     cachedClient = new MongoClient(process.env.MONGODB_URI);
     await cachedClient.connect();
   }
-
   if (!cachedDb) {
     cachedDb = cachedClient.db();
   }
-
   return cachedDb;
 }
 
@@ -46,6 +42,7 @@ interface UserDoc {
   bannedAt?: string;
   createdAt: Date;
   ipAddress?: string;
+  profileViews: number; // Added profileViews
 }
 
 interface LinkDoc {
@@ -58,14 +55,19 @@ interface LinkDoc {
 }
 
 // --- User Functions (Node.js only) ---
-
 export async function getUserByUsername(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
+
   if (!user) return null;
 
-  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  // Increment profile views
+  await database.collection('users').updateOne(
+    { _id: user._id },
+    { $inc: { profileViews: 1 } }
+  );
 
+  const links = await database.collection('links').find({ userId: user._id }).toArray();
   return {
     _id: user._id.toString(),
     id: user._id.toString(),
@@ -82,6 +84,7 @@ export async function getUserByUsername(username: string) {
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
+    profileViews: user.profileViews || 0, // Include profileViews
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -97,9 +100,7 @@ export async function getUserById(id: string) {
   try {
     const user = await database.collection('users').findOne({ _id: new ObjectId(id) });
     if (!user) return null;
-
     const links = await database.collection('links').find({ userId: user._id }).toArray();
-
     return {
       _id: user._id.toString(),
       id: user._id.toString(),
@@ -117,6 +118,7 @@ export async function getUserById(id: string) {
       bannedAt: user.bannedAt,
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
+      profileViews: user.profileViews || 0, // Include profileViews
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
@@ -132,16 +134,12 @@ export async function getUserById(id: string) {
 
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const database = await connectDB();
-
   const existingEmail = await database.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
-
   const existingUsername = await database.collection('users').findOne({ username });
   if (existingUsername) throw new Error('Username already taken');
-
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
-
   await database.collection('users').insertOne({
     _id: userId,
     email,
@@ -153,9 +151,9 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    createdAt: new Date()
+    createdAt: new Date(),
+    profileViews: 0 // Initialize profileViews
   } as UserDoc);
-
   return {
     id: userId.toString(),
     email,
@@ -165,7 +163,8 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    profileViews: 0 // Include profileViews
   };
 }
 
@@ -176,7 +175,6 @@ export async function getUserByEmail(email: string) {
     { projection: { passwordHash: 1 } }
   );
   if (!user) return null;
-
   return {
     _id: user._id.toString(),
     id: user._id.toString(),
@@ -193,16 +191,15 @@ export async function getUserByEmail(email: string) {
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
-    passwordHash: user.passwordHash
+    passwordHash: user.passwordHash,
+    profileViews: user.profileViews || 0 // Include profileViews
   };
 }
 
 export async function saveUserLinks(userId: string, links: any[]) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
   await database.collection('links').deleteMany({ userId: objectId });
-
   if (links.length > 0) {
     const linksToInsert = links.map((link: any, index: number) => ({
       _id: new ObjectId(),
@@ -212,20 +209,16 @@ export async function saveUserLinks(userId: string, links: any[]) {
       icon: link.icon?.trim() || '',
       position: index
     }));
-
     const validLinks = linksToInsert.filter(link => link.url && link.title);
-
     if (validLinks.length > 0) {
       await database.collection('links').insertMany(validLinks);
     }
   }
 }
 
-// ✅ FIXED updateUserProfile with null check and badge support
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
   const cleanedUpdates = {
     name: updates.name?.trim() || '',
     username: updates.username?.trim().toLowerCase() || '',
@@ -235,7 +228,6 @@ export async function updateUserProfile(userId: string, updates: any) {
     backgroundVideo: updates.backgroundVideo?.trim() || '',
     backgroundAudio: updates.backgroundAudio?.trim() || ''
   };
-
   if (cleanedUpdates.username) {
     const existing = await database.collection('users').findOne({
       username: cleanedUpdates.username,
@@ -243,25 +235,16 @@ export async function updateUserProfile(userId: string, updates: any) {
     });
     if (existing) throw new Error('Username already taken');
   }
-
   await database.collection('users').updateOne(
     { _id: objectId },
     { $set: cleanedUpdates }
   );
-
-  // --- Crucial: Fetch the updated user document ---
   const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
-
-  // --- Crucial: Null check for updatedUserDocument ---
   if (!updatedUserDocument) {
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
-  // --- End Null Check ---
-
   const links = await database.collection('links').find({ userId: objectId }).toArray();
-
-  // --- Return the updated user data including background and badges ---
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -279,6 +262,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bannedAt: updatedUserDocument.bannedAt,
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
+    profileViews: updatedUserDocument.profileViews || 0, // Include profileViews
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -290,38 +274,30 @@ export async function updateUserProfile(userId: string, updates: any) {
 }
 
 // --- ADMIN PANEL FUNCTIONS ---
-
-// ✅ FIXED addUserBadge with correct $push syntax
 export async function addUserBadge(
   userId: string,
   badge: { id: string; name: string; icon: string; awardedAt: string }
 ) {
   const database = await connectDB();
   const userObjectId = new ObjectId(userId);
-
-  // ✅ Fix: Use $each to satisfy MongoDB driver types
   await database.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
-    { $push: { badges: { $each: [badge] } } } // <- Key change
+    { $push: { badges: { $each: [badge] } } }
   );
 }
 
-// Remove badge from user
 export async function removeUserBadge(userId: string, badgeId: string) {
   const database = await connectDB();
   const userObjectId = new ObjectId(userId);
-
   await database.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
     { $pull: { badges: { id: badgeId } } }
   );
 }
 
-// Get all users (admin only)
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database.collection<UserDoc>('users').find({}).toArray();
-
   return users.map((user) => ({
     id: user._id.toString(),
     email: user.email,
@@ -329,30 +305,26 @@ export async function getAllUsers() {
     name: user.name || '',
     badges: user.badges || [],
     isBanned: user.isBanned || false,
-    bannedAt: user.bannedAt
+    bannedAt: user.bannedAt,
+    profileViews: user.profileViews || 0 // Include profileViews
   }));
 }
 
-// Create new badge
 export async function createBadge(name: string, icon: string) {
   const database = await connectDB();
   const badgeId = new ObjectId().toString();
-
   await database.collection('badges').insertOne({
     id: badgeId,
     name,
     icon,
     createdAt: new Date().toISOString()
   });
-
   return { id: badgeId, name, icon };
 }
 
-// Get all available badges
 export async function getAllBadges() {
   const database = await connectDB();
   const badges = await database.collection('badges').find({}).toArray();
-
   return badges.map((badge: any) => ({
     id: badge.id,
     name: badge.name,
@@ -360,22 +332,18 @@ export async function getAllBadges() {
   }));
 }
 
-// ✅ NEW: Ban a user
 export async function banUser(userId: string) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
   await database.collection<UserDoc>('users').updateOne(
     { _id: objectId },
     { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
   );
 }
 
-// ✅ NEW: Unban a user
 export async function unbanUser(userId: string) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
-
   await database.collection<UserDoc>('users').updateOne(
     { _id: objectId },
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }

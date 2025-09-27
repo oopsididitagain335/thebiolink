@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-gray-900 to-black text-white p-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-indigo-900 to-black text-white p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-12">
         <div className="flex items-center space-x-2">
@@ -10,10 +10,10 @@ export default function HomePage() {
           <span className="text-sm text-gray-400">Username</span>
         </div>
         <div className="space-x-4">
-          <a href="#" className="text-gray-400 hover:text-white">Help Center</a>
-          <a href="#" className="text-gray-400 hover:text-white">Discord</a>
-          <a href="#" className="text-gray-400 hover:text-white">Pricing</a>
-          <a href="#" className="text-gray-400 hover:text-white">Login</a>
+          <a href="#help-center" className="text-gray-400 hover:text-white">Help Center</a>
+          <a href="https://discord.gg/29yDsapcXh" className="text-gray-400 hover:text-white">Discord</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); alert('Coming Soon'); }} className="text-gray-400 hover:text-white">Pricing</a>
+          <Link href="/auth/login" className="text-gray-400 hover:text-white">Login</Link>
           <Link
             href="/auth/signup"
             className="bg-purple-600 px-4 py-2 rounded-full hover:bg-purple-700 transition-colors"
@@ -47,48 +47,63 @@ export default function HomePage() {
         {/* Phone Mockups */}
         <div className="flex justify-center gap-8">
           {/* Phone 1 */}
-          <div className="bg-gray-800 rounded-2xl p-4 shadow-lg w-64 h-[450px] flex flex-col items-center justify-center relative">
-            <div className="bg-purple-900/50 rounded-lg p-4 w-full h-full">
-              <p className="text-sm text-gray-400">Welcome back, @thebiolink.lol</p>
-              <div className="space-y-2 mt-4">
-                <p className="text-sm text-gray-300">Account Overview</p>
-                <p className="text-sm text-gray-300">Username</p>
-                <p className="text-sm text-gray-300">Alias</p>
-                <p className="text-sm text-gray-300">Views</p>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm text-gray-400">Profile Views in last 12 hours</p>
-                <div className="h-20 bg-purple-500/20 rounded flex items-center justify-center">
-                  <span className="text-gray-500">Graph Placeholder</span>
+          <div className="bg-gray-800 rounded-xl p-4 shadow-lg w-64 h-[500px] flex flex-col items-center justify-center relative transform hover:scale-105 transition-transform duration-300">
+            <div className="bg-black rounded-[30px] p-6 w-full h-full border-4 border-gray-700">
+              <div className="bg-purple-900/50 rounded-lg p-4 w-full h-full">
+                <p className="text-sm text-gray-400">Welcome back, @thebiolink.lol</p>
+                <div className="space-y-2 mt-4">
+                  <p className="text-sm text-gray-300">Account Overview</p>
+                  <p className="text-sm text-gray-300">Username</p>
+                  <p className="text-sm text-gray-300">Alias</p>
+                  <p className="text-sm text-gray-300">Views</p>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-400">Profile Views in last 12 hours</p>
+                  <div className="h-20 bg-purple-500/20 rounded flex items-center justify-center">
+                    <span className="text-gray-500">Graph Placeholder</span>
+                  </div>
                 </div>
               </div>
+              {/* Phone notch */}
+              <div className="absolute top-2 left-1/2 w-16 h-4 bg-gray-700 rounded-b-xl transform -translate-x-1/2"></div>
+              {/* Phone bezel effect */}
+              <div className="absolute inset-0 border-2 border-gray-600 rounded-[30px]"></div>
             </div>
-            {/* Phone bezel effect */}
-            <div className="absolute inset-0 border-4 border-gray-700 rounded-2xl"></div>
           </div>
 
           {/* Phone 2 */}
-          <div className="bg-gray-800 rounded-2xl p-4 shadow-lg w-64 h-[450px] flex flex-col items-center justify-center relative">
-            <div className="bg-purple-900/50 rounded-lg p-4 w-full h-full">
-              <p className="text-sm text-gray-400">Azrez</p>
-              <div className="space-y-2 mt-4">
-                <p className="text-sm text-gray-300">My Portfolio</p>
-                <p className="text-sm text-gray-300">My Store</p>
-                <p className="text-sm text-gray-300">My Discord</p>
+          <div className="bg-gray-800 rounded-xl p-4 shadow-lg w-64 h-[500px] flex flex-col items-center justify-center relative transform hover:scale-105 transition-transform duration-300">
+            <div className="bg-black rounded-[30px] p-6 w-full h-full border-4 border-gray-700">
+              <div className="bg-purple-900/50 rounded-lg p-4 w-full h-full">
+                <p className="text-sm text-gray-400">Azrez</p>
+                <div className="space-y-2 mt-4">
+                  <p className="text-sm text-gray-300">My Portfolio</p>
+                  <p className="text-sm text-gray-300">My Store</p>
+                  <p className="text-sm text-gray-300">My Discord</p>
+                </div>
+                <div className="mt-4 flex justify-center">
+                  <span className="text-gray-500">Image Placeholder</span>
+                </div>
               </div>
-              <div className="mt-4 flex justify-center">
-                <span className="text-gray-500">Image Placeholder</span>
-              </div>
+              {/* Phone notch */}
+              <div className="absolute top-2 left-1/2 w-16 h-4 bg-gray-700 rounded-b-xl transform -translate-x-1/2"></div>
+              {/* Phone bezel effect */}
+              <div className="absolute inset-0 border-2 border-gray-600 rounded-[30px]"></div>
             </div>
-            {/* Phone bezel effect */}
-            <div className="absolute inset-0 border-4 border-gray-700 rounded-2xl"></div>
           </div>
         </div>
       </div>
 
+      {/* Help Center Section */}
+      <div id="help-center" className="text-center max-w-4xl mx-auto mt-16 p-6 bg-gray-800 rounded-xl">
+        <h2 className="text-3xl font-bold mb-4">Help Center</h2>
+        <p className="text-gray-300 mb-4">Need assistance? Check our FAQs or contact support.</p>
+        <a href="#" className="text-indigo-400 hover:underline">Visit Help Center</a>
+      </div>
+
       {/* Footer */}
       <div className="text-center text-gray-500 mt-12 text-sm">
-        <p>Copyright © 2025 thebiolink.lol</p>
+        <p>Copyright © 2024 thebiolink.lol</p>
       </div>
     </div>
   );

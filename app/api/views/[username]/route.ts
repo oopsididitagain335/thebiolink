@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getViewCount } from '@/lib/storage';
 
-export async function GET(request: NextRequest, { params }: { params: { username: string } }) {
-  const { username } = params;
+export async function GET(request: NextRequest, context: { params: { username: string } }) {
+  const { username } = context.params;
 
   try {
     const count = await getViewCount(username);

@@ -17,11 +17,13 @@ interface UserData {
   links: LinkItem[];
 }
 
-export default async function UserPage({
-  params,
-}: {
-  params: { username: string }; // ✅ explicit type, no Promise
-}) {
+interface UserPageProps {
+  params: {
+    username: string;
+  };
+}
+
+export default async function UserPage({ params }: UserPageProps) {
   const { username } = params;
 
   try {
@@ -135,11 +137,7 @@ export default async function UserPage({
   }
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { username: string };
-}) {
+export async function generateMetadata({ params }: UserPageProps) {
   const { username } = params;
   try {
     const userData = await getUserByUsername(username.toLowerCase());

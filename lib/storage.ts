@@ -54,18 +54,38 @@ interface LinkDoc {
   position: number;
 }
 
+interface ProfileVisitDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  clientId: string;
+  visitedAt: Date;
+}
+
 // --- User Functions (Node.js only) ---
-export async function getUserByUsername(username: string) {
+export async function getUserByUsername(username: string, clientId: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
 
   if (!user) return null;
 
-  // Increment profile views
-  await database.collection('users').updateOne(
-    { _id: user._id },
-    { $inc: { profileViews: 1 } }
-  );
+  // Check if this client has already visited this user's profile
+  const existingVisit = await database.collection('profile_visits').findOne({
+    userId: user._id,
+    clientId: clientId,
+  });
+
+  if (!existingVisit) {
+    // Increment profile views and record the visit
+    await database.collection('users').updateOne(
+      { _id: user._id },
+      { $inc: { profileViews: 1 } }
+    );
+    await database.collection('profile_visits').insertOne({
+      userId: user._id,
+      clientId: clientId,
+      visitedAt: new Date(),
+    } as ProfileVisitDoc);
+  }
 
   const links = await database.collection('links').find({ userId: user._id }).toArray();
   return {
@@ -95,7 +115,6 @@ export async function getUserByUsername(username: string) {
   };
 }
 
-// New function to fetch user data without incrementing views
 export async function getUserByUsernameForMetadata(username: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -380,7 +399,7 @@ export async function unbanUser(userId: string) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
   await database.collection<UserDoc>('users').updateOne(
-    { _id: objectId },
+    { _id: userId },
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
 }

@@ -1,20 +1,16 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getViewCount } from '@/lib/storage';
 
-export async function GET(request: NextRequest, context: { params: { username: string } }) {
-  const { username } = context.params;
-
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { username: string } }
+) {
+  const { username } = params;
   try {
     const count = await getViewCount(username);
-    return new Response(JSON.stringify({ count }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ count }, { status: 200 });
   } catch (error) {
     console.error('Error fetching view count:', error); // Add logging for debugging
-    return new Response(JSON.stringify({ count: 0 }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ count: 0 }, { status: 500 });
   }
 }

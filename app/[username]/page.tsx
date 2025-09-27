@@ -17,22 +17,18 @@ interface UserData {
   links: LinkItem[];
 }
 
+// Define the props type to match Next.js expectations
 interface UserPageProps {
-  params: {
-    username: string;
-  };
+  params: Promise<{ username: string }>; // Use Promise for params
 }
 
 export default async function UserPage({ params }: UserPageProps) {
-  const { username } = params;
-
+  const { username } = await params; // Await the params to resolve the Promise
   try {
     const userData = await getUserByUsername(username.toLowerCase());
     if (!userData) notFound();
-
     const { name = '', avatar = '', bio = '', background = '', links = [] } =
       userData as UserData;
-
     return (
       <div className="min-h-screen relative">
         {/* Background */}
@@ -47,10 +43,8 @@ export default async function UserPage({ params }: UserPageProps) {
             }}
           />
         )}
-
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/70 z-10"></div>
-
         <div className="relative z-20 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             {/* Profile Card */}
@@ -68,20 +62,16 @@ export default async function UserPage({ params }: UserPageProps) {
                   </span>
                 </div>
               )}
-
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
-
               {bio && (
                 <p className="text-gray-200 mb-6 max-w-xs mx-auto">{bio}</p>
               )}
-
               <div className="flex justify-center space-x-2 mt-4">
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
               </div>
             </div>
-
             {/* Links */}
             <div className="space-y-3 mb-8">
               {links
@@ -116,7 +106,6 @@ export default async function UserPage({ params }: UserPageProps) {
                   </a>
                 ))}
             </div>
-
             {/* Footer */}
             <div className="text-center text-gray-300 text-sm">
               <p className="mb-2">Powered by The BioLink</p>
@@ -138,13 +127,12 @@ export default async function UserPage({ params }: UserPageProps) {
 }
 
 export async function generateMetadata({ params }: UserPageProps) {
-  const { username } = params;
+  const { username } = await params; // Await the params to resolve the Promise
   try {
     const userData = await getUserByUsername(username.toLowerCase());
     if (!userData) {
       return { title: 'User Not Found | The BioLink' };
     }
-
     return {
       title: `${userData.name || username} | The BioLink`,
       description:

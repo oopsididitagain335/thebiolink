@@ -11,6 +11,7 @@ export async function GET(request: NextRequest, context: { params: { username: s
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error('Error fetching view count:', error); // Add logging for debugging
     return new Response(JSON.stringify({ count: 0 }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

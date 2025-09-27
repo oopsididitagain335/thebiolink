@@ -292,7 +292,7 @@ export async function removeUserBadge(userId: string, badgeId: string) {
 
   await database.collection('users').updateOne(
     { _id: objectId },
-    { $pull: { badges: { id: badgeId } } }
+    { $pull: { badges: { id: badgeId } } as any } // ✅ fixed here
   );
 }
 

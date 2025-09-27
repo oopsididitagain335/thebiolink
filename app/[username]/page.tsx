@@ -1,5 +1,7 @@
-import { notFound } from 'next/navigation';
 import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
+import Avatar from '@/components/Avatar';
+import Badges from '@/components/Badges';
+import Links from '@/components/Links';
 
 interface Badge {
   id: string;
@@ -122,7 +124,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             loop
             muted
             playsInline
-            onError={() => console.log(`Failed to load background video: ${backgroundVideo}`)}
           />
         ) : isValidBackground ? (
           <div
@@ -143,11 +144,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
         )}
         {/* Background Audio */}
         {backgroundAudio && (
-          <audio
-            autoPlay
-            loop
-            onError={() => console.log(`Failed to load background audio: ${backgroundAudio}`)}
-          >
+          <audio autoPlay loop>
             <source src={backgroundAudio} type="audio/mpeg" />
           </audio>
         )}
@@ -157,23 +154,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           <div className="w-full max-w-md">
             {/* Profile Card with Transparent Background */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center mb-6">
-              {avatar ? (
-                <img
-                  src={avatar}
-                  alt={name}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
-                  onError={(e) => {
-                    e.currentTarget.src = '/fallback-avatar.png';
-                    console.log(`Failed to load avatar for ${name}: ${avatar}`);
-                  }}
-                />
-              ) : (
-                <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl text-white font-bold">
-                    {name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <Avatar name={name} avatar={avatar} />
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
               {bio && <p className="text-gray-200 mb-4 max-w-xs mx-auto">{bio}</p>}
               {/* Profile Views Display */}
@@ -190,28 +171,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <h3 className="text-md font-semibold text-gray-300 mb-2">Badges</h3>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {badges.map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="group relative"
-                        title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
-                      >
-                        <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
-                          <img
-                            src={badge.icon}
-                            alt={badge.name}
-                            className="w-5 h-5 mr-2"
-                            onError={(e) => {
-                              e.currentTarget.src = '/fallback-badge.png';
-                              console.log(`Failed to load badge icon for ${badge.name}: ${badge.icon}`);
-                            }}
-                          />
-                          <span className="text-white text-sm font-medium">{badge.name}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <Badges badges={badges} />
                 </div>
               )}
               <div className="flex justify-center space-x-2 mt-6">
@@ -221,46 +181,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               </div>
             </div>
             {/* Links with Transparent Background */}
-            <div className="space-y-3 mb-8">
-              {links
-                .filter(link => link.url && link.title)
-                .map(link => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl p-4 text-left transition-all duration-200 hover:translate-x-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        {link.icon ? (
-                          <img
-                            src={link.icon}
-                            alt={link.title}
-                            className="w-6 h-6 mr-3"
-                            onError={(e) => {
-                              e.currentTarget.src = '/fallback-link-icon.png';
-                              console.log(`Failed to load link icon for ${link.title}: ${link.icon}`);
-                            }}
-                          />
-                        ) : (
-                          <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25V21h3.75C8.55 21 10.69 19.75 11.5 18.25a10.05 10.05 0 0011-11C22.49 6.35 20.7 4.5 18.25 4.5h-3.75" />
-                            </svg>
-                          </div>
-                        )}
-                        <span className="text-white font-medium">{link.title}</span>
-                      </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </a>
-                ))}
-            </div>
+            <Links links={links} />
             <div className="text-center text-gray-300 text-sm">
               <p className="mb-2">Powered by The BioLink</p>
               <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors">

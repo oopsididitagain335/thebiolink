@@ -257,6 +257,3 @@ export async function saveUserLinks(userId: string, links: any[]) {
   );
   return result.modifiedCount > 0;
 }
-
-// ─── Export all ────────────────────────────────────
-export { connectToDatabase };

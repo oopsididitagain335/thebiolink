@@ -1,5 +1,17 @@
+// app/api/dashboard/announcement/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, getLatestAnnouncement, sendAnnouncement } from '@/lib/storage';
+
+// Optional: Add types for better safety
+interface Badge {
+  name: string;
+}
+
+interface User {
+  _id: string;
+  email: string;
+  badges: Badge[];
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,14 +40,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserByEmail(sessionToken);
+    // ✅ Use getUserById — NOT getUserByEmail
+    const user = await getUserById(sessionToken) as User | null;
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isAdmin = user.email === 'lyharry31@gmail.com' || user.badges.some((b) => b.name === 'Owner');
+    const isAdmin =
+      user.email === 'lyharry31@gmail.com' ||
+      user.badges.some((b: Badge) => b.name === 'Owner');
+
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Only admin can send announcements' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Only admin can send announcements' },
+        { status: 403 }
+      );
     }
 
     const { text } = await req.json();

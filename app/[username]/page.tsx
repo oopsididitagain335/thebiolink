@@ -1,4 +1,4 @@
-import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
+import { getUserByUsername, getUserByUsernameForMetadata, recordProfileView } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
@@ -42,7 +42,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   console.log('UserPage:', { username, clientId });
 
   try {
-    const userData = await getUserByUsername(username, clientId);
+    // ✅ Fetch user WITHOUT clientId
+    const userData = await getUserByUsername(username);
     if (!userData) {
       console.log(`User not found for username: ${username}`);
       return (
@@ -88,7 +89,15 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    const { name = '', avatar = '', bio = '', background = '', backgroundVideo = '', backgroundAudio = '', badges = [], links = [], profileViews = 0 } = userData as UserData;
+    // ✅ Record profile view if clientId is valid and not from the owner
+    if (clientId && clientId !== 'owner') {
+      await recordProfileView(userData._id.toString(), clientId);
+    }
+
+    const { name = '', avatar = '', bio = '', background = '', backgroundVideo = '', backgroundAudio = '', badges = [], links = [] } = userData;
+
+    // Get updated view count (optional: you can also store it in userData if your DB includes it)
+    const profileViews = await getProfileViewCount(userData._id.toString());
 
     // Validate background and backgroundVideo URLs
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);

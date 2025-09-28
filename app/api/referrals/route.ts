@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from 'next-auth/react';
-import { getUserByReferralCode, getTopReferrers } from '@/lib/storage';
+import { getUserById, getUserByReferralCode, getTopReferrers } from '@/lib/storage';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession({ req });
-    if (!session || !session.user) {
+    // Check for session cookie
+    const sessionToken = req.cookies.get('session-token')?.value;
+    if (!sessionToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.email !== 'lyharry31@gmail.com') {
+    // Fetch user based on session token
+    const user = await getUserById(sessionToken);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.email !== 'lyharry31@gmail.com') {
       return NextResponse.json({ error: 'Forbidden: Only admin can access top referrers' }, { status: 403 });
     }
 

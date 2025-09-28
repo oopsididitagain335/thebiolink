@@ -20,8 +20,6 @@ interface User {
   isEmailVerified: boolean;
   email: string;
   badges: { id: string; name: string; icon: string; awardedAt: string }[];
-  referralCode?: string;
-  referralId?: string;
 }
 
 export default function Dashboard() {
@@ -35,21 +33,12 @@ export default function Dashboard() {
     isEmailVerified: true,
     email: '',
     badges: [],
-    referralCode: '',
-    referralId: '',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [announcement, setAnnouncement] = useState<string | null>(null);
-  const [topReferrers, setTopReferrers] = useState<{ username: string; referredCount: number }[]>([]);
-  const [announcementInput, setAnnouncementInput] = useState('');
-  const [awardUserId, setAwardUserId] = useState('');
-  const [isAwarding, setIsAwarding] = useState(false);
   const router = useRouter();
-
-  const isAdmin = user.email === 'lyharry31@gmail.com' || user.badges.some((b) => b.name === 'Owner');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -64,7 +53,6 @@ export default function Dashboard() {
           return;
         }
         const data = await res.json();
-        console.log('Fetched user data:', data); // Debug log
         setUser({
           _id: data.user._id || '',
           name: data.user.name || '',
@@ -75,8 +63,6 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           email: data.user.email || '',
           badges: data.user.badges || [],
-          referralCode: data.user.referralCode || '',
-          referralId: data.user.referralId || '',
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -100,40 +86,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
-  useEffect(() => {
-    const fetchAnnouncement = async () => {
-      try {
-        const res = await fetch('/api/dashboard/announcement');
-        if (res.ok) {
-          const data = await res.json();
-          setAnnouncement(data.text || null);
-        } else {
-          console.error('Failed to fetch announcement:', await res.text());
-        }
-      } catch (error) {
-        console.error('Failed to fetch announcement:', error);
-      }
-    };
-
-    fetchAnnouncement();
-
-    if (isAdmin) {
-      const fetchTopReferrers = async () => {
-        try {
-          const res = await fetch('/api/referrals');
-          if (res.ok) {
-            setTopReferrers(await res.json());
-          } else {
-            console.error('Failed to fetch top referrers:', await res.text());
-          }
-        } catch (error) {
-          console.error('Failed to fetch top referrers:', error);
-        }
-      };
-      fetchTopReferrers();
-    }
-  }, [isAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -211,92 +163,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleSendAnnouncement = async () => {
-    if (!announcementInput.trim()) {
-      setMessage({ type: 'error', text: 'Announcement text cannot be empty.' });
-      return;
-    }
-    try {
-      const res = await fetch('/api/dashboard/announcement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: announcementInput }),
-      });
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Announcement sent!' });
-        setAnnouncementInput('');
-        const annRes = await fetch('/api/dashboard/announcement');
-        if (annRes.ok) {
-          const data = await annRes.json();
-          setAnnouncement(data.text || null);
-        }
-      } else {
-        const errorData = await res.json();
-        setMessage({ type: 'error', text: errorData.error || 'Failed to send announcement.' });
-      }
-    } catch (error) {
-      console.error('Send announcement error:', error);
-      setMessage({ type: 'error', text: 'Network error.' });
-    }
-  };
-
-  const handleAwardSponsored = async () => {
-    if (!awardUserId.trim()) {
-      setMessage({ type: 'error', text: 'Enter a user ID to award the badge.' });
-      return;
-    }
-    setIsAwarding(true);
-    try {
-      const res = await fetch('/api/admin/award-badge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: awardUserId,
-          badge: {
-            id: 'sponsored',
-            name: 'Sponsored',
-            icon: 'https://example.com/sponsored-icon.png',
-            awardedAt: new Date().toISOString(),
-          },
-        }),
-      });
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Sponsored badge awarded! Referral codes generated.' });
-        setAwardUserId('');
-        // Refresh user data to show new codes if awarding to self
-        if (awardUserId === user._id) {
-          const refreshRes = await fetch('/api/dashboard/data');
-          if (refreshRes.ok) {
-            const data = await refreshRes.json();
-            setUser(data.user);
-          }
-        }
-      } else {
-        const errorData = await res.json();
-        setMessage({ type: 'error', text: errorData.error || 'Failed to award badge.' });
-      }
-    } catch (error) {
-      console.error('Award badge error:', error);
-      setMessage({ type: 'error', text: 'Network error.' });
-    } finally {
-      setIsAwarding(false);
-    }
-  };
-
-  const hasSponsoredBadge = user.badges.some((b) => b.name === 'Sponsored');
-  const referralLink = hasSponsoredBadge && user.referralCode && user.referralId
-    ? `https://thebiolink.lol/${user.referralCode}?referralid=${user.referralId}`
-    : '';
-
-  const handleCopyReferral = () => {
-    if (referralLink) {
-      navigator.clipboard.writeText(referralLink);
-      setMessage({ type: 'success', text: 'Referral link copied!' });
-    } else {
-      setMessage({ type: 'error', text: 'No referral link available. Contact admin for Sponsored badge.' });
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -308,12 +174,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {announcement && (
-          <div className="bg-yellow-900/50 backdrop-blur-sm border border-yellow-800 rounded-2xl p-6 mb-8 text-white">
-            <h3 className="text-lg font-semibold mb-2">Announcement</h3>
-            <p>{announcement}</p>
-          </div>
-        )}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -419,48 +279,6 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
-              {hasSponsoredBadge && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-2 text-white">Your Sponsored Referral Link</h3>
-                  <p className="text-gray-400 mb-2">Share this link to refer new users (leads to signup for now):</p>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={referralLink}
-                      readOnly
-                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white"
-                    />
-                    <button
-                      onClick={handleCopyReferral}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              )}
-              {isAdmin && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-2 text-white">Award Sponsored Badge</h3>
-                  <p className="text-gray-400 mb-2">Enter user ID to award Sponsored badge and generate referral codes:</p>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={awardUserId}
-                      onChange={(e) => setAwardUserId(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white placeholder-gray-400"
-                      placeholder="User ID"
-                    />
-                    <button
-                      onClick={handleAwardSponsored}
-                      disabled={isAwarding}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors disabled:opacity-70"
-                    >
-                      {isAwarding ? 'Awarding...' : 'Award'}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
@@ -614,41 +432,6 @@ export default function Dashboard() {
                 Personal subscriptions coming soon!
               </div>
             </div>
-            {isAdmin && (
-              <>
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
-                  <textarea
-                    value={announcementInput}
-                    onChange={(e) => setAnnouncementInput(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 mb-4"
-                    placeholder="Enter announcement text..."
-                  />
-                  <button
-                    onClick={handleSendAnnouncement}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition-colors"
-                  >
-                    Send
-                  </button>
-                </div>
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
-                  {topReferrers.length > 0 ? (
-                    <ul className="space-y-2">
-                      {topReferrers.map((r, index) => (
-                        <li key={index} className="flex justify-between text-gray-300">
-                          <span>{r.username}</span>
-                          <span className="font-medium text-white">{r.referredCount}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">No referrals yet.</p>
-                  )}
-                </div>
-              </>
-            )}
           </div>
         </div>
         {message && (

@@ -1,35 +1,12 @@
-import { getUserByUsername, getUserByUsernameForMetadata, recordProfileView } from '@/lib/storage';
+import { 
+  getUserByUsername, 
+  getUserByUsernameForMetadata, 
+  recordProfileView, 
+  getProfileViewCount 
+} from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
-
-interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  awardedAt: string;
-}
-
-interface Link {
-  id: string;
-  url: string;
-  title: string;
-  icon?: string;
-  position?: number;
-}
-
-interface UserData {
-  name: string;
-  avatar?: string;
-  bio?: string;
-  background?: string;
-  backgroundVideo?: string;
-  backgroundAudio?: string;
-  badges: Badge[];
-  links: Link[];
-  isBanned: boolean;
-  profileViews: number;
-}
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -42,10 +19,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   console.log('UserPage:', { username, clientId });
 
   try {
-    // ✅ Fetch user WITHOUT clientId
     const userData = await getUserByUsername(username);
     if (!userData) {
-      console.log(`User not found for username: ${username}`);
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
@@ -60,7 +35,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     }
 
     if (userData.isBanned) {
-      console.log(`User banned: ${username}`);
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
@@ -78,9 +52,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                 If you are the account holder and believe this is an error, please contact support.
               </p>
             </div>
-            <p className="text-xs text-gray-500 mt-6">
-              Powered by The BioLink
-            </p>
+            <p className="text-xs text-gray-500 mt-6">Powered by The BioLink</p>
             <a href="/" className="text-indigo-400 hover:text-indigo-300 hover:underline">
               Create your own
             </a>
@@ -89,23 +61,30 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    // ✅ Record profile view if clientId is valid and not from the owner
+    // ✅ Record profile view
     if (clientId && clientId !== 'owner') {
       await recordProfileView(userData._id.toString(), clientId);
     }
 
-    const { name = '', avatar = '', bio = '', background = '', backgroundVideo = '', backgroundAudio = '', badges = [], links = [] } = userData;
+    const {
+      name = '',
+      avatar = '',
+      bio = '',
+      background = '',
+      backgroundVideo = '',
+      backgroundAudio = '',
+      badges = [],
+      links = []
+    } = userData;
 
-    // Get updated view count (optional: you can also store it in userData if your DB includes it)
-    const profileViews = await getProfileViewCount(userData._id.toString());
+    const profileViews = await getProfileViewCount(userData._id.toString()).catch(() => 0);
 
-    // Validate background and backgroundVideo URLs
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
 
     return (
       <div className="min-h-screen relative">
-        {/* Client-side script to set clientId in localStorage */}
+        {/* Client-side script for clientId */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -124,16 +103,10 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             `,
           }}
         />
-        {/* Background Video or GIF with fallback */}
+
+        {/* Background */}
         {backgroundVideo && isValidBackgroundVideo ? (
-          <video
-            className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={backgroundVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
+          <video className="absolute inset-0 z-0 object-cover w-full h-full" src={backgroundVideo} autoPlay loop muted playsInline />
         ) : isValidBackground ? (
           <div
             className="absolute inset-0 z-0"
@@ -146,27 +119,28 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             }}
           />
         ) : (
-          <div
-            className="absolute inset-0 z-0"
-            style={{ backgroundColor: 'rgba(17, 24, 39, 1)' }} // Tailwind gray-900
-          />
+          <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(17, 24, 39, 1)' }} />
         )}
+
         {/* Background Audio */}
         {backgroundAudio && (
           <audio autoPlay loop>
             <source src={backgroundAudio} type="audio/mpeg" />
           </audio>
         )}
-        {/* Overlay for readability */}
+
+        {/* Overlay */}
         <div className="absolute inset-0 bg-black/70 z-10"></div>
+
+        {/* Content */}
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
-            {/* Profile Card with Transparent Background */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center mb-6">
               <Avatar name={name} avatar={avatar} />
               <h1 className="text-2xl font-bold text-white mb-2">{name}</h1>
               {bio && <p className="text-gray-200 mb-4 max-w-xs mx-auto">{bio}</p>}
-              {/* Profile Views Display */}
+
+              {/* Profile Views */}
               <div className="text-gray-300 text-sm mb-4">
                 <span className="flex items-center justify-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,80 +150,42 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                   {profileViews.toLocaleString()} {profileViews === 1 ? 'view' : 'views'}
                 </span>
               </div>
-              {/* Badges Section */}
+
+              {/* Badges */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <h3 className="text-md font-semibold text-gray-300 mb-2">Badges</h3>
                   <Badges badges={badges} />
                 </div>
               )}
-              <div className="flex justify-center space-x-2 mt-6">
-                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+
+              <div className="flex justify-center space-x-4 mt-6">
+                <a
+                  href="https://the-biolink.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Create Your Link in Bio
+                </a>
               </div>
             </div>
-            {/* Links with Transparent Background */}
+
+            {/* Links Section */}
             <Links links={links} />
-            <div className="text-center text-gray-300 text-sm">
-              <p className="mb-2">Powered by The BioLink</p>
-              <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors">
-                Create your own
-              </a>
-            </div>
           </div>
         </div>
       </div>
     );
-  } catch (error: any) {
-    console.error('UserPage error:', {
-      username,
-      clientId,
-      error: error.message,
-      stack: error.stack,
-    });
+  } catch (error) {
+    console.error('Error loading user profile:', error);
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Error</h1>
-          <p className="text-gray-400 mb-6">Something went wrong while loading this profile.</p>
-          <a href="/" className="text-indigo-400 hover:text-indigo-300 hover:underline">
-            Return Home
-          </a>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="max-w-md text-center p-8">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-gray-400">Failed to load user profile. Please try again later.</p>
         </div>
       </div>
     );
-  }
-}
-
-export async function generateMetadata({ params }: PageProps) {
-  const { username } = await params;
-  console.log('Generating metadata for username:', username);
-  try {
-    const userData = await getUserByUsernameForMetadata(username);
-    if (!userData) {
-      console.log(`Metadata: User not found for username: ${username}`);
-      return { title: 'User Not Found | The BioLink' };
-    }
-    if (userData.isBanned) {
-      console.log(`Metadata: User banned for username: ${username}`);
-      return { title: 'User Not Found | The BioLink' };
-    }
-    return {
-      title: `${userData.name || username} | The BioLink`,
-      description: userData.bio || `Check out ${userData.name || username}'s links`,
-      openGraph: {
-        title: `${userData.name || username} | The BioLink`,
-        description: userData.bio || `Check out ${userData.name || username}'s links`,
-        images: userData.avatar ? [userData.avatar] : [],
-      },
-    };
-  } catch (error: any) {
-    console.error('Metadata error:', {
-      username,
-      error: error.message,
-      stack: error.stack,
-    });
-    return { title: 'User Not Found | The BioLink' };
   }
 }

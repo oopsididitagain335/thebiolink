@@ -179,3 +179,79 @@ export async function getTopReferrers(limit = 10) {
   ];
   return await db.collection<Referral>('referrals').aggregate(pipeline).toArray();
 }
+
+// ──── MISSING EXPORTS (ADDED BELOW) ────
+
+export async function getUserByUsernameForMetadata(username: string) {
+  const user = await getUserByUsername(username);
+  if (!user) return null;
+  return {
+    username: user.username,
+    name: user.name,
+    bio: user.bio,
+    avatar: user.avatar,
+    background: user.background,
+    badges: user.badges,
+    isBanned: user.isBanned,
+  };
+}
+
+export async function getAllUsers() {
+  const { db } = await connectToDatabase();
+  return await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
+}
+
+export async function getAllBadges() {
+  const { db } = await connectToDatabase();
+  return await db.collection('badges').find({}).toArray();
+}
+
+export async function createBadge(badgeData: { id: string; name: string; icon: string }) {
+  const { db } = await connectToDatabase();
+  await db.collection('badges').insertOne(badgeData);
+  return badgeData;
+}
+
+export async function banUser(userId: string) {
+  await setBanStatus(userId, true);
+}
+
+export async function unbanUser(userId: string) {
+  await setBanStatus(userId, false);
+}
+
+export async function getLatestAnnouncement() {
+  const { db } = await connectToDatabase();
+  return await db.collection('announcements').findOne({}, { sort: { createdAt: -1 } });
+}
+
+export async function sendAnnouncement(content: string, authorId: string) {
+  const { db } = await connectToDatabase();
+  const announcement = {
+    content,
+    authorId,
+    createdAt: new Date(),
+  };
+  const result = await db.collection('announcements').insertOne(announcement);
+  return { ...announcement, _id: result.insertedId };
+}
+
+export async function updateUserProfile(userId: string, updates: Partial<User>) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  const { db } = await connectToDatabase();
+  const result = await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: updates }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function saveUserLinks(userId: string, links: any[]) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  const { db } = await connectToDatabase();
+  const result = await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { links } }
+  );
+  return result.modifiedCount > 0;
+}

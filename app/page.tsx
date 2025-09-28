@@ -12,7 +12,7 @@ function Header() {
         <a href="#help-center" className="text-gray-300 hover:text-white text-xl font-medium transition-colors">Help Center</a>
         <a href="https://discord.gg/29yDsapcXh" className="text-gray-300 hover:text-white text-xl font-medium transition-colors">Discord</a>
         <a href="#" onClick={(e) => { e.preventDefault(); alert('Coming Soon'); }} className="text-gray-300 hover:text-white text-xl font-medium transition-colors">Pricing</a>
-        <Link href="/auth/login" className="text-gray-300 hover:text-white text-xl font-medium transition-colors">Login</a>
+        <Link href="/auth/login" className="text-gray-300 hover:text-white text-xl font-medium transition-colors">Login</Link>
         <Link
           href="/auth/signup"
           className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-full text-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"

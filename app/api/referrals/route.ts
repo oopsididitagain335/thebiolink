@@ -2,18 +2,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, getUserByReferralCode, getTopReferrers } from '@/lib/storage';
 
-// Define types
+// Define types for type safety
 interface Badge {
   name: string;
-  // Add other properties if your badges have them (e.g., id, icon, awardedAt)
+  // Add other fields if needed (e.g., id, awardedAt)
 }
 
 interface User {
-  _id: string;
+  _id: string;        // This is your user ID
   email: string;
   username: string;
   badges: Badge[];
-  // Add other user fields as needed
+  referralCode?: string; // Optional: if you store it on the user
 }
 
 export async function GET(req: NextRequest) {
@@ -28,13 +28,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Allow access if:
+    // - User is admin (Owner badge or your email), OR
+    // - User has the "Sponsored" badge
     const isAdmin =
       user.email === 'lyharry31@gmail.com' ||
       user.badges.some((b: Badge) => b.name === 'Owner');
 
-    if (!isAdmin) {
+    const isSponsored = user.badges.some((b: Badge) => b.name === 'Sponsored');
+
+    if (!isAdmin && !isSponsored) {
       return NextResponse.json(
-        { error: 'Forbidden: Only admin can access top referrers' },
+        { error: 'Forbidden: Only admins or sponsored users can access this data' },
         { status: 403 }
       );
     }
@@ -44,7 +49,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error fetching top referrers:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch top referrers' },
+      { error: 'Failed to fetch referral data' },
       { status: 500 }
     );
   }

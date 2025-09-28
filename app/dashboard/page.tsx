@@ -45,7 +45,11 @@ export default function Dashboard() {
   const [announcement, setAnnouncement] = useState<string | null>(null);
   const [topReferrers, setTopReferrers] = useState<{ username: string; referredCount: number }[]>([]);
   const [announcementInput, setAnnouncementInput] = useState('');
+  const [awardUserId, setAwardUserId] = useState(''); // For awarding Sponsored badge
+  const [isAwarding, setIsAwarding] = useState(false);
   const router = useRouter();
+
+  const isAdmin = user.email === 'lyharry31@gmail.com' || user.badges.some((b) => b.name === 'Owner');
 
   // --- Effect to load user data and links on mount ---
   useEffect(() => {
@@ -62,7 +66,6 @@ export default function Dashboard() {
         }
         const data = await res.json();
         console.log('Fetched user data:', data); // Debug log
-        // --- Populate user state including background ---
         setUser({
           _id: data.user._id || '',
           name: data.user.name || '',
@@ -76,7 +79,6 @@ export default function Dashboard() {
           referralCode: data.user.referralCode || '',
           referralId: data.user.referralId || '',
         });
-        // --- Populate links state ---
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -118,7 +120,7 @@ export default function Dashboard() {
 
     fetchAnnouncement();
 
-    if (user.email === 'lyharry31@gmail.com') {
+    if (isAdmin) {
       const fetchTopReferrers = async () => {
         try {
           const res = await fetch('/api/referrals');
@@ -133,7 +135,7 @@ export default function Dashboard() {
       };
       fetchTopReferrers();
     }
-  }, [user.email]);
+  }, [user.email, isAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -241,15 +243,56 @@ export default function Dashboard() {
     }
   };
 
+  const handleAwardSponsored = async () => {
+    if (!awardUserId.trim()) {
+      setMessage({ type: 'error', text: 'Enter a user ID to award the badge.' });
+      return;
+    }
+    setIsAwarding(true);
+    try {
+      const res = await fetch('/api/admin/award-badge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: awardUserId,
+          badge: {
+            id: 'sponsored',
+            name: 'Sponsored',
+            icon: 'https://example.com/sponsored-icon.png', // Replace with actual icon URL
+            awardedAt: new Date().toISOString(),
+          },
+        }),
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Sponsored badge awarded! Referral codes generated.' });
+        setAwardUserId('');
+      } else {
+        const errorData = await res.json();
+        setMessage({ type: 'error', text: errorData.error || 'Failed to award badge.' });
+      }
+    } catch (error) {
+      console.error('Award badge error:', error);
+      setMessage({ type: 'error', text: 'Network error.' });
+    } finally {
+      setIsAwarding(false);
+    }
+  };
+
   const hasSponsoredBadge = user.badges.some((b) => b.name === 'Sponsored');
-  const referralLink = hasSponsoredBadge
+  const referralLink = hasSponsoredBadge && user.referralCode && user.referralId
     ? `https://thebiolink.lol/${user.referralCode}?referralid=${user.referralId}`
     : '';
+
+  if (!hasSponsoredBadge && user.referralCode) {
+    console.warn('Sponsored badge missing, but referral codes exist - inconsistency detected');
+  }
 
   const handleCopyReferral = () => {
     if (referralLink) {
       navigator.clipboard.writeText(referralLink);
       setMessage({ type: 'success', text: 'Referral link copied!' });
+    } else {
+      setMessage({ type: 'error', text: 'No referral link available. Contact admin for Sponsored badge.' });
     }
   };
 
@@ -384,18 +427,44 @@ export default function Dashboard() {
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-2 text-white">Your Sponsored Referral Link</h3>
                   <p className="text-gray-400 mb-2">Share this link to refer new users (leads to signup for now):</p>
+                  {referralLink ? (
+                    <div className="flex">
+                      <input
+                        type="text"
+                        value={referralLink}
+                        readOnly
+                        className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white"
+                      />
+                      <button
+                        onClick={handleCopyReferral}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-yellow-400">Referral codes not generated yet. Contact admin.</p>
+                  )}
+                </div>
+              )}
+              {!hasSponsoredBadge && isAdmin && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-2 text-white">Admin: Award Sponsored Badge</h3>
+                  <p className="text-gray-400 mb-2">Enter user ID to award Sponsored badge (generates referral codes):</p>
                   <div className="flex">
                     <input
                       type="text"
-                      value={referralLink}
-                      readOnly
-                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white"
+                      value={awardUserId}
+                      onChange={(e) => setAwardUserId(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white placeholder-gray-400"
+                      placeholder="User ID (e.g., 64f...)"
                     />
                     <button
-                      onClick={handleCopyReferral}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors"
+                      onClick={handleAwardSponsored}
+                      disabled={isAwarding}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors disabled:opacity-70"
                     >
-                      Copy
+                      {isAwarding ? 'Awarding...' : 'Award'}
                     </button>
                   </div>
                 </div>
@@ -476,13 +545,12 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {/* Sidebar - Made whole sidebar sticky */}
+          {/* Sidebar */}
           <div className="lg:col-span-1 lg:sticky lg:top-8 space-y-6">
             {/* Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
-                {/* Display Background GIF */}
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
@@ -554,13 +622,12 @@ export default function Dashboard() {
                   <span className="text-white font-medium">Just now</span>
                 </div>
               </div>
-              {/* Personal Subscriptions Coming Soon */}
               <div className="mt-6 bg-indigo-900/50 p-4 rounded-lg text-center text-white font-medium">
                 Personal subscriptions coming soon!
               </div>
             </div>
-            {/* Admin Sections - Only for lyharry31@gmail.com */}
-            {user.email === 'lyharry31@gmail.com' && (
+            {/* Admin Sections */}
+            {isAdmin && (
               <>
                 {/* Send Announcement Card */}
                 <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

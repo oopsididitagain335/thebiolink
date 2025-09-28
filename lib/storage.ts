@@ -31,6 +31,9 @@ export interface User {
   isEmailVerified?: boolean;
 }
 
+// ✅ New type for user creation (without _id)
+export type UserInput = Omit<User, '_id'>;
+
 export interface Referral {
   _id: ObjectId;
   referrerId: ObjectId;
@@ -104,8 +107,8 @@ export async function createUser(
   const { db } = await connectToDatabase();
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // ✅ FIXED: Removed ": User" type annotation — this object does NOT have _id yet
-  const newUser = {
+  // ✅ Use UserInput (no _id required)
+  const newUser: UserInput = {
     email,
     username: username.toLowerCase(),
     name,
@@ -122,9 +125,14 @@ export async function createUser(
     links: [],
   };
 
-  const result = await db.collection<User>('users').insertOne(newUser);
-  // ✅ Now safely return a full WithId<User>
-  return { _id: result.insertedId, ...newUser };
+  // ✅ Insert without enforcing full User type (MongoDB generates _id)
+  const result = await db.collection('users').insertOne(newUser);
+  
+  // ✅ Return full typed user with _id
+  return {
+    _id: result.insertedId,
+    ...newUser,
+  };
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<User>) {

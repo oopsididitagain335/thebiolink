@@ -1,4 +1,6 @@
 // app/api/admin/referral-stats/route.ts
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, getReferralStats } from '@/lib/storage';
 

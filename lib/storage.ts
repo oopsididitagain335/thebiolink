@@ -331,7 +331,7 @@ export async function getUserByEmail(email: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne(
     { email },
-    { projection: { passwordHash: 1 } }
+    { projection: { passwordHash: 1, badges: 1 } } // Include badges for auth check
   );
   if (!user) return null;
 
@@ -470,7 +470,9 @@ export async function addUserBadge(
       { _id: userObjectId },
       { $set: { referralCode: code, referralId: id } }
     );
+    console.log(`Sponsored badge awarded to ${userId}: Code=${code}, ID=${id}`); // Debug log
   }
+  console.log(`Badge awarded to ${userId}: ${badge.name}`); // Debug log
 }
 
 export async function removeUserBadge(userId: string, badgeId: string) {
@@ -578,6 +580,7 @@ export async function sendAnnouncement(text: string, sentBy: string) {
     sentAt: new Date(),
     sentBy: new ObjectId(sentBy),
   } as AnnouncementDoc);
+  console.log(`Announcement saved by ${sentBy}: ${text}`); // Debug log
 }
 
 export async function getLatestAnnouncement() {

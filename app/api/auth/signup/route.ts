@@ -1,9 +1,10 @@
 // app/api/auth/signup/route.ts
+export const runtime = 'nodejs'; // ← Required for MongoDB
+
 import { NextRequest } from 'next/server';
 import { createUser, logReferral } from '@/lib/storage';
 import { ObjectId } from 'mongodb';
 
-// ✅ Helper to get client IP correctly
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -12,31 +13,24 @@ function getClientIP(request: NextRequest): string {
   );
 }
 
-// ✅ Check if IP has exceeded account creation limit (e.g., max 2 accounts per 24h)
 async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-  const { db } = await import('@/lib/db'); // Lazy import to avoid edge runtime issues
-
+  const { db } = await (await import('@/lib/db')).connectToDatabase();
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
   const count = await db.collection('users').countDocuments({
     signupIP: ipAddress,
     createdAt: { $gte: twentyFourHoursAgo }
   });
-
-  return count < 2; // Allow up to 2 accounts per IP per day
+  return count < 2; // Max 2 accounts per IP per day
 }
 
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
-
-  // --- Account Creation Limit Check ---
   const canCreateAccount = await checkAccountLimit(ip);
   if (!canCreateAccount) {
     return Response.json({
       error: 'Account creation limit reached for this IP address'
     }, { status: 429 });
   }
-  // --- End Limit Check ---
 
   try {
     const { email, password, username, name, background } = await request.json();
@@ -49,14 +43,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
 
-    // Validate background GIF (Giphy/Tenor only)
     if (background) {
       try {
         const url = new URL(background);
         const validHosts = ['giphy.com', 'media.giphy.com', 'tenor.com', 'media.tenor.com'];
         const isValidHost = validHosts.some(host => url.hostname.includes(host));
         const isValidFormat = background.toLowerCase().endsWith('.gif');
-
         if (!isValidHost || !isValidFormat) {
           return Response.json({ error: 'Invalid GIF URL. Must be from Giphy or Tenor (.gif)' }, { status: 400 });
         }
@@ -65,7 +57,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ✅ Extract referrer from URL query params
+    // ✅ Extract referrer from URL query
     const { searchParams } = new URL(request.url);
     const referrerId = searchParams.get('ref');
 
@@ -74,8 +66,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ Log referral if valid
     if (referrerId && ObjectId.isValid(referrerId)) {
-      // Verify referrer exists
-      const { db } = await import('@/lib/db');
+      const { db } = await (await import('@/lib/db')).connectToDatabase();
       const referrer = await db.collection('users').findOne({ _id: new ObjectId(referrerId) });
       if (referrer) {
         await logReferral(referrerId, newUser._id.toString());
@@ -88,8 +79,8 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('Signup error:', error);
-    if (error.message?.includes?.('already exists') || error.code === 11000) {
-      return Response.json({ error: 'This email or username is already taken' }, { status: 409 });
+    if (error.code === 11000) {
+      return Response.json({ error: 'Email or username already taken' }, { status: 409 });
     }
     return Response.json({ error: 'Account creation failed' }, { status: 500 });
   }

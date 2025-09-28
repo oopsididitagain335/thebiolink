@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, Db, ObjectId, WithId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -40,6 +39,9 @@ export interface Referral {
   referredUserId: ObjectId;
   timestamp: Date;
 }
+
+// ✅ New type for referral creation (without _id)
+export type ReferralInput = Omit<Referral, '_id'>;
 
 // ─── MongoDB Connection ─────────────────────────────
 let client: MongoClient;
@@ -106,7 +108,6 @@ export async function createUser(
 ): Promise<WithId<User>> {
   const { db } = await connectToDatabase();
   const hashedPassword = await bcrypt.hash(password, 12);
-
   // ✅ Use UserInput (no _id required)
   const newUser: UserInput = {
     email,
@@ -124,10 +125,9 @@ export async function createUser(
     createdAt: new Date(),
     links: [],
   };
-
   // ✅ Insert without enforcing full User type (MongoDB generates _id)
   const result = await db.collection('users').insertOne(newUser);
-  
+ 
   // ✅ Return full typed user with _id
   return {
     _id: result.insertedId,
@@ -202,7 +202,7 @@ export async function logReferral(referrerId: string, referredUserId: string) {
     referrerId: new ObjectId(referrerId),
     referredUserId: new ObjectId(referredUserId),
     timestamp: new Date(),
-  });
+  } as ReferralInput);
 }
 
 export async function getReferralStats() {
@@ -211,7 +211,6 @@ export async function getReferralStats() {
   const referralCounts = await db.collection<Referral>('referrals')
     .aggregate([{ $group: { _id: '$referrerId', count: { $sum: 1 } } }])
     .toArray();
-
   const countMap = new Map<string, number>();
   referralCounts.forEach(item => countMap.set(item._id.toString(), item.count));
   return allUsers.map(user => ({

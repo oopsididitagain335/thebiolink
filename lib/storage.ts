@@ -8,15 +8,7 @@ export interface Badge {
   id: string;
   name: string;
   icon: string;
-  awardedAt: string;
-}
-
-export interface Link {
-  id: string;
-  url: string;
-  title: string;
-  icon?: string;
-  position?: number;
+  awardedAt?: string;
 }
 
 export interface User {
@@ -27,18 +19,19 @@ export interface User {
   avatar?: string;
   bio?: string;
   background?: string;
-  backgroundVideo?: string;   // ✅ added
-  backgroundAudio?: string;   // ✅ added
+  backgroundVideo?: string;
+  backgroundAudio?: string;
   password: string;
   badges: Badge[];
   isBanned: boolean;
-  bannedAt?: Date;
+  bannedAt?: Date | null;
   signupIP: string;
   createdAt: Date;
   referralCode?: string;
-  links?: Link[];             // ✅ properly typed
+  links?: any[];
 }
 
+// Referrals
 export interface Referral {
   _id: ObjectId;
   referrerId: ObjectId;
@@ -46,8 +39,7 @@ export interface Referral {
   timestamp: Date;
 }
 
-// ─── USER QUERIES ──────────────────────────────
-
+// ─── User Queries ───
 export async function getUserById(id: string): Promise<WithId<User> | null> {
   if (!ObjectId.isValid(id)) return null;
   const { db } = await connectToDatabase();
@@ -64,6 +56,21 @@ export async function getUserByUsername(username: string): Promise<WithId<User> 
   return await db.collection<User>('users').findOne({ username });
 }
 
+export async function getUserByUsernameForMetadata(username: string) {
+  const user = await getUserByUsername(username);
+  if (!user) return null;
+  return {
+    username: user.username,
+    name: user.name,
+    bio: user.bio,
+    avatar: user.avatar,
+    background: user.background,
+    badges: user.badges,
+    isBanned: user.isBanned,
+  };
+}
+
+// ─── User Management ───
 export async function createUser(
   email: string,
   password: string,
@@ -75,7 +82,7 @@ export async function createUser(
   const { db } = await connectToDatabase();
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const newUser: Omit<User, '_id'> = {
+  const newUser = {
     email,
     username: username.toLowerCase(),
     name,
@@ -89,54 +96,52 @@ export async function createUser(
     isBanned: false,
     signupIP: ip || 'unknown',
     createdAt: new Date(),
-    referralCode: undefined,
     links: [],
   };
 
-  const result = await db.collection<User>('users').insertOne(newUser as any);
+  const result = await db.collection<User>('users').insertOne(newUser as User);
   return { _id: result.insertedId, ...newUser };
 }
 
-// ─── REFERRALS ──────────────────────────────
-
-export async function logReferral(referrerId: string, referredUserId: string): Promise<void> {
-  if (!ObjectId.isValid(referrerId) || !ObjectId.isValid(referredUserId)) {
-    throw new Error('Invalid user IDs');
-  }
+export async function updateUserProfile(userId: string, updates: Partial<User>) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
-  await db.collection<Referral>('referrals').insertOne({
-    referrerId: new ObjectId(referrerId),
-    referredUserId: new ObjectId(referredUserId),
-    timestamp: new Date(),
-  });
+  const result = await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: updates }
+  );
+  return result.modifiedCount > 0;
 }
 
-export async function getReferralStats() {
+// ─── Profile Views ───
+export async function recordProfileView(userId: string, clientId: string) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
 
-  const allUsers = await db.collection<User>('users').find(
-    {},
-    { projection: { _id: 1, username: 1 } }
-  ).toArray();
-
-  const referralCounts = await db.collection<Referral>('referrals')
-    .aggregate([{ $group: { _id: '$referrerId', count: { $sum: 1 } } }])
-    .toArray();
-
-  const countMap = new Map<string, number>();
-  referralCounts.forEach((item: any) => {
-    const idStr = item._id.toString();
-    countMap.set(idStr, item.count);
-  });
-
-  return allUsers.map(user => ({
-    userId: user._id.toString(),
-    username: user.username || 'unknown',
-    usageCount: countMap.get(user._id.toString()) || 0,
-  }));
+  await db.collection('profileViews').updateOne(
+    { userId: new ObjectId(userId), clientId },
+    { $setOnInsert: { viewedAt: new Date() } },
+    { upsert: true }
+  );
 }
 
-// ─── BADGES ──────────────────────────────
+export async function getProfileViewCount(userId: string): Promise<number> {
+  if (!ObjectId.isValid(userId)) return 0;
+  const { db } = await connectToDatabase();
+  return await db.collection('profileViews').countDocuments({ userId: new ObjectId(userId) });
+}
+
+// ─── Badges ───
+export async function getAllBadges() {
+  const { db } = await connectToDatabase();
+  return await db.collection('badges').find({}).toArray();
+}
+
+export async function createBadge(badgeData: { id: string; name: string; icon: string }) {
+  const { db } = await connectToDatabase();
+  await db.collection('badges').insertOne(badgeData);
+  return badgeData;
+}
 
 export async function addUserBadge(userId: string, badge: Badge): Promise<void> {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
@@ -156,83 +161,10 @@ export async function removeUserBadge(userId: string, badgeId: string): Promise<
   );
 }
 
-// ─── BANS ──────────────────────────────
-
-export async function setBanStatus(userId: string, isBanned: boolean): Promise<void> {
-  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
-  const { db } = await connectToDatabase();
-  await db.collection<User>('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { isBanned, bannedAt: isBanned ? new Date() : null } }
-  );
-}
-
-// ─── ADMIN ──────────────────────────────
-
-export async function getTopReferrers(limit = 10) {
-  const { db } = await connectToDatabase();
-  const pipeline = [
-    { $group: { _id: '$referrerId', referredCount: { $sum: 1 } } },
-    { $sort: { referredCount: -1 } },
-    { $limit: limit },
-    {
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'user'
-      }
-    },
-    { $unwind: '$user' },
-    {
-      $project: {
-        _id: 0,
-        username: '$user.username',
-        referredCount: 1
-      }
-    }
-  ];
-  return await db.collection<Referral>('referrals').aggregate(pipeline).toArray();
-}
-
-// ─── EXTRA EXPORTS ──────────────────────────────
-
-export async function getUserByUsernameForMetadata(username: string) {
-  const user = await getUserByUsername(username);
-  if (!user) return null;
-  return {
-    username: user.username,
-    name: user.name,
-    bio: user.bio,
-    avatar: user.avatar,
-    background: user.background,
-    badges: user.badges,
-    isBanned: user.isBanned,
-  };
-}
-
+// ─── Admin / Announcements ───
 export async function getAllUsers() {
   const { db } = await connectToDatabase();
   return await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
-}
-
-export async function getAllBadges() {
-  const { db } = await connectToDatabase();
-  return await db.collection('badges').find({}).toArray();
-}
-
-export async function createBadge(badgeData: { id: string; name: string; icon: string }) {
-  const { db } = await connectToDatabase();
-  await db.collection('badges').insertOne(badgeData);
-  return badgeData;
-}
-
-export async function banUser(userId: string) {
-  await setBanStatus(userId, true);
-}
-
-export async function unbanUser(userId: string) {
-  await setBanStatus(userId, false);
 }
 
 export async function getLatestAnnouncement() {
@@ -249,47 +181,4 @@ export async function sendAnnouncement(content: string, authorId: string) {
   };
   const result = await db.collection('announcements').insertOne(announcement);
   return { ...announcement, _id: result.insertedId };
-}
-
-export async function updateUserProfile(userId: string, updates: Partial<User>) {
-  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
-  const { db } = await connectToDatabase();
-  const result = await db.collection<User>('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: updates }
-  );
-  return result.modifiedCount > 0;
-}
-
-export async function saveUserLinks(userId: string, links: Link[]) {
-  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
-  const { db } = await connectToDatabase();
-  const result = await db.collection<User>('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { links } }
-  );
-  return result.modifiedCount > 0;
-}
-
-// ─── PROFILE VIEWS ──────────────────────────────
-
-export async function recordProfileView(userId: string, clientId: string) {
-  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
-  const { db } = await connectToDatabase();
-
-  // prevent duplicate view per client per day
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  await db.collection('profileViews').updateOne(
-    { userId: new ObjectId(userId), clientId, viewedAt: { $gte: today } },
-    { $setOnInsert: { userId: new ObjectId(userId), clientId, viewedAt: new Date() } },
-    { upsert: true }
-  );
-}
-
-export async function getProfileViewCount(userId: string) {
-  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
-  const { db } = await connectToDatabase();
-  return await db.collection('profileViews').countDocuments({ userId: new ObjectId(userId) });
 }

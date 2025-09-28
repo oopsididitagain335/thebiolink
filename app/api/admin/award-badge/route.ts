@@ -23,20 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing userId or badge' }, { status: 400 });
     }
 
-    // Verify the target user exists
-    const targetUser = await getUserById(userId);
-    if (!targetUser) {
-      return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
-    }
-
-    // Check if badge already exists
-    const hasBadge = targetUser.badges.some((b) => b.id === badge.id);
-    if (hasBadge) {
-      return NextResponse.json({ error: 'Badge already awarded' }, { status: 400 });
-    }
-
     await addUserBadge(userId, badge);
-    console.log(`Badge awarded to user ${userId}: ${badge.name}`); // Debug log
     return NextResponse.json({ message: 'Badge awarded successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error awarding badge:', error);

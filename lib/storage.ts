@@ -104,7 +104,8 @@ export async function createUser(
   const { db } = await connectToDatabase();
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const newUser: User = {
+  // ✅ FIXED: Removed ": User" type annotation — this object does NOT have _id yet
+  const newUser = {
     email,
     username: username.toLowerCase(),
     name,
@@ -122,6 +123,7 @@ export async function createUser(
   };
 
   const result = await db.collection<User>('users').insertOne(newUser);
+  // ✅ Now safely return a full WithId<User>
   return { _id: result.insertedId, ...newUser };
 }
 

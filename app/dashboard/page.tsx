@@ -21,7 +21,7 @@ interface User {
   email: string;
   badges: { id: string; name: string; icon: string; awardedAt: string }[];
   referralCode?: string;
-  sponsoredDate?: string;
+  referralId?: string;
 }
 
 export default function Dashboard() {
@@ -36,7 +36,7 @@ export default function Dashboard() {
     email: '',
     badges: [],
     referralCode: '',
-    sponsoredDate: '',
+    referralId: '',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +74,7 @@ export default function Dashboard() {
           email: data.user.email || '',
           badges: data.user.badges || [],
           referralCode: data.user.referralCode || '',
-          sponsoredDate: data.user.sponsoredDate || '',
+          referralId: data.user.referralId || '',
         });
         // --- Populate links state ---
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -235,7 +235,7 @@ export default function Dashboard() {
 
   const hasSponsoredBadge = user.badges.some((b) => b.name === 'Sponsored');
   const referralLink = hasSponsoredBadge
-    ? `https://thebiolink.lol/${user.username}/${user.sponsoredDate}?${user.referralCode}`
+    ? `https://thebiolink.lol/${user.referralCode}?referralid=${user.referralId}`
     : '';
 
   const handleCopyReferral = () => {
@@ -551,43 +551,40 @@ export default function Dashboard() {
                 Personal subscriptions coming soon!
               </div>
             </div>
-            {/* Admin Sections */}
+            {/* Send Announcement Card - Available to all users */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
+              <textarea
+                value={announcementInput}
+                onChange={(e) => setAnnouncementInput(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 mb-4"
+                placeholder="Enter announcement text..."
+              />
+              <button
+                onClick={handleSendAnnouncement}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition-colors"
+              >
+                Send
+              </button>
+            </div>
+            {/* Top Referrers Card - Only for lyhary31@gmail.com */}
             {user.email === 'lyhary31@gmail.com' && (
-              <>
-                {/* Send Announcement Card */}
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
-                  <textarea
-                    value={announcementInput}
-                    onChange={(e) => setAnnouncementInput(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 mb-4"
-                    placeholder="Enter announcement text..."
-                  />
-                  <button
-                    onClick={handleSendAnnouncement}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition-colors"
-                  >
-                    Send
-                  </button>
-                </div>
-                {/* Top Referrers Card */}
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
-                  {topReferrers.length > 0 ? (
-                    <ul className="space-y-2">
-                      {topReferrers.map((r, index) => (
-                        <li key={index} className="flex justify-between text-gray-300">
-                          <span>{r.username}</span>
-                          <span className="font-medium text-white">{r.referredCount}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">No referrals yet.</p>
-                  )}
-                </div>
-              </>
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
+                {topReferrers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {topReferrers.map((r, index) => (
+                      <li key={index} className="flex justify-between text-gray-300">
+                        <span>{r.username}</span>
+                        <span className="font-medium text-white">{r.referredCount}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">No referrals yet.</p>
+                )}
+              </div>
             )}
           </div>
         </div>

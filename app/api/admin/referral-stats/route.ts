@@ -2,10 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById } from '@/lib/storage';
 
-// Mock or real function to get referral counts
-// You must implement `getReferralStats()` in your storage layer
-import { getReferralStats } from '@/lib/storage';
-
 interface Badge {
   name: string;
 }
@@ -13,6 +9,18 @@ interface Badge {
 interface User {
   email: string;
   badges: Badge[];
+}
+
+// ✅ SELF-CONTAINED MOCK — no external dependency
+// Replace this function with real DB logic when ready
+async function getReferralStats() {
+  // In production, you would:
+  // 1. Query a 'referrals' collection
+  // 2. Group by referrerId
+  // 3. Join with users to get usernames
+
+  // For now, return empty or mock data
+  return [];
 }
 
 export async function GET(req: NextRequest) {
@@ -32,10 +40,9 @@ export async function GET(req: NextRequest) {
       user.badges.some((b: Badge) => b.name === 'Owner');
 
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
     }
 
-    // Returns: [{ userId: '...', username: '...', usageCount: 5 }, ...]
     const stats = await getReferralStats();
     return NextResponse.json(stats, { status: 200 });
   } catch (error) {

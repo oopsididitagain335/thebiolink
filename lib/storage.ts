@@ -26,6 +26,7 @@ export interface User {
   signupIP: string;
   createdAt: Date;
   referralCode?: string;
+  links?: any[]; // ✅ added so saveUserLinks compiles cleanly
 }
 
 export interface Referral {
@@ -80,7 +81,7 @@ export async function createUser(
     createdAt: new Date(),
   };
 
-  const result = await db.collection<User>('users').insertOne(newUser);
+  const result = await db.collection<User>('users').insertOne(newUser as any);
   return { _id: result.insertedId, ...newUser };
 }
 
@@ -180,7 +181,7 @@ export async function getTopReferrers(limit = 10) {
   return await db.collection<Referral>('referrals').aggregate(pipeline).toArray();
 }
 
-// ──── MISSING EXPORTS (ADDED BELOW) ────
+// ──── Extra Exports ────
 
 export async function getUserByUsernameForMetadata(username: string) {
   const user = await getUserByUsername(username);
@@ -254,4 +255,27 @@ export async function saveUserLinks(userId: string, links: any[]) {
     { $set: { links } }
   );
   return result.modifiedCount > 0;
+}
+
+// ──── NEW: Profile Views ────
+
+export async function recordProfileView(userId: string, clientId: string) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  const { db } = await connectToDatabase();
+
+  // prevent duplicate view per clientId per day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  await db.collection('profileViews').updateOne(
+    { userId: new ObjectId(userId), clientId, viewedAt: { $gte: today } },
+    { $setOnInsert: { userId: new ObjectId(userId), clientId, viewedAt: new Date() } },
+    { upsert: true }
+  );
+}
+
+export async function getProfileViewCount(userId: string) {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  const { db } = await connectToDatabase();
+  return await db.collection('profileViews').countDocuments({ userId: new ObjectId(userId) });
 }

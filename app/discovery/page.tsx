@@ -108,10 +108,10 @@ export default async function DiscoveryPage() {
               </div>
               <div className="flex items-center space-x-4">
                 <Link
-                  href="/discovery"
+                  href="/home"
                   className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Discovery
+                  Home
                 </Link>
                 <Link
                   href="/auth/login"

@@ -37,8 +37,8 @@ interface UserDoc {
     icon: string;
     awardedAt: string;
   }>;
-  referralCode?: string;
-  sponsoredDate?: string; // YYYY-MM-DD
+  referralCode?: string; // 7-digit number
+  referralId?: string; // 5-digit number
   referredCount?: number;
   isEmailVerified: boolean;
   isBanned?: boolean;
@@ -70,6 +70,7 @@ interface ReferralDoc {
   referredId: ObjectId;
   referredAt: Date;
   codeUsed: string;
+  idUsed: string;
 }
 
 interface AnnouncementDoc {
@@ -87,7 +88,7 @@ export async function getUserByUsername(username: string, clientId: string = '')
 
   if (!user) return null;
 
-  // ✅ Discovery: Track profile views
+  // Track profile views
   if (clientId) {
     const existingVisit = await database.collection('profile_visits').findOne({
       userId: user._id,
@@ -122,7 +123,7 @@ export async function getUserByUsername(username: string, clientId: string = '')
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     referralCode: user.referralCode || '',
-    sponsoredDate: user.sponsoredDate || '',
+    referralId: user.referralId || '',
     referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -159,7 +160,7 @@ export async function getUserByUsernameForMetadata(username: string) {
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     referralCode: user.referralCode || '',
-    sponsoredDate: user.sponsoredDate || '',
+    referralId: user.referralId || '',
     referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -197,7 +198,7 @@ export async function getUserById(id: string) {
       backgroundAudio: user.backgroundAudio || '',
       badges: user.badges || [],
       referralCode: user.referralCode || '',
-      sponsoredDate: user.sponsoredDate || '',
+      referralId: user.referralId || '',
       referredCount: user.referredCount || 0,
       isEmailVerified: user.isEmailVerified || false,
       isBanned: user.isBanned || false,
@@ -218,6 +219,37 @@ export async function getUserById(id: string) {
   }
 }
 
+export async function getUserByReferralCode(code: string, id: string) {
+  const database = await connectDB();
+  const user = await database.collection('users').findOne({
+    referralCode: code,
+    referralId: id,
+  });
+  if (!user) return null;
+
+  return {
+    _id: user._id.toString(),
+    id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    email: user.email || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    background: user.background || '',
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
+    badges: user.badges || [],
+    referralCode: user.referralCode || '',
+    referralId: user.referralId || '',
+    referredCount: user.referredCount || 0,
+    isEmailVerified: user.isEmailVerified || false,
+    isBanned: user.isBanned || false,
+    bannedAt: user.bannedAt,
+    createdAt: user.createdAt || new Date().toISOString(),
+    profileViews: user.profileViews || 0,
+  };
+}
+
 export async function createUser(
   email: string,
   password: string,
@@ -225,9 +257,8 @@ export async function createUser(
   name: string,
   background: string = '',
   ipAddress: string,
-  referrerUsername?: string,
-  referrerDate?: string,
-  referralCode?: string
+  referrerCode?: string,
+  referrerId?: string
 ) {
   const database = await connectDB();
 
@@ -250,7 +281,7 @@ export async function createUser(
     ipAddress,
     badges: [],
     referralCode: undefined,
-    sponsoredDate: undefined,
+    referralId: undefined,
     referredCount: 0,
     isEmailVerified: true,
     isBanned: false,
@@ -259,18 +290,18 @@ export async function createUser(
   } as UserDoc);
 
   // Handle referral if provided
-  if (referrerUsername && referrerDate && referralCode) {
+  if (referrerCode && referrerId) {
     const referrer = await database.collection<UserDoc>('users').findOne({
-      username: referrerUsername,
-      sponsoredDate: referrerDate,
-      referralCode: referralCode,
+      referralCode: referrerCode,
+      referralId: referrerId,
     });
     if (referrer) {
       await database.collection('referrals').insertOne({
         referrerId: referrer._id,
         referredId: userId,
         referredAt: new Date(),
-        codeUsed: referralCode,
+        codeUsed: referrerCode,
+        idUsed: referrerId,
       } as ReferralDoc);
       await database.collection('users').updateOne(
         { _id: referrer._id },
@@ -287,7 +318,7 @@ export async function createUser(
     background,
     badges: [],
     referralCode: '',
-    sponsoredDate: '',
+    referralId: '',
     referredCount: 0,
     isEmailVerified: true,
     isBanned: false,
@@ -317,7 +348,7 @@ export async function getUserByEmail(email: string) {
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     referralCode: user.referralCode || '',
-    sponsoredDate: user.sponsoredDate || '',
+    referralId: user.referralId || '',
     referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
@@ -400,7 +431,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     backgroundAudio: updatedUserDocument.backgroundAudio || '',
     badges: updatedUserDocument.badges || [],
     referralCode: updatedUserDocument.referralCode || '',
-    sponsoredDate: updatedUserDocument.sponsoredDate || '',
+    referralId: updatedUserDocument.referralId || '',
     referredCount: updatedUserDocument.referredCount || 0,
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     isBanned: updatedUserDocument.isBanned || false,
@@ -431,13 +462,13 @@ export async function addUserBadge(
     { $push: { badges: { $each: [badge] } } }
   );
 
-  // If Sponsored badge, generate referral code and set sponsoredDate
+  // If Sponsored badge, generate referral code and ID
   if (badge.name === 'Sponsored') {
-    const code = Math.floor(1000000 + Math.random() * 9000000).toString();
-    const date = badge.awardedAt.slice(0, 10); // Assume awardedAt is ISO string
+    const code = Math.floor(1000000 + Math.random() * 9000000).toString(); // 7-digit
+    const id = Math.floor(10000 + Math.random() * 90000).toString(); // 5-digit
     await database.collection<UserDoc>('users').updateOne(
       { _id: userObjectId },
-      { $set: { referralCode: code, sponsoredDate: date } }
+      { $set: { referralCode: code, referralId: id } }
     );
   }
 }
@@ -451,15 +482,15 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 
   // If removing Sponsored, clear referral info
-  if (badgeId === 'sponsored') { // Assume id for Sponsored is 'sponsored'
+  if (badgeId === 'sponsored') {
     await database.collection<UserDoc>('users').updateOne(
       { _id: userObjectId },
-      { $unset: { referralCode: '', sponsoredDate: '' } }
+      { $unset: { referralCode: '', referralId: '' } }
     );
   }
 }
 
-// ✅ DISCOVERY: Get all users for discovery page
+// Get all users for discovery page
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database.collection<UserDoc>('users').find({}).toArray();

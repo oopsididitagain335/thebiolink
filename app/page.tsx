@@ -26,106 +26,69 @@ function Header() {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-indigo-900 to-black text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 text-white p-6 overflow-hidden">
       {/* Header */}
       <Header />
 
       {/* Main Content */}
-      <div className="text-center max-w-6xl mx-auto">
-        <h1 className="text-5xl font-extrabold mb-4">Everything you want, right here.</h1>
-        <p className="text-xl text-gray-300 mb-8">
-          thebiolink.lol is your go-to for modern, feature-rich biolinks and fast, secure file hosting. Everything you need — right here.
+      <div className="text-center max-w-6xl mx-auto relative">
+        {/* Animated Orb Background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ top: '20%', left: '10%' }}></div>
+          <div className="absolute w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-2xl animate-pulse delay-1000" style={{ bottom: '20%', right: '10%' }}></div>
+        </div>
+
+        <h1 className="text-6xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-400 drop-shadow-lg">
+          Unleash Your Digital Hub
+        </h1>
+        <p className="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">
+          thebiolink.lol transforms your online presence with cutting-edge biolinks and secure file hosting. Your all-in-one solution starts here.
         </p>
-        <div className="flex justify-center gap-4 mb-12">
+        <div className="flex justify-center gap-6 mb-16">
           <Link
             href="/auth/signup"
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-xl transition-all"
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-10 py-4 rounded-2xl font-semibold text-lg hover:shadow-2xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105"
           >
             Create Your BioLink
           </Link>
           <Link
             href="/auth/login"
-            className="bg-gray-800 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-700 transition-colors"
+            className="bg-gray-800 text-white px-10 py-4 rounded-2xl font-semibold text-lg hover:bg-gray-700 transition-colors transform hover:scale-105"
           >
             Sign In
           </Link>
         </div>
 
-        {/* Phone Mockups */}
-        <div className="flex justify-center gap-8">
-          {/* Phone 1 */}
-          <div className="bg-gray-800 rounded-xl p-4 shadow-2xl w-56 h-[600px] flex flex-col items-center justify-center relative transform hover:scale-105 transition-transform duration-300">
-            <div className="bg-black rounded-[40px] p-4 w-full h-full border-[6px] border-gray-700 overflow-hidden">
-              <div className="bg-purple-900/50 rounded-[30px] p-6 w-full h-full">
-                <p className="text-sm text-gray-400">Welcome back, @thebiolink.lol</p>
-                <div className="space-y-2 mt-6">
-                  <p className="text-sm text-gray-300">Account Overview</p>
-                  <p className="text-sm text-gray-300">Username</p>
-                  <p className="text-sm text-gray-300">Alias</p>
-                  <p className="text-sm text-gray-300">Views</p>
-                </div>
-                <div className="mt-6">
-                  <p className="text-sm text-gray-400">Profile Views in last 12 hours</p>
-                  <div className="h-24 bg-purple-500/20 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Graph Placeholder</span>
-                  </div>
-                </div>
-              </div>
-              {/* Phone notch */}
-              <div className="absolute top-2 left-1/2 w-20 h-6 bg-gray-700 rounded-b-2xl transform -translate-x-1/2"></div>
-              {/* Camera and speaker */}
-              <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-              </div>
-              {/* Phone bezel effect */}
-              <div className="absolute inset-0 border-[3px] border-gray-600 rounded-[40px]"></div>
-            </div>
-          </div>
-
-          {/* Phone 2 */}
-          <div className="bg-gray-800 rounded-xl p-4 shadow-2xl w-56 h-[600px] flex flex-col items-center justify-center relative transform hover:scale-105 transition-transform duration-300">
-            <div className="bg-black rounded-[40px] p-4 w-full h-full border-[6px] border-gray-700 overflow-hidden">
-              <div className="bg-purple-900/50 rounded-[30px] p-6 w-full h-full">
-                <p className="text-sm text-gray-400">Azrez</p>
-                <div className="space-y-2 mt-6">
-                  <p className="text-sm text-gray-300">My Portfolio</p>
-                  <p className="text-sm text-gray-300">My Store</p>
-                  <p className="text-sm text-gray-300">My Discord</p>
-                </div>
-                <div className="mt-6 flex justify-center">
-                  <span className="text-gray-500">Image Placeholder</span>
-                </div>
-              </div>
-              {/* Phone notch */}
-              <div className="absolute top-2 left-1/2 w-20 h-6 bg-gray-700 rounded-b-2xl transform -translate-x-1/2"></div>
-              {/* Camera and speaker */}
-              <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-              </div>
-              {/* Phone bezel effect */}
-              <div className="absolute inset-0 border-[3px] border-gray-600 rounded-[40px]"></div>
-            </div>
+        {/* Unique Design Element */}
+        <div className="relative w-full max-w-4xl mx-auto mb-16">
+          <div className="absolute w-32 h-32 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full opacity-50 animate-spin-slow" style={{ top: '-10%', left: '10%' }}></div>
+          <div className="absolute w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full opacity-30 animate-spin-slow delay-2000" style={{ bottom: '-10%', right: '10%' }}></div>
+          <div className="relative z-10 bg-gray-800/50 backdrop-blur-md p-8 rounded-3xl border-2 border-indigo-500/20 shadow-xl">
+            <h2 className="text-3xl font-bold text-indigo-300 mb-4">What Makes Us Unique</h2>
+            <ul className="text-gray-300 space-y-4 text-left">
+              <li className="flex items-center gap-3"><span className="text-indigo-400">✨</span> Fully customizable biolink pages</li>
+              <li className="flex items-center gap-3"><span className="text-purple-400">🔒</span> End-to-end encrypted file hosting</li>
+              <li className="flex items-center gap-3"><span className="text-indigo-400">⚡</span> Lightning-fast performance</li>
+            </ul>
           </div>
         </div>
       </div>
 
       {/* Help Center Section */}
-      <div id="help-center" className="text-center max-w-4xl mx-auto mt-16 p-6 bg-gray-800 rounded-xl">
-        <h2 className="text-3xl font-bold mb-4">Help Center</h2>
+      <div id="help-center" className="text-center max-w-4xl mx-auto mt-16 p-6 bg-gray-800/80 rounded-2xl border-2 border-indigo-500/20 backdrop-blur-md">
+        <h2 className="text-3xl font-bold mb-4 text-indigo-300">Help Center</h2>
         <p className="text-gray-300 mb-4">Welcome to the thebiolink.lol Help Center! We're here to assist you with any questions or issues you might encounter while using our platform.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          <div className="p-4 bg-gray-700 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Frequently Asked Questions</h3>
+          <div className="p-4 bg-gray-700/50 rounded-lg backdrop-blur-sm">
+            <h3 className="text-xl font-semibold mb-2 text-indigo-400">Frequently Asked Questions</h3>
             <ul className="text-gray-300 space-y-2">
               <li>How do I create a BioLink? - Visit the signup page and follow the setup guide.</li>
               <li>Can I customize my BioLink? - Yes, go to the customize section in your dashboard.</li>
               <li>What is the pricing? - Check back soon for pricing details!</li>
             </ul>
           </div>
-          <div className="p-4 bg-gray-700 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Support Options</h3>
+          <div className="p-4 bg-gray-700/50 rounded-lg backdrop-blur-sm">
+            <h3 className="text-xl font-semibold mb-2 text-purple-400">Support Options</h3>
             <ul className="text-gray-300 space-y-2">
               <li><a href="https://discord.gg/29yDsapcXh" className="text-indigo-400 hover:underline">Join our Discord for community support</a></li>
               <li>Email us at support@thebiolink.lol for direct assistance.</li>
@@ -139,8 +102,19 @@ export default function HomePage() {
 
       {/* Footer */}
       <div className="text-center text-gray-500 mt-12 text-sm">
-        <p>Copyright © 2024 thebiolink.lol</p>
+        <p>Copyright © 2025 thebiolink.lol</p>
       </div>
     </div>
   );
 }
+
+// Custom CSS for animations
+<style jsx>{`
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+`}</style>

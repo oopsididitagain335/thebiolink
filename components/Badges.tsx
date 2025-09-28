@@ -6,7 +6,7 @@ interface Badge {
   id: string;
   name: string;
   icon: string;
-  awardedAt: string;
+  awardedAt?: string; // make optional to match storage.ts
 }
 
 interface BadgesProps {
@@ -29,7 +29,7 @@ export default function Badges({ badges }: BadgesProps) {
         <div
           key={badge.id}
           className="group relative"
-          title={`${badge.name} - Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
+          title={`${badge.name} - Awarded: ${badge.awardedAt ? new Date(badge.awardedAt).toLocaleDateString() : 'N/A'}`}
         >
           <div className="flex items-center bg-white/20 hover:bg-white/30 border border-white/30 rounded-full px-3 py-1.5 transition-all">
             <img

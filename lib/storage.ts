@@ -1,24 +1,113 @@
 // lib/storage.ts
-import { ObjectId } from 'mongodb';
-import { db } from './db'; // ← Your MongoDB connection (returns { db })
+import { ObjectId, WithId } from 'mongodb';
+import { db } from './db';
+import bcrypt from 'bcryptjs';
 
-// Get user by ID (already exists in your code)
-export async function getUserById(id: string) {
-  if (!ObjectId.isValid(id)) return null;
-  return await db.collection('users').findOne({ _id: new ObjectId(id) });
+// Types
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  awardedAt: string;
 }
 
-// ✅ NEW: Get referral stats for ALL users (including 0-count)
+export interface User {
+  _id: ObjectId;
+  email: string;
+  username: string;
+  name: string;
+  avatar?: string;
+  bio?: string;
+  background?: string;
+  password: string;
+  badges: Badge[];
+  isBanned: boolean;
+  bannedAt?: Date;
+  signupIP: string;
+  createdAt: Date;
+  referralCode?: string; // optional, if you store custom codes
+}
+
+export interface Referral {
+  _id: ObjectId;
+  referrerId: ObjectId;
+  referredUserId: ObjectId;
+  timestamp: Date;
+}
+
+// ✅ Get user by ID
+export async function getUserById(id: string): Promise<WithId<User> | null> {
+  if (!ObjectId.isValid(id)) return null;
+  return await db.collection<User>('users').findOne({ _id: new ObjectId(id) });
+}
+
+// ✅ Get user by email
+export async function getUserByEmail(email: string): Promise<WithId<User> | null> {
+  return await db.collection<User>('users').findOne({ email });
+}
+
+// ✅ Get user by username
+export async function getUserByUsername(username: string): Promise<WithId<User> | null> {
+  return await db.collection<User>('users').findOne({ username });
+}
+
+// ✅ Create new user
+export async function createUser(
+  email: string,
+  password: string,
+  username: string,
+  name: string,
+  background?: string,
+  ip?: string
+): Promise<WithId<User>> {
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const newUser: Omit<User, '_id'> = {
+    email,
+    username: username.toLowerCase(),
+    name,
+    password: hashedPassword,
+    avatar: '',
+    bio: '',
+    background: background || '',
+    badges: [],
+    isBanned: false,
+    signupIP: ip || 'unknown',
+    createdAt: new Date(),
+  };
+
+  const result = await db.collection<User>('users').insertOne(newUser);
+  return { _id: result.insertedId, ...newUser };
+}
+
+// ✅ Log a referral event
+export async function logReferral(referrerId: string, referredUserId: string): Promise<void> {
+  if (!ObjectId.isValid(referrerId) || !ObjectId.isValid(referredUserId)) {
+    throw new Error('Invalid user IDs');
+  }
+
+  await db.collection<Referral>('referrals').insertOne({
+    referrerId: new ObjectId(referrerId),
+    referredUserId: new ObjectId(referredUserId),
+    timestamp: new Date(),
+  });
+}
+
+// ✅ Get referral stats for ALL users (including 0-count)
 export async function getReferralStats() {
   try {
     // Fetch all users
-    const allUsers = await db.collection('users').find(
+    const allUsers = await db.collection<User>('users').find(
       {},
       { projection: { _id: 1, username: 1 } }
     ).toArray();
 
+    if (allUsers.length === 0) {
+      return [];
+    }
+
     // Count referrals per referrer
-    const referralCounts = await db.collection('referrals')
+    const referralCounts = await db.collection<Referral>('referrals')
       .aggregate([
         { $group: { _id: '$referrerId', count: { $sum: 1 } } }
       ])
@@ -39,4 +128,61 @@ export async function getReferralStats() {
     console.error('getReferralStats error:', error);
     return [];
   }
+}
+
+// ✅ Add badge to user
+export async function addUserBadge(userId: string, badge: Badge): Promise<void> {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $push: { badges: badge } }
+  );
+}
+
+// ✅ Remove badge from user
+export async function removeUserBadge(userId: string, badgeId: string): Promise<void> {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+// ✅ Ban/unban user
+export async function setBanStatus(userId: string, isBanned: boolean): Promise<void> {
+  if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
+  await db.collection<User>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    {
+      $set: { isBanned },
+      $set: isBanned ? { bannedAt: new Date() } : { bannedAt: null }
+    }
+  );
+}
+
+// ✅ Get top referrers (for admin)
+export async function getTopReferrers(limit = 10) {
+  const pipeline = [
+    { $group: { _id: '$referrerId', referredCount: { $sum: 1 } } },
+    { $sort: { referredCount: -1 } },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'user'
+      }
+    },
+    { $unwind: '$user' },
+    {
+      $project: {
+        _id: 0,
+        username: '$user.username',
+        referredCount: 1
+      }
+    }
+  ];
+
+  return await db.collection<Referral>('referrals').aggregate(pipeline).toArray();
 }

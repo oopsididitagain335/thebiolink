@@ -35,7 +35,6 @@ export interface Referral {
   referredUserId: ObjectId;
   timestamp: Date;
 }
-
 export type ReferralInput = Omit<Referral, '_id'>;
 // ─── MongoDB Connection ─────────────────────────────
 let client: MongoClient;
@@ -112,12 +111,15 @@ export async function createUser(
     createdAt: new Date(),
     links: [],
   };
+  const _id = new ObjectId();
   // ✅ Insert without enforcing full User type (MongoDB generates _id)
-  const result = await db.collection('users').insertOne(newUser);
- 
+  await db.collection<User>('users').insertOne({
+    _id,
+    ...newUser,
+  });
   // ✅ Return full typed user with _id
   return {
-    _id: result.insertedId,
+    _id,
     ...newUser,
   };
 }
@@ -177,11 +179,13 @@ export async function logReferral(referrerId: string, referredUserId: string) {
     throw new Error('Invalid user IDs');
   }
   const { db } = await connectToDatabase();
+  const _id = new ObjectId();
   await db.collection<Referral>('referrals').insertOne({
+    _id,
     referrerId: new ObjectId(referrerId),
     referredUserId: new ObjectId(referredUserId),
     timestamp: new Date(),
-  } as ReferralInput);
+  });
 }
 export async function getReferralStats() {
   const { db } = await connectToDatabase();

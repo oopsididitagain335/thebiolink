@@ -32,7 +32,6 @@ export default function AdminPanel() {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedBadge, setSelectedBadge] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
@@ -46,7 +45,6 @@ export default function AdminPanel() {
         ]);
 
         if (!usersRes.ok || !badgesRes.ok) {
-          // If either request fails (likely 401/403), redirect to dashboard
           router.push('/dashboard');
           return;
         }
@@ -58,7 +56,6 @@ export default function AdminPanel() {
         setBadges(badgesData);
       } catch (error) {
         console.error('Fetch error:', error);
-        // On network error, also redirect
         router.push('/dashboard');
       } finally {
         setLoading(false);
@@ -128,7 +125,6 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to show badge
         setUsers(users.map(user => 
           user.id === selectedUser 
             ? { ...user, badges: [...user.badges, { ...badgeToAdd, awardedAt: new Date().toISOString() }] } 
@@ -156,7 +152,6 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to remove badge
         setUsers(users.map(user => 
           user.id === userId 
             ? { ...user, badges: user.badges.filter(b => b.id !== badgeId) } 
@@ -182,7 +177,6 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to reflect ban status change
         setUsers(users.map(user => 
           user.id === userId 
             ? { ...user, isBanned: action === 'ban' } 
@@ -197,6 +191,38 @@ export default function AdminPanel() {
     }
   };
 
+  // ✅ NEW: Copy referral link to clipboard
+  const copyReferralLink = (userId: string) => {
+    const link = `${window.location.origin}/?ref=${userId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setMessage({ type: 'success', text: 'Referral link copied!' });
+    }).catch(() => {
+      setMessage({ type: 'error', text: 'Failed to copy link' });
+    });
+  };
+
+  // ✅ NEW: Validate referral (optional test)
+  const validateReferral = async (userId: string) => {
+    try {
+      const res = await fetch('/api/referrals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referralCode: userId,
+          referralId: userId
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✅ Valid! Referred user: ${data.username}`);
+      } else {
+        alert('❌ No valid referral found');
+      }
+    } catch {
+      alert('Error validating referral');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -205,7 +231,7 @@ export default function AdminPanel() {
             <div>
               <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
               <p className="text-gray-400 mt-2">
-                Manage users and badges
+                Manage users, badges, and referral links
               </p>
             </div>
             <button
@@ -303,9 +329,56 @@ export default function AdminPanel() {
           </div>
         </div>
 
+        {/* ===== REFERRAL MANAGEMENT SECTION ===== */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-white mb-6">Referral Links (Admin Only)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map((user) => (
+              <div key={`ref-${user.id}`} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">{user.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-semibold text-white">{user.name}</h3>
+                    <p className="text-gray-400 text-sm">{user.email}</p>
+                  </div>
+                </div>
+
+                {/* Referral Link Display */}
+                <div className="mt-4">
+                  <label className="block text-sm text-gray-400 mb-2">Referral Link</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${window.location.origin}/?ref=${user.id}`}
+                      className="flex-1 bg-gray-700/50 text-gray-300 px-3 py-2 rounded-l-lg text-sm truncate"
+                    />
+                    <button
+                      onClick={() => copyReferralLink(user.id)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 rounded-r-lg text-sm font-medium"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Validate Button */}
+                <button
+                  onClick={() => validateReferral(user.id)}
+                  className="mt-4 w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-sm font-medium"
+                >
+                  Test Referral Link
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* All Users Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">All Users</h2>
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-white mb-6">All Users</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map((user) => (
               <div key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -316,7 +389,6 @@ export default function AdminPanel() {
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-white">{user.name}</h3>
                     <p className="text-gray-400 text-sm">{user.email}</p>
-                    {/* ✅ Show ban status badge */}
                     {user.isBanned && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-300 mt-1">
                         Banned
@@ -349,7 +421,6 @@ export default function AdminPanel() {
                   )}
                 </div>
 
-                {/* ✅ Add Ban/Unban Button */}
                 <div className="mt-4 pt-4 border-t border-gray-700">
                   <button
                     onClick={() => handleBanUser(user.id, user.isBanned ? 'unban' : 'ban')}
@@ -368,12 +439,12 @@ export default function AdminPanel() {
         </div>
 
         {/* All Badges Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">All Badges</h2>
+        <div className="mt-12 mb-12">
+          <h2 className="text-2xl font-bold text-white mb-6">All Badges</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {badges.map((badge) => (
               <div key={badge.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 text-center">
-                <img src={badge.icon} alt={badge.name} className="w-16 h-16 mx-auto mb-2" />
+                <img src={badge.icon} alt={badge.name} className="w-16 h-16 mx-auto mb-2 object-contain" />
                 <p className="text-white font-medium">{badge.name}</p>
               </div>
             ))}

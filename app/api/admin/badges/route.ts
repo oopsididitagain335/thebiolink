@@ -11,7 +11,6 @@ export async function GET() {
 
   try {
     const user = await getUserById(sessionId);
-    // --- Authorization Check ---
     if (!user || user.email !== 'lyharry31@gmail.com') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await getUserById(sessionId);
-    // --- Authorization Check ---
     if (!user || user.email !== 'lyharry31@gmail.com') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -43,7 +41,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Name and icon are required' }, { status: 400 });
     }
 
-    const badge = await createBadge(name, icon);
+    const badge = await createBadge({
+      id: crypto.randomUUID(),
+      name,
+      icon,
+    });
+
     return Response.json(badge);
   } catch (error) {
     console.error("Admin POST Create Badge Error:", error);

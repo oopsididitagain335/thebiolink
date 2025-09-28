@@ -45,13 +45,12 @@ export default function Dashboard() {
   const [announcement, setAnnouncement] = useState<string | null>(null);
   const [topReferrers, setTopReferrers] = useState<{ username: string; referredCount: number }[]>([]);
   const [announcementInput, setAnnouncementInput] = useState('');
-  const [awardUserId, setAwardUserId] = useState(''); // For awarding Sponsored badge
+  const [awardUserId, setAwardUserId] = useState('');
   const [isAwarding, setIsAwarding] = useState(false);
   const router = useRouter();
 
   const isAdmin = user.email === 'lyharry31@gmail.com' || user.badges.some((b) => b.name === 'Owner');
 
-  // --- Effect to load user data and links on mount ---
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -102,7 +101,6 @@ export default function Dashboard() {
     fetchUserData();
   }, [router]);
 
-  // Fetch announcement and top referrers if admin
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
@@ -135,7 +133,7 @@ export default function Dashboard() {
       };
       fetchTopReferrers();
     }
-  }, [user.email, isAdmin]);
+  }, [isAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -227,7 +225,6 @@ export default function Dashboard() {
       if (res.ok) {
         setMessage({ type: 'success', text: 'Announcement sent!' });
         setAnnouncementInput('');
-        // Refresh announcement
         const annRes = await fetch('/api/dashboard/announcement');
         if (annRes.ok) {
           const data = await annRes.json();
@@ -258,7 +255,7 @@ export default function Dashboard() {
           badge: {
             id: 'sponsored',
             name: 'Sponsored',
-            icon: 'https://example.com/sponsored-icon.png', // Replace with actual icon URL
+            icon: 'https://example.com/sponsored-icon.png',
             awardedAt: new Date().toISOString(),
           },
         }),
@@ -266,6 +263,14 @@ export default function Dashboard() {
       if (res.ok) {
         setMessage({ type: 'success', text: 'Sponsored badge awarded! Referral codes generated.' });
         setAwardUserId('');
+        // Refresh user data to show new codes if awarding to self
+        if (awardUserId === user._id) {
+          const refreshRes = await fetch('/api/dashboard/data');
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            setUser(data.user);
+          }
+        }
       } else {
         const errorData = await res.json();
         setMessage({ type: 'error', text: errorData.error || 'Failed to award badge.' });
@@ -282,10 +287,6 @@ export default function Dashboard() {
   const referralLink = hasSponsoredBadge && user.referralCode && user.referralId
     ? `https://thebiolink.lol/${user.referralCode}?referralid=${user.referralId}`
     : '';
-
-  if (!hasSponsoredBadge && user.referralCode) {
-    console.warn('Sponsored badge missing, but referral codes exist - inconsistency detected');
-  }
 
   const handleCopyReferral = () => {
     if (referralLink) {
@@ -307,14 +308,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Announcement Box - Visible to all */}
         {announcement && (
           <div className="bg-yellow-900/50 backdrop-blur-sm border border-yellow-800 rounded-2xl p-6 mb-8 text-white">
             <h3 className="text-lg font-semibold mb-2">Announcement</h3>
             <p>{announcement}</p>
           </div>
         )}
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -349,9 +348,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Profile Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Profile Settings</h2>
               <div className="space-y-5">
@@ -422,42 +419,37 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
-              {/* Referral Link Section */}
               {hasSponsoredBadge && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-2 text-white">Your Sponsored Referral Link</h3>
                   <p className="text-gray-400 mb-2">Share this link to refer new users (leads to signup for now):</p>
-                  {referralLink ? (
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={referralLink}
-                        readOnly
-                        className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white"
-                      />
-                      <button
-                        onClick={handleCopyReferral}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-yellow-400">Referral codes not generated yet. Contact admin.</p>
-                  )}
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={referralLink}
+                      readOnly
+                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white"
+                    />
+                    <button
+                      onClick={handleCopyReferral}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-r-xl font-medium transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
               )}
-              {!hasSponsoredBadge && isAdmin && (
+              {isAdmin && (
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-2 text-white">Admin: Award Sponsored Badge</h3>
-                  <p className="text-gray-400 mb-2">Enter user ID to award Sponsored badge (generates referral codes):</p>
+                  <h3 className="text-lg font-semibold mb-2 text-white">Award Sponsored Badge</h3>
+                  <p className="text-gray-400 mb-2">Enter user ID to award Sponsored badge and generate referral codes:</p>
                   <div className="flex">
                     <input
                       type="text"
                       value={awardUserId}
                       onChange={(e) => setAwardUserId(e.target.value)}
                       className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-l-xl text-white placeholder-gray-400"
-                      placeholder="User ID (e.g., 64f...)"
+                      placeholder="User ID"
                     />
                     <button
                       onClick={handleAwardSponsored}
@@ -470,7 +462,6 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            {/* Links Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-white">Link Manager</h2>
@@ -545,9 +536,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {/* Sidebar */}
           <div className="lg:col-span-1 lg:sticky lg:top-8 space-y-6">
-            {/* Preview Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
@@ -594,7 +583,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            {/* Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
@@ -626,10 +614,8 @@ export default function Dashboard() {
                 Personal subscriptions coming soon!
               </div>
             </div>
-            {/* Admin Sections */}
             {isAdmin && (
               <>
-                {/* Send Announcement Card */}
                 <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
                   <textarea
@@ -646,7 +632,6 @@ export default function Dashboard() {
                     Send
                   </button>
                 </div>
-                {/* Top Referrers Card */}
                 <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
                   {topReferrers.length > 0 ? (
@@ -666,7 +651,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        {/* Status Message */}
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${

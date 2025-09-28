@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -38,12 +37,15 @@ interface UserDoc {
     icon: string;
     awardedAt: string;
   }>;
+  referralCode?: string;
+  sponsoredDate?: string; // YYYY-MM-DD
+  referredCount?: number;
   isEmailVerified: boolean;
   isBanned?: boolean;
   bannedAt?: string;
   createdAt: Date;
   ipAddress?: string;
-  profileViews: number; // ✅ Added for discovery stats
+  profileViews: number;
 }
 
 interface LinkDoc {
@@ -60,6 +62,21 @@ interface ProfileVisitDoc {
   userId: ObjectId;
   clientId: string;
   visitedAt: Date;
+}
+
+interface ReferralDoc {
+  _id: ObjectId;
+  referrerId: ObjectId;
+  referredId: ObjectId;
+  referredAt: Date;
+  codeUsed: string;
+}
+
+interface AnnouncementDoc {
+  _id: ObjectId;
+  text: string;
+  sentAt: Date;
+  sentBy: ObjectId;
 }
 
 // --- User Functions (Node.js only) ---
@@ -104,11 +121,14 @@ export async function getUserByUsername(username: string, clientId: string = '')
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
+    referralCode: user.referralCode || '',
+    sponsoredDate: user.sponsoredDate || '',
+    referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
-    profileViews: user.profileViews || 0, // ✅ Return view count
+    profileViews: user.profileViews || 0,
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
@@ -138,6 +158,9 @@ export async function getUserByUsernameForMetadata(username: string) {
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
+    referralCode: user.referralCode || '',
+    sponsoredDate: user.sponsoredDate || '',
+    referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
@@ -173,6 +196,9 @@ export async function getUserById(id: string) {
       backgroundVideo: user.backgroundVideo || '',
       backgroundAudio: user.backgroundAudio || '',
       badges: user.badges || [],
+      referralCode: user.referralCode || '',
+      sponsoredDate: user.sponsoredDate || '',
+      referredCount: user.referredCount || 0,
       isEmailVerified: user.isEmailVerified || false,
       isBanned: user.isBanned || false,
       bannedAt: user.bannedAt,
@@ -192,7 +218,17 @@ export async function getUserById(id: string) {
   }
 }
 
-export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
+export async function createUser(
+  email: string,
+  password: string,
+  username: string,
+  name: string,
+  background: string = '',
+  ipAddress: string,
+  referrerUsername?: string,
+  referrerDate?: string,
+  referralCode?: string
+) {
   const database = await connectDB();
 
   const existingEmail = await database.collection('users').findOne({ email });
@@ -213,11 +249,35 @@ export async function createUser(email: string, password: string, username: stri
     background,
     ipAddress,
     badges: [],
+    referralCode: undefined,
+    sponsoredDate: undefined,
+    referredCount: 0,
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date(),
-    profileViews: 0 // ✅ Initialize view count
+    profileViews: 0
   } as UserDoc);
+
+  // Handle referral if provided
+  if (referrerUsername && referrerDate && referralCode) {
+    const referrer = await database.collection<UserDoc>('users').findOne({
+      username: referrerUsername,
+      sponsoredDate: referrerDate,
+      referralCode: referralCode,
+    });
+    if (referrer) {
+      await database.collection('referrals').insertOne({
+        referrerId: referrer._id,
+        referredId: userId,
+        referredAt: new Date(),
+        codeUsed: referralCode,
+      } as ReferralDoc);
+      await database.collection('users').updateOne(
+        { _id: referrer._id },
+        { $inc: { referredCount: 1 } }
+      );
+    }
+  }
 
   return {
     id: userId.toString(),
@@ -226,10 +286,13 @@ export async function createUser(email: string, password: string, username: stri
     name,
     background,
     badges: [],
+    referralCode: '',
+    sponsoredDate: '',
+    referredCount: 0,
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date().toISOString(),
-    profileViews: 0 // ✅ Return initial view count
+    profileViews: 0
   };
 }
 
@@ -253,6 +316,9 @@ export async function getUserByEmail(email: string) {
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
+    referralCode: user.referralCode || '',
+    sponsoredDate: user.sponsoredDate || '',
+    referredCount: user.referredCount || 0,
     isEmailVerified: user.isEmailVerified || false,
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
@@ -333,6 +399,9 @@ export async function updateUserProfile(userId: string, updates: any) {
     backgroundVideo: updatedUserDocument.backgroundVideo || '',
     backgroundAudio: updatedUserDocument.backgroundAudio || '',
     badges: updatedUserDocument.badges || [],
+    referralCode: updatedUserDocument.referralCode || '',
+    sponsoredDate: updatedUserDocument.sponsoredDate || '',
+    referredCount: updatedUserDocument.referredCount || 0,
     isEmailVerified: updatedUserDocument.isEmailVerified || false,
     isBanned: updatedUserDocument.isBanned || false,
     bannedAt: updatedUserDocument.bannedAt,
@@ -361,6 +430,16 @@ export async function addUserBadge(
     { _id: userObjectId },
     { $push: { badges: { $each: [badge] } } }
   );
+
+  // If Sponsored badge, generate referral code and set sponsoredDate
+  if (badge.name === 'Sponsored') {
+    const code = Math.floor(1000000 + Math.random() * 9000000).toString();
+    const date = badge.awardedAt.slice(0, 10); // Assume awardedAt is ISO string
+    await database.collection<UserDoc>('users').updateOne(
+      { _id: userObjectId },
+      { $set: { referralCode: code, sponsoredDate: date } }
+    );
+  }
 }
 
 export async function removeUserBadge(userId: string, badgeId: string) {
@@ -370,6 +449,14 @@ export async function removeUserBadge(userId: string, badgeId: string) {
     { _id: userObjectId },
     { $pull: { badges: { id: badgeId } } }
   );
+
+  // If removing Sponsored, clear referral info
+  if (badgeId === 'sponsored') { // Assume id for Sponsored is 'sponsored'
+    await database.collection<UserDoc>('users').updateOne(
+      { _id: userObjectId },
+      { $unset: { referralCode: '', sponsoredDate: '' } }
+    );
+  }
 }
 
 // ✅ DISCOVERY: Get all users for discovery page
@@ -387,7 +474,7 @@ export async function getAllUsers() {
     badges: user.badges || [],
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
-    profileViews: user.profileViews || 0 // ✅ Include view count
+    profileViews: user.profileViews || 0
   }));
 }
 
@@ -434,4 +521,38 @@ export async function unbanUser(userId: string) {
     { _id: objectId },
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
+}
+
+// Referral Functions
+export async function getTopReferrers(limit: number = 10) {
+  const database = await connectDB();
+  const users = await database
+    .collection<UserDoc>('users')
+    .find({ referredCount: { $gt: 0 } })
+    .sort({ referredCount: -1 })
+    .limit(limit)
+    .toArray();
+
+  return users.map((user) => ({
+    username: user.username,
+    referredCount: user.referredCount || 0,
+  }));
+}
+
+// Announcement Functions
+export async function sendAnnouncement(text: string, sentBy: string) {
+  const database = await connectDB();
+  await database.collection('announcements').insertOne({
+    text,
+    sentAt: new Date(),
+    sentBy: new ObjectId(sentBy),
+  } as AnnouncementDoc);
+}
+
+export async function getLatestAnnouncement() {
+  const database = await connectDB();
+  const ann = await database
+    .collection<AnnouncementDoc>('announcements')
+    .findOne({}, { sort: { sentAt: -1 } });
+  return ann ? { text: ann.text, sentAt: ann.sentAt.toISOString() } : null;
 }

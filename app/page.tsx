@@ -1,3 +1,4 @@
+// app/page.tsx
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -11,6 +12,12 @@ export default function HomePage() {
               <span className="text-2xl font-bold text-white">BioLink</span>
             </div>
             <div className="flex items-center space-x-4">
+              <Link
+                href="/discovery"
+                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Discovery
+              </Link>
               <Link
                 href="/auth/login"
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"

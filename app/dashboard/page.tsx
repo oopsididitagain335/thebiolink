@@ -108,6 +108,8 @@ export default function Dashboard() {
         if (res.ok) {
           const data = await res.json();
           setAnnouncement(data.text || null);
+        } else {
+          console.error('Failed to fetch announcement:', await res.text());
         }
       } catch (error) {
         console.error('Failed to fetch announcement:', error);
@@ -116,12 +118,14 @@ export default function Dashboard() {
 
     fetchAnnouncement();
 
-    if (user.email === 'lyhary31@gmail.com') {
+    if (user.email === 'lyharry31@gmail.com') {
       const fetchTopReferrers = async () => {
         try {
           const res = await fetch('/api/dashboard/top-referrers');
           if (res.ok) {
             setTopReferrers(await res.json());
+          } else {
+            console.error('Failed to fetch top referrers:', await res.text());
           }
         } catch (error) {
           console.error('Failed to fetch top referrers:', error);
@@ -208,7 +212,10 @@ export default function Dashboard() {
   };
 
   const handleSendAnnouncement = async () => {
-    if (!announcementInput.trim()) return;
+    if (!announcementInput.trim()) {
+      setMessage({ type: 'error', text: 'Announcement text cannot be empty.' });
+      return;
+    }
     try {
       const res = await fetch('/api/dashboard/announcement', {
         method: 'POST',
@@ -225,11 +232,12 @@ export default function Dashboard() {
           setAnnouncement(data.text || null);
         }
       } else {
-        setMessage({ type: 'error', text: 'Failed to send announcement.' });
+        const errorData = await res.json();
+        setMessage({ type: 'error', text: errorData.error || 'Failed to send announcement.' });
       }
     } catch (error) {
       console.error('Send announcement error:', error);
-      setMessage({ type: 'error', text: 'Network error.' });
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
     }
   };
 
@@ -256,7 +264,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Announcement Box */}
+        {/* Announcement Box - Visible to all */}
         {announcement && (
           <div className="bg-yellow-900/50 backdrop-blur-sm border border-yellow-800 rounded-2xl p-6 mb-8 text-white">
             <h3 className="text-lg font-semibold mb-2">Announcement</h3>
@@ -551,40 +559,43 @@ export default function Dashboard() {
                 Personal subscriptions coming soon!
               </div>
             </div>
-            {/* Send Announcement Card - Available to all users */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
-              <textarea
-                value={announcementInput}
-                onChange={(e) => setAnnouncementInput(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 mb-4"
-                placeholder="Enter announcement text..."
-              />
-              <button
-                onClick={handleSendAnnouncement}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition-colors"
-              >
-                Send
-              </button>
-            </div>
-            {/* Top Referrers Card - Only for lyhary31@gmail.com */}
-            {user.email === 'lyhary31@gmail.com' && (
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
-                {topReferrers.length > 0 ? (
-                  <ul className="space-y-2">
-                    {topReferrers.map((r, index) => (
-                      <li key={index} className="flex justify-between text-gray-300">
-                        <span>{r.username}</span>
-                        <span className="font-medium text-white">{r.referredCount}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">No referrals yet.</p>
-                )}
-              </div>
+            {/* Admin Sections - Only for lyharry31@gmail.com */}
+            {user.email === 'lyharry31@gmail.com' && (
+              <>
+                {/* Send Announcement Card */}
+                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-white">Send Announcement</h3>
+                  <textarea
+                    value={announcementInput}
+                    onChange={(e) => setAnnouncementInput(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 mb-4"
+                    placeholder="Enter announcement text..."
+                  />
+                  <button
+                    onClick={handleSendAnnouncement}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+                {/* Top Referrers Card */}
+                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-white">Top Referrers</h3>
+                  {topReferrers.length > 0 ? (
+                    <ul className="space-y-2">
+                      {topReferrers.map((r, index) => (
+                        <li key={index} className="flex justify-between text-gray-300">
+                          <span>{r.username}</span>
+                          <span className="font-medium text-white">{r.referredCount}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500">No referrals yet.</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>

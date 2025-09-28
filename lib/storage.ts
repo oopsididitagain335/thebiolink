@@ -11,6 +11,14 @@ export interface Badge {
   awardedAt: string;
 }
 
+export interface Link {
+  id: string;
+  url: string;
+  title: string;
+  icon?: string;
+  position?: number;
+}
+
 export interface User {
   _id: ObjectId;
   email: string;
@@ -19,6 +27,8 @@ export interface User {
   avatar?: string;
   bio?: string;
   background?: string;
+  backgroundVideo?: string;   // ✅ added
+  backgroundAudio?: string;   // ✅ added
   password: string;
   badges: Badge[];
   isBanned: boolean;
@@ -26,7 +36,7 @@ export interface User {
   signupIP: string;
   createdAt: Date;
   referralCode?: string;
-  links?: any[]; // ✅ added so saveUserLinks compiles cleanly
+  links?: Link[];             // ✅ properly typed
 }
 
 export interface Referral {
@@ -36,26 +46,24 @@ export interface Referral {
   timestamp: Date;
 }
 
-// ✅ Get user by ID
+// ─── USER QUERIES ──────────────────────────────
+
 export async function getUserById(id: string): Promise<WithId<User> | null> {
   if (!ObjectId.isValid(id)) return null;
   const { db } = await connectToDatabase();
   return await db.collection<User>('users').findOne({ _id: new ObjectId(id) });
 }
 
-// ✅ Get user by email
 export async function getUserByEmail(email: string): Promise<WithId<User> | null> {
   const { db } = await connectToDatabase();
   return await db.collection<User>('users').findOne({ email });
 }
 
-// ✅ Get user by username
 export async function getUserByUsername(username: string): Promise<WithId<User> | null> {
   const { db } = await connectToDatabase();
   return await db.collection<User>('users').findOne({ username });
 }
 
-// ✅ Create new user
 export async function createUser(
   email: string,
   password: string,
@@ -67,7 +75,7 @@ export async function createUser(
   const { db } = await connectToDatabase();
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const newUser = {
+  const newUser: Omit<User, '_id'> = {
     email,
     username: username.toLowerCase(),
     name,
@@ -75,17 +83,22 @@ export async function createUser(
     avatar: '',
     bio: '',
     background: background || '',
+    backgroundVideo: '',
+    backgroundAudio: '',
     badges: [],
     isBanned: false,
     signupIP: ip || 'unknown',
     createdAt: new Date(),
+    referralCode: undefined,
+    links: [],
   };
 
   const result = await db.collection<User>('users').insertOne(newUser as any);
   return { _id: result.insertedId, ...newUser };
 }
 
-// ✅ Log a referral event
+// ─── REFERRALS ──────────────────────────────
+
 export async function logReferral(referrerId: string, referredUserId: string): Promise<void> {
   if (!ObjectId.isValid(referrerId) || !ObjectId.isValid(referredUserId)) {
     throw new Error('Invalid user IDs');
@@ -98,7 +111,6 @@ export async function logReferral(referrerId: string, referredUserId: string): P
   });
 }
 
-// ✅ Get referral stats for ALL users (including 0-count)
 export async function getReferralStats() {
   const { db } = await connectToDatabase();
 
@@ -124,7 +136,8 @@ export async function getReferralStats() {
   }));
 }
 
-// ✅ Add badge to user
+// ─── BADGES ──────────────────────────────
+
 export async function addUserBadge(userId: string, badge: Badge): Promise<void> {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
@@ -134,7 +147,6 @@ export async function addUserBadge(userId: string, badge: Badge): Promise<void> 
   );
 }
 
-// ✅ Remove badge from user
 export async function removeUserBadge(userId: string, badgeId: string): Promise<void> {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
@@ -144,7 +156,8 @@ export async function removeUserBadge(userId: string, badgeId: string): Promise<
   );
 }
 
-// ✅ Ban/unban user
+// ─── BANS ──────────────────────────────
+
 export async function setBanStatus(userId: string, isBanned: boolean): Promise<void> {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
@@ -154,7 +167,8 @@ export async function setBanStatus(userId: string, isBanned: boolean): Promise<v
   );
 }
 
-// ✅ Get top referrers (for admin)
+// ─── ADMIN ──────────────────────────────
+
 export async function getTopReferrers(limit = 10) {
   const { db } = await connectToDatabase();
   const pipeline = [
@@ -181,7 +195,7 @@ export async function getTopReferrers(limit = 10) {
   return await db.collection<Referral>('referrals').aggregate(pipeline).toArray();
 }
 
-// ──── Extra Exports ────
+// ─── EXTRA EXPORTS ──────────────────────────────
 
 export async function getUserByUsernameForMetadata(username: string) {
   const user = await getUserByUsername(username);
@@ -247,7 +261,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>) 
   return result.modifiedCount > 0;
 }
 
-export async function saveUserLinks(userId: string, links: any[]) {
+export async function saveUserLinks(userId: string, links: Link[]) {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
   const result = await db.collection<User>('users').updateOne(
@@ -257,13 +271,13 @@ export async function saveUserLinks(userId: string, links: any[]) {
   return result.modifiedCount > 0;
 }
 
-// ──── NEW: Profile Views ────
+// ─── PROFILE VIEWS ──────────────────────────────
 
 export async function recordProfileView(userId: string, clientId: string) {
   if (!ObjectId.isValid(userId)) throw new Error('Invalid user ID');
   const { db } = await connectToDatabase();
 
-  // prevent duplicate view per clientId per day
+  // prevent duplicate view per client per day
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

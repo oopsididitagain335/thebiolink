@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Assume sessionToken contains userId or can be used to fetch it
-    const user = await getUserById(sessionToken); // Adjust based on how your session stores userId
+    // Fetch user based on session token (assuming it contains userId)
+    const user = await getUserById(sessionToken);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserById(sessionToken); // Adjust based on your session mechanism
+    // Fetch user based on session token
+    const user = await getUserById(sessionToken);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

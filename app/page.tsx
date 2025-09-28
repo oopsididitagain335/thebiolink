@@ -75,7 +75,7 @@ export default function HomePage() {
             <ul className="text-gray-300 space-y-2">
               <li><a href="https://discord.gg/29yDsapcXh" className="text-indigo-400 hover:underline">Join our Discord for community support</a></li>
               <li>Email us at support@thebiolink.lol for direct assistance.</li>
-              <li>Check status updates at status.thebiolink.lol.</li>
+              <li>Check status updates at thebiolink.lol/status.</li>
             </ul>
           </div>
         </div>

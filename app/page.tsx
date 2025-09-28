@@ -12,7 +12,7 @@ function Header() {
         <a href="#help-center" className="text-gray-400 hover:text-white text-lg">Help Center</a>
         <a href="https://discord.gg/29yDsapcXh" className="text-gray-400 hover:text-white text-lg">Discord</a>
         <a href="#" onClick={(e) => { e.preventDefault(); alert('Coming Soon'); }} className="text-gray-400 hover:text-white text-lg">Pricing</a>
-        <Link href="/auth/login" className="text-gray-400 hover:text-white text-lg">Login</a>
+        <Link href="/auth/login" className="text-gray-400 hover:text-white text-lg">Login</Link>
         <Link
           href="/auth/signup"
           className="bg-purple-600 px-5 py-3 rounded-full hover:bg-purple-700 transition-colors text-lg"
@@ -24,7 +24,7 @@ function Header() {
   );
 }
 
-export default function HomePage() {
+export default function Page() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-indigo-900 to-black text-white p-8 relative overflow-hidden">
       {/* Background Layers */}
@@ -75,7 +75,7 @@ export default function HomePage() {
             <ul className="text-gray-300 space-y-3 text-lg">
               <li><a href="https://discord.gg/29yDsapcXh" className="text-indigo-400 hover:underline">Join our Discord for community support</a></li>
               <li>Email us at support@thebiolink.lol for direct assistance.</li>
-              <li>Check status updates at thebiolink.lol/status.</li>
+              <li>Check status updates at status.thebiolink.lol.</li>
             </ul>
           </div>
         </div>

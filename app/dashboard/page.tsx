@@ -121,7 +121,7 @@ export default function Dashboard() {
     if (user.email === 'lyharry31@gmail.com') {
       const fetchTopReferrers = async () => {
         try {
-          const res = await fetch('/api/dashboard/top-referrers');
+          const res = await fetch('/api/referrals');
           if (res.ok) {
             setTopReferrers(await res.json());
           } else {
@@ -237,7 +237,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Send announcement error:', error);
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+      setMessage({ type: 'error', text: 'Network error.' });
     }
   };
 

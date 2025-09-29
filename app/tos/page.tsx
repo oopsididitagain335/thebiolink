@@ -46,7 +46,7 @@ export default function TermsOfService() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 md:p-8">
             <h1 className="text-3xl font-bold text-white mb-2">Terms of Service</h1>
-            <p className="text-sm text-gray-500 mb-8">Last updated: June 2024</p>
+            <p className="text-sm text-gray-500 mb-8">Last updated: Sept 2025</p>
 
             <div className="prose prose-invert prose-gray max-w-none space-y-6">
               <section>

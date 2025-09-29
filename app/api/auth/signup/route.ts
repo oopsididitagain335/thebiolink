@@ -14,10 +14,11 @@ function getClientIP(request: NextRequest): string {
 }
 
 async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-  const { db } = await (await import('@/lib/db')).connectToDatabase();
+  // ✅ Use connectDB from storage instead of separate '@/lib/db'
+  const db = await (await import('@/lib/storage')).connectDB();
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const count = await db.collection('users').countDocuments({
-    signupIP: ipAddress,
+    ipAddress,
     createdAt: { $gte: twentyFourHoursAgo }
   });
   return count < 2; // Max 2 accounts per IP per day
@@ -66,11 +67,8 @@ export async function POST(request: NextRequest) {
 
     // ✅ Log referral if valid
     if (referrerId && ObjectId.isValid(referrerId)) {
-      const { db } = await (await import('@/lib/db')).connectToDatabase();
-      const referrer = await db.collection('users').findOne({ _id: new ObjectId(referrerId) });
-      if (referrer) {
-        await logReferral(referrerId, newUser._id.toString());
-      }
+      // ✅ Use newUser.id (already a string), not newUser._id
+      await logReferral(referrerId, newUser.id);
     }
 
     return Response.json({

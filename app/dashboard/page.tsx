@@ -17,9 +17,23 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
-  background: string; // ✅ Include background in interface
+  background: string;
   isEmailVerified: boolean;
 }
+
+// ✅ Famous Links Presets
+const FAMOUS_LINKS = [
+  { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
+  { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
+  { title: 'Twitch', icon: 'https://cdn-icons-png.flaticon.com/512/657/657252.png' },
+  { title: 'Twitter / X', icon: 'https://cdn-icons-png.flaticon.com/512/733/733579.png' },
+  { title: 'Discord', icon: 'https://cdn-icons-png.flaticon.com/512/946/946822.png' },
+  { title: 'Spotify', icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111624.png' },
+  { title: 'SoundCloud', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384045.png' },
+  { title: 'Portfolio', icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png' },
+  { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
+  { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
+];
 
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -28,7 +42,7 @@ export default function Dashboard() {
     username: '',
     avatar: '',
     bio: '',
-    background: '', // ✅ Initialize background
+    background: '',
     isEmailVerified: true,
   });
   const [links, setLinks] = useState<Link[]>([]);
@@ -37,7 +51,6 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
-  // --- Effect to load user data and links on mount ---
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -45,26 +58,23 @@ export default function Dashboard() {
         const res = await fetch('/api/dashboard/data');
         if (!res.ok) {
           if (res.status === 401) {
-            console.warn("Unauthorized, redirecting to login.");
+            console.warn('Unauthorized, redirecting to login.');
           }
           router.push('/auth/login');
           return;
         }
         const data = await res.json();
-        console.log("Fetched user data:", data); // Debug log
 
-        // --- Crucial: Populate user state including background ---
         setUser({
           _id: data.user._id || '',
           name: data.user.name || '',
           username: data.user.username || '',
           avatar: data.user.avatar || '',
           bio: data.user.bio || '',
-          background: data.user.background || '', // ✅ Load background
+          background: data.user.background || '',
           isEmailVerified: data.user.isEmailVerified ?? true,
         });
 
-        // --- Crucial: Populate links state ---
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -119,6 +129,19 @@ export default function Dashboard() {
     ]);
   };
 
+  const addFamousLink = (preset: (typeof FAMOUS_LINKS)[0]) => {
+    setLinks((prevLinks) => [
+      ...prevLinks,
+      {
+        id: Date.now().toString(),
+        url: '',
+        title: preset.title,
+        icon: preset.icon,
+        position: prevLinks.length,
+      },
+    ]);
+  };
+
   const removeLink = (index: number) => {
     setLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
   };
@@ -147,7 +170,7 @@ export default function Dashboard() {
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim() || '',
-            background: user.background?.trim() || '', // ✅ Send background
+            background: user.background?.trim() || '',
           },
           links: linksToSend,
         }),
@@ -266,14 +289,13 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* ✅ Background GIF Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
                   <input
                     type="url"
-                    name="background" // Crucial for handleProfileChange
-                    value={user.background} // Bound to state
-                    onChange={handleProfileChange} // Updates state
+                    name="background"
+                    value={user.background}
+                    onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="https://media.giphy.com/.../background.gif"
                   />
@@ -298,14 +320,22 @@ export default function Dashboard() {
 
             {/* Links Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-semibold text-white">Link Manager</h2>
-                <button
-                  onClick={addLink}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  + Add Link
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={addLink}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                  >
+                    + Add Link
+                  </button>
+                  <button
+                    onClick={() => FAMOUS_LINKS.forEach(addFamousLink)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                  >
+                    Add Famous Links
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -353,8 +383,19 @@ export default function Dashboard() {
 
                 {links.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-12 w-12 mx-auto mb-4 text-gray-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z"
+                      />
                     </svg>
                     <p>No links added yet</p>
                   </div>
@@ -365,11 +406,10 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* ✅ FIXED Preview Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
+            {/* Live Preview */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
-                {/* ✅ Display Background GIF */}
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
@@ -415,8 +455,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ✅ FIXED Stats Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-64">
+            {/* Stats Card */}
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -426,7 +466,6 @@ export default function Dashboard() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Profile Completion</span>
                   <span className="text-white font-medium">
-                    {/* Simple calculation: name, username, avatar/bio, background are key fields */}
                     {(() => {
                       const completedFields = [
                         user.name,
@@ -450,7 +489,13 @@ export default function Dashboard() {
 
         {/* Status Message */}
         {message && (
-          <div className={`fixed bottom-6 right-6 p-4 rounded-xl ${message.type === 'success' ? 'bg-green-900/80 text-green-200 border border-green-800' : 'bg-red-900/80 text-red-200 border border-red-800'} max-w-sm`}>
+          <div
+            className={`fixed bottom-6 right-6 p-4 rounded-xl ${
+              message.type === 'success'
+                ? 'bg-green-900/80 text-green-200 border border-green-800'
+                : 'bg-red-900/80 text-red-200 border border-red-800'
+            } max-w-sm`}
+          >
             {message.text}
           </div>
         )}

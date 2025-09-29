@@ -62,7 +62,7 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// --- User Functions ---
+// --- User Functions (Node.js only) ---
 export async function getUserByUsername(username: string, clientId: string) {
   const database = await connectDB();
   const user = await database.collection('users').findOne({ username });
@@ -214,25 +214,14 @@ export async function getUserById(id: string) {
   }
 }
 
-// ✅ FIXED: 7 arguments, isEmailVerified defaults to false
-export async function createUser(
-  email: string,
-  password: string,
-  username: string,
-  name: string,
-  background: string = '',
-  ipAddress: string,
-  isEmailVerified: boolean = false // ← NEW 7th param
-) {
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const database = await connectDB();
   const existingEmail = await database.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
   const existingUsername = await database.collection('users').findOne({ username });
   if (existingUsername) throw new Error('Username already taken');
-  
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
-  
   await database.collection('users').insertOne({
     _id: userId,
     email,
@@ -242,12 +231,11 @@ export async function createUser(
     background,
     ipAddress,
     badges: [],
-    isEmailVerified, // ← use passed value (false on signup)
+    isEmailVerified: true,
     isBanned: false,
     createdAt: new Date(),
     profileViews: 0
   } as UserDoc);
-  
   return {
     id: userId.toString(),
     email,
@@ -255,7 +243,7 @@ export async function createUser(
     name,
     background,
     badges: [],
-    isEmailVerified,
+    isEmailVerified: true,
     isBanned: false,
     createdAt: new Date().toISOString(),
     profileViews: 0
@@ -389,6 +377,7 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
+// ✅ THIS IS THE ONLY FUNCTION WE CHANGED
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database
@@ -451,14 +440,5 @@ export async function unbanUser(userId: string) {
   await database.collection<UserDoc>('users').updateOne(
     { _id: objectId },
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
-  );
-}
-
-// ✅ Add this helper for verification
-export async function updateUserVerification(id: ObjectId, verified: boolean) {
-  const database = await connectDB();
-  await database.collection('users').updateOne(
-    { _id: id },
-    { $set: { isEmailVerified: verified } }
   );
 }

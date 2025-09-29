@@ -7,17 +7,18 @@ export async function POST(req: NextRequest) {
     const { email, password } = await req.json();
 
     const user = await getUserByEmail(email);
-    if (!user || !user.password) { // ← changed from passwordHash
+    // ✅ Use 'passwordHash' — that's the actual field name returned by getUserByEmail
+    if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const isValid = await bcrypt.compare(password, user.password); // ← changed from passwordHash
+    const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     const response = NextResponse.json({ message: 'Logged in' });
-    response.cookies.set('session-token', user._id.toString(), { // convert ObjectId to string
+    response.cookies.set('session-token', user._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60, // 7 days

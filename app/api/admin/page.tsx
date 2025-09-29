@@ -45,8 +45,8 @@ export default function AdminPanel() {
           fetch('/api/admin/badges')
         ]);
 
+        // 🔒 Redirect if unauthorized or server error
         if (!usersRes.ok || !badgesRes.ok) {
-          // If either request fails (likely 401/403), redirect to dashboard
           router.push('/dashboard');
           return;
         }
@@ -54,11 +54,17 @@ export default function AdminPanel() {
         const usersData = await usersRes.json();
         const badgesData = await badgesRes.json();
 
+        // ✅ CRITICAL: Only accept arrays
+        if (!Array.isArray(usersData) || !Array.isArray(badgesData)) {
+          console.error('Invalid API response shape:', { usersData, badgesData });
+          router.push('/dashboard');
+          return;
+        }
+
         setUsers(usersData);
         setBadges(badgesData);
       } catch (error) {
         console.error('Fetch error:', error);
-        // On network error, also redirect
         router.push('/dashboard');
       } finally {
         setLoading(false);
@@ -91,7 +97,7 @@ export default function AdminPanel() {
 
       const data = await res.json();
 
-      if (res.ok) {
+      if (res.ok && data.id) {
         setBadges([...badges, data]);
         setNewBadge({ name: '', icon: '' });
         setMessage({ type: 'success', text: 'Badge created successfully!' });
@@ -109,13 +115,13 @@ export default function AdminPanel() {
       return;
     }
 
-    try {
-      const badgeToAdd = badges.find(b => b.id === selectedBadge);
-      if (!badgeToAdd) {
-        setMessage({ type: 'error', text: 'Badge not found' });
-        return;
-      }
+    const badgeToAdd = badges.find(b => b.id === selectedBadge);
+    if (!badgeToAdd) {
+      setMessage({ type: 'error', text: 'Badge not found' });
+      return;
+    }
 
+    try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,10 +134,9 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to show badge
-        setUsers(users.map(user => 
-          user.id === selectedUser 
-            ? { ...user, badges: [...user.badges, { ...badgeToAdd, awardedAt: new Date().toISOString() }] } 
+        setUsers(users.map(user =>
+          user.id === selectedUser
+            ? { ...user, badges: [...user.badges, { ...badgeToAdd, awardedAt: new Date().toISOString() }] }
             : user
         ));
         setSelectedUser('');
@@ -156,10 +161,9 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to remove badge
-        setUsers(users.map(user => 
-          user.id === userId 
-            ? { ...user, badges: user.badges.filter(b => b.id !== badgeId) } 
+        setUsers(users.map(user =>
+          user.id === userId
+            ? { ...user, badges: user.badges.filter(b => b.id !== badgeId) }
             : user
         ));
         setMessage({ type: 'success', text: 'Badge removed successfully!' });
@@ -182,10 +186,9 @@ export default function AdminPanel() {
       const data = await res.json();
 
       if (res.ok) {
-        // Update local state to reflect ban status change
-        setUsers(users.map(user => 
-          user.id === userId 
-            ? { ...user, isBanned: action === 'ban' } 
+        setUsers(users.map(user =>
+          user.id === userId
+            ? { ...user, isBanned: action === 'ban' }
             : user
         ));
         setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
@@ -204,9 +207,7 @@ export default function AdminPanel() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <p className="text-gray-400 mt-2">
-                Manage users and badges
-              </p>
+              <p className="text-gray-400 mt-2">Manage users and badges</p>
             </div>
             <button
               onClick={() => router.push('/dashboard')}
@@ -224,7 +225,7 @@ export default function AdminPanel() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Create Badge Card */}
+          {/* Create Badge */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
             <h2 className="text-xl font-semibold mb-4 text-white">Create New Badge</h2>
             <div className="space-y-4">
@@ -238,7 +239,6 @@ export default function AdminPanel() {
                   placeholder="Early Adopter"
                 />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Badge Icon URL</label>
                 <input
@@ -249,7 +249,6 @@ export default function AdminPanel() {
                   placeholder="https://example.com/badge.png"
                 />
               </div>
-              
               <button
                 onClick={handleCreateBadge}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
@@ -259,7 +258,7 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Add Badge to User Card */}
+          {/* Add Badge to User */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
             <h2 className="text-xl font-semibold mb-4 text-white">Add Badge to User</h2>
             <div className="space-y-4">
@@ -271,7 +270,7 @@ export default function AdminPanel() {
                   className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Choose a user</option>
-                  {users.map((user) => (
+                  {Array.isArray(users) && users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </option>
@@ -286,7 +285,7 @@ export default function AdminPanel() {
                   className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Choose a badge</option>
-                  {badges.map((badge) => (
+                  {Array.isArray(badges) && badges.map((badge) => (
                     <option key={badge.id} value={badge.id}>
                       {badge.name}
                     </option>
@@ -303,81 +302,85 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* All Users Section */}
+        {/* All Users */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-white mb-4">All Users</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map((user) => (
-              <div key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
+          {Array.isArray(users) && users.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {users.map((user) => (
+                <div key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-semibold text-white">{user.name}</h3>
+                      <p className="text-gray-400 text-sm">{user.email}</p>
+                      {user.isBanned && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-300 mt-1">
+                          Banned
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-semibold text-white">{user.name}</h3>
-                    <p className="text-gray-400 text-sm">{user.email}</p>
-                    {/* ✅ Show ban status badge */}
-                    {user.isBanned && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-300 mt-1">
-                        Banned
-                      </span>
+                  <div className="mt-4">
+                    <h4 className="text-md font-medium text-gray-300 mb-2">Badges</h4>
+                    {Array.isArray(user.badges) && user.badges.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {user.badges.map((badge) => (
+                          <div key={badge.id} className="relative group">
+                            <div className="flex items-center bg-gray-700/50 rounded-lg px-3 py-2">
+                              <img src={badge.icon} alt={badge.name} className="w-6 h-6 mr-2" />
+                              <span className="text-white text-sm">{badge.name}</span>
+                              <button 
+                                onClick={() => handleRemoveBadge(user.id, badge.id)}
+                                className="ml-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">No badges</p>
                     )}
                   </div>
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <button
+                      onClick={() => handleBanUser(user.id, user.isBanned ? 'unban' : 'ban')}
+                      className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                        user.isBanned
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-red-600 hover:bg-red-700 text-white'
+                      }`}
+                    >
+                      {user.isBanned ? 'Unban User' : 'Ban User'}
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="mt-4">
-                  <h4 className="text-md font-medium text-gray-300 mb-2">Badges</h4>
-                  {user.badges.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {user.badges.map((badge) => (
-                        <div key={badge.id} className="relative group">
-                          <div className="flex items-center bg-gray-700/50 rounded-lg px-3 py-2">
-                            <img src={badge.icon} alt={badge.name} className="w-6 h-6 mr-2" />
-                            <span className="text-white text-sm">{badge.name}</span>
-                            <button 
-                              onClick={() => handleRemoveBadge(user.id, badge.id)}
-                              className="ml-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">No badges</p>
-                  )}
-                </div>
-
-                {/* ✅ Add Ban/Unban Button */}
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <button
-                    onClick={() => handleBanUser(user.id, user.isBanned ? 'unban' : 'ban')}
-                    className={`w-full py-2 rounded-lg font-medium transition-colors ${
-                      user.isBanned
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'bg-red-600 hover:bg-red-700 text-white'
-                    }`}
-                  >
-                    {user.isBanned ? 'Unban User' : 'Ban User'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No users loaded.</p>
+          )}
         </div>
 
-        {/* All Badges Section */}
+        {/* All Badges */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-white mb-4">All Badges</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {badges.map((badge) => (
-              <div key={badge.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 text-center">
-                <img src={badge.icon} alt={badge.name} className="w-16 h-16 mx-auto mb-2" />
-                <p className="text-white font-medium">{badge.name}</p>
-              </div>
-            ))}
-          </div>
+          {Array.isArray(badges) && badges.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {badges.map((badge) => (
+                <div key={badge.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 text-center">
+                  <img src={badge.icon} alt={badge.name} className="w-16 h-16 mx-auto mb-2 object-contain" />
+                  <p className="text-white font-medium">{badge.name}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No badges loaded.</p>
+          )}
         </div>
       </div>
     </div>

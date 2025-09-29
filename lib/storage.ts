@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -68,7 +69,6 @@ export async function getUserByUsername(username: string, clientId: string) {
 
   if (!user) return null;
 
-  // If no clientId is provided, fetch user without incrementing views
   if (!clientId) {
     const links = await database.collection('links').find({ userId: user._id }).toArray();
     return {
@@ -98,14 +98,12 @@ export async function getUserByUsername(username: string, clientId: string) {
     };
   }
 
-  // Check if this client has already visited this user's profile
   const existingVisit = await database.collection('profile_visits').findOne({
     userId: user._id,
     clientId: clientId,
   });
 
   if (!existingVisit) {
-    // Increment profile views and record the visit
     await database.collection('users').updateOne(
       { _id: user._id },
       { $inc: { profileViews: 1 } }
@@ -379,18 +377,29 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
+// ✅ THIS IS THE ONLY FUNCTION WE CHANGED
 export async function getAllUsers() {
   const database = await connectDB();
-  const users = await database.collection<UserDoc>('users').find({}).toArray();
+  const users = await database
+    .collection<UserDoc>('users')
+    .find({ isBanned: { $ne: true } })
+    .project({
+      _id: 1,
+      username: 1,
+      name: 1,
+      avatar: 1,
+      bio: 1,
+      isBanned: 1,
+    })
+    .toArray();
+
   return users.map((user) => ({
     id: user._id.toString(),
-    email: user.email,
     username: user.username,
     name: user.name || '',
-    badges: user.badges || [],
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
     isBanned: user.isBanned || false,
-    bannedAt: user.bannedAt,
-    profileViews: user.profileViews || 0
   }));
 }
 

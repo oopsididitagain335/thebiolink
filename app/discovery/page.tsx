@@ -2,12 +2,14 @@
 import { getAllUsers } from '@/lib/storage';
 import Link from 'next/link';
 
+// Updated interface to include isBanned (optional)
 interface User {
   id: string;
   username: string;
   name: string;
   avatar?: string;
   bio?: string;
+  isBanned?: boolean;
 }
 
 export default async function DiscoveryPage() {
@@ -15,9 +17,9 @@ export default async function DiscoveryPage() {
 
   try {
     const users = await getAllUsers();
-    // Filter out users without a username and optionally banned users
+    // Filter out users without a username or who are banned
     validUsers = users
-      .filter((user: User) => user.username && !user.isBanned)
+      .filter((user) => user.username && !user.isBanned)
       .map(({ id, username, name, avatar, bio }) => ({
         id,
         username,
@@ -26,22 +28,9 @@ export default async function DiscoveryPage() {
         bio,
       }));
   } catch (error) {
-    console.error('Discovery page error:', error);
-    // In case of error, we'll render the error UI below
+    console.error('Failed to load discovery profiles:', error);
+    // On error, validUsers remains empty → shows empty state (not full error UI)
   }
-
-  if (validUsers.length === 0 && process.env.NODE_ENV !== 'development') {
-    // Only show error state if it's truly empty *and* not just dev mode with no data
-    // But we’ll still render empty state instead of full error unless fetch failed
-  }
-
-  // If an error occurred during fetch, show error UI
-  // We detect this by checking if validUsers is still [] AND getAllUsers threw
-  // Since we can't easily capture that in server components without extra state,
-  // we'll assume: if validUsers is empty AND we're not in a controlled dev env,
-  // but for simplicity, we'll just render empty state unless you want stricter error handling.
-
-  // For now, we assume partial failure = empty list, not crash
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
@@ -85,7 +74,7 @@ export default async function DiscoveryPage() {
       </nav>
 
       {/* Main Content */}
-      <div className="pt-20 py-8">
+      <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-white">Discover BioLinks</h1>
@@ -160,9 +149,9 @@ function ProfileCard({
             alt={name}
             className="object-cover w-full h-full"
             onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              // Optional: show fallback initial
+              const img = e.currentTarget;
+              img.style.display = 'none';
+              // Optional: replace with fallback initials
             }}
           />
         </div>

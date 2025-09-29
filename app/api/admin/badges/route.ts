@@ -1,4 +1,3 @@
-// app/api/admin/badges/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById, createBadge, getAllBadges } from '@/lib/storage';
@@ -18,7 +17,7 @@ export async function GET() {
     const badges = await getAllBadges();
     return Response.json(badges);
   } catch (error) {
-    console.error("Admin GET Badges Error:", error);
+    console.error('Admin GET Badges Error:', error);
     return Response.json({ error: 'Failed to fetch badges' }, { status: 500 });
   }
 }
@@ -41,15 +40,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Name and icon are required' }, { status: 400 });
     }
 
-    const badge = await createBadge({
-      id: crypto.randomUUID(),
-      name,
-      icon,
-    });
+    // ✅ Pass name and icon as separate arguments (not an object)
+    const badge = await createBadge(name, icon);
 
     return Response.json(badge);
   } catch (error) {
-    console.error("Admin POST Create Badge Error:", error);
+    console.error('Admin POST Create Badge Error:', error);
     return Response.json({ error: 'Failed to create badge' }, { status: 500 });
   }
 }

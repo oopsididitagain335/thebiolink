@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -146,7 +147,14 @@ export default function Dashboard() {
     setLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  // Trigger modal instead of saving directly
+  const handleSave = () => {
+    setShowGuidelinesModal(true);
+  };
+
+  // Actual save logic after confirmation
+  const confirmSave = async () => {
+    setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
 
@@ -497,6 +505,45 @@ export default function Dashboard() {
             } max-w-sm`}
           >
             {message.text}
+          </div>
+        )}
+
+        {/* Community Guidelines Confirmation Modal */}
+        {showGuidelinesModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold text-white mb-3">Profile Compliance Check</h3>
+              <p className="text-gray-300 mb-4">
+                Before saving, please confirm that your profile and links comply with our{' '}
+                <a
+                  href="https://www.thebiolink.lol/community-guidelines"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  Community Guidelines
+                </a>
+                .
+              </p>
+              <p className="text-yellow-400 text-sm mb-4">
+                ⚠️ Violations may result in account suspension or removal without notice.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowGuidelinesModal(false)}
+                  className="px-4 py-2 text-gray-300 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmSave}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
+                >
+                  {isSaving ? 'Saving...' : 'I Comply – Save Changes'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

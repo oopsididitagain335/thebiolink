@@ -1,6 +1,7 @@
 import { getAllUsers } from '@/lib/storage';
 import Link from 'next/link';
-import { PublicUser } from '@/lib/storage';
+import { ObjectId, WithId } from 'mongodb';
+import { User as DBUser } from '@/lib/storage'; // Import the storage User type
 
 interface User {
   id: string;
@@ -12,10 +13,11 @@ interface User {
 
 export default async function DiscoveryPage() {
   try {
-    const usersFromDB: PublicUser[] = await getAllUsers();
+    const usersFromDB: WithId<DBUser>[] = await getAllUsers();
 
+    // Map MongoDB _id to string id
     const users: User[] = usersFromDB
-      .filter(u => u.username)
+      .filter(u => u.username) // Only keep users with username
       .map(u => ({
         id: u._id.toString(),
         username: u.username,
@@ -26,6 +28,7 @@ export default async function DiscoveryPage() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
+        {/* Navigation Bar */}
         <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
@@ -50,6 +53,7 @@ export default async function DiscoveryPage() {
           </div>
         </nav>
 
+        {/* Main Content */}
         <div className="pt-20 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8 text-center">
@@ -90,6 +94,7 @@ export default async function DiscoveryPage() {
   }
 }
 
+// Profile Card Component
 function ProfileCard({ username, name, avatar, bio }: { username: string; name: string; avatar?: string; bio?: string }) {
   return (
     <a href={`https://thebiolink.lol/${username}`} target="_blank" rel="noopener noreferrer" className="block bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center hover:bg-gray-700/50 transition-all duration-200 group">

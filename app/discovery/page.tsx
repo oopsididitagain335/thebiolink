@@ -1,7 +1,6 @@
+// app/discovery/page.tsx
 import { getAllUsers } from '@/lib/storage';
 import Link from 'next/link';
-import { ObjectId, WithId } from 'mongodb';
-import { User as DBUser } from '@/lib/storage'; // Import the storage User type
 
 interface User {
   id: string;
@@ -13,19 +12,10 @@ interface User {
 
 export default async function DiscoveryPage() {
   try {
-    const usersFromDB: WithId<DBUser>[] = await getAllUsers();
-
-    // Map MongoDB _id to string id
-    const users: User[] = usersFromDB
-      .filter(u => u.username) // Only keep users with username
-      .map(u => ({
-        id: u._id.toString(),
-        username: u.username,
-        name: u.name,
-        avatar: u.avatar,
-        bio: u.bio,
-      }));
-
+    const users = await getAllUsers();
+   
+    // Filter out users with no username
+    const validUsers = users.filter((user: User) => user.username);
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
         {/* Navigation Bar */}
@@ -36,34 +26,49 @@ export default async function DiscoveryPage() {
                 <span className="text-2xl font-bold text-white">BioLink</span>
               </div>
               <div className="flex items-center space-x-4">
-                <Link href="/" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <Link
+                  href="/"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
                   Home
                 </Link>
-                <Link href="/auth/login" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <Link
+                  href="/auth/login"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
                   Login
                 </Link>
-                <Link href="/auth/signup" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <Link
+                  href="/auth/signup"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
                   Signup
                 </Link>
-                <Link href="https://discord.gg/29yDsapcXh" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <Link
+                  href="https://discord.gg/29yDsapcXh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
                   Discord
                 </Link>
               </div>
             </div>
           </div>
         </nav>
-
         {/* Main Content */}
         <div className="pt-20 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8 text-center">
               <h1 className="text-3xl font-bold text-white">Discover BioLinks</h1>
-              <p className="text-gray-400 mt-2">Explore amazing profiles from our community</p>
+              <p className="text-gray-400 mt-2">
+                Explore amazing profiles from our community
+              </p>
             </div>
-
-            {users.length > 0 ? (
+            
+            {validUsers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {users.map(user => (
+                {validUsers.map((user: User) => (
                   <ProfileCard
                     key={user.id}
                     username={user.username}
@@ -81,7 +86,9 @@ export default async function DiscoveryPage() {
                   </svg>
                 </div>
                 <h2 className="text-xl font-semibold text-white mb-2">No Profiles Yet</h2>
-                <p className="text-gray-500">Be the first to create a BioLink profile!</p>
+                <p className="text-gray-500">
+                  Be the first to create a BioLink profile!
+                </p>
               </div>
             )}
           </div>
@@ -90,28 +97,105 @@ export default async function DiscoveryPage() {
     );
   } catch (error) {
     console.error('Discovery page error:', error);
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900">Failed to load profiles.</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        {/* Navigation Bar for Error State */}
+        <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <span className="text-2xl font-bold text-white">BioLink</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/home"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Signup
+                </Link>
+                <Link
+                  href="https://discord.gg/29yDsapcXh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Discord
+                </Link>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <div className="text-center pt-20">
+          <div className="w-24 h-24 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Failed to Load Profiles</h1>
+          <p className="text-gray-500">
+            Please try again later
+          </p>
+        </div>
+      </div>
+    );
   }
 }
 
 // Profile Card Component
 function ProfileCard({ username, name, avatar, bio }: { username: string; name: string; avatar?: string; bio?: string }) {
   return (
-    <a href={`https://thebiolink.lol/${username}`} target="_blank" rel="noopener noreferrer" className="block bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center hover:bg-gray-700/50 transition-all duration-200 group">
+    <a
+      href={`https://thebiolink.lol/${username}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center hover:bg-gray-700/50 transition-all duration-200 group"
+    >
       {avatar ? (
         <div className="relative w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden border-2 border-white/30">
-          <img src={avatar} alt={name} className="object-cover w-full h-full" />
+          <img
+            src={avatar}
+            alt={name}
+            className="object-cover w-full h-full"
+          />
         </div>
       ) : (
         <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl text-white font-bold">{name.charAt(0).toUpperCase()}</span>
+          <span className="text-2xl text-white font-bold">
+            {name.charAt(0).toUpperCase()}
+          </span>
         </div>
       )}
-      <h3 className="text-lg font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors">{name}</h3>
-      <p className="text-indigo-400 hover:text-indigo-300 font-mono text-sm mb-3 transition-colors">thebiolink.lol/{username}</p>
-      {bio && <p className="text-gray-400 text-sm truncate">{bio}</p>}
+     
+      <h3 className="text-lg font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors">
+        {name}
+      </h3>
+     
+      <p className="text-indigo-400 hover:text-indigo-300 font-mono text-sm mb-3 transition-colors">
+        thebiolink.lol/{username}
+      </p>
+     
+      {bio && (
+        <p className="text-gray-400 text-sm truncate">
+          {bio}
+        </p>
+      )}
+     
       <div className="mt-4 pt-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500">View Profile →</p>
+        <p className="text-xs text-gray-500">
+          View Profile →
+        </p>
       </div>
     </a>
   );

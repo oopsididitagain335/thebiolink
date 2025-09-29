@@ -2,7 +2,6 @@
 import { getAllUsers } from '@/lib/storage';
 import Link from 'next/link';
 
-// Updated interface to include isBanned (optional)
 interface User {
   id: string;
   username: string;
@@ -17,19 +16,9 @@ export default async function DiscoveryPage() {
 
   try {
     const users = await getAllUsers();
-    // Filter out users without a username or who are banned
-    validUsers = users
-      .filter((user) => user.username && !user.isBanned)
-      .map(({ id, username, name, avatar, bio }) => ({
-        id,
-        username,
-        name,
-        avatar,
-        bio,
-      }));
+    validUsers = users.filter((user) => user.username && !user.isBanned);
   } catch (error) {
-    console.error('Failed to load discovery profiles:', error);
-    // On error, validUsers remains empty → shows empty state (not full error UI)
+    console.error('Discovery page error:', error);
   }
 
   return (
@@ -123,7 +112,6 @@ export default async function DiscoveryPage() {
   );
 }
 
-// Profile Card Component
 function ProfileCard({
   username,
   name,
@@ -151,7 +139,6 @@ function ProfileCard({
             onError={(e) => {
               const img = e.currentTarget;
               img.style.display = 'none';
-              // Optional: replace with fallback initials
             }}
           />
         </div>

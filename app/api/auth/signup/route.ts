@@ -16,12 +16,10 @@ async function checkAccountLimit(ipAddress: string): Promise<boolean> {
 }
 
 async function sendVerificationEmail(email: string, userId: string) {
-  // ✅ Fixed: removed extra spaces in URL
-  const response = await fetch('https://thebiolinkemail2.vercel.app/api/send-verification', {
+  const response = await fetch('https://thebiolinkemail.vercel.app/api/send-verification', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': '', // 👈 No auth needed (public endpoint)
     },
     body: JSON.stringify({ email, id: userId }),
   });
@@ -68,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(password);
 
+    // ✅ Pass 7 arguments — isEmailVerified = false
     const user = await createUser(
       email,
       hashedPassword,
@@ -75,11 +74,11 @@ export async function POST(request: NextRequest) {
       name,
       background,
       ip,
-      false // isEmailVerified = false
+      false // ← email not verified yet
     );
 
-    // ✉️ Send verification email with user ID
-    await sendVerificationEmail(email, user._id.toString());
+    // ✉️ Send verification email
+    await sendVerificationEmail(email, user.id);
 
     return Response.json({
       success: true,

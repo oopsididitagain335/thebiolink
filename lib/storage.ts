@@ -19,7 +19,7 @@ export interface User {
   background?: string;
   backgroundVideo?: string;
   backgroundAudio?: string;
-  passwordHash: string; // Keep as passwordHash for clarity
+  passwordHash: string;
   badges: Badge[];
   isEmailVerified: boolean;
   isBanned: boolean;
@@ -27,7 +27,6 @@ export interface User {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
-  // Note: links are stored in separate 'links' collection, not embedded
 }
 
 export interface LinkDoc {
@@ -44,6 +43,13 @@ export interface ProfileVisitDoc {
   userId: ObjectId;
   clientId: string;
   visitedAt: Date;
+}
+
+export interface Referral {
+  _id: ObjectId;
+  referrerId: ObjectId;
+  referredUserId: ObjectId;
+  timestamp: Date;
 }
 
 // ─── MongoDB Connection (Cached) ─────────────────────
@@ -66,6 +72,12 @@ export async function connectDB(): Promise<Db> {
   return cachedDb;
 }
 
+// ⚠️ Export alias for backward compatibility with API routes
+export const connectToDatabase = async () => {
+  const db = await connectDB();
+  return { client: cachedClient!, db };
+};
+
 // ─── Helper: Get Links for User ──────────────────────
 async function getUserLinks(userId: ObjectId, db: Db) {
   const links = await db.collection<LinkDoc>('links').find({ userId }).toArray();
@@ -87,7 +99,6 @@ export async function getUserByUsername(username: string, clientId?: string) {
   const user = await db.collection<User>('users').findOne({ username });
   if (!user) return null;
 
-  // Only track view if clientId is provided and not already recorded
   if (clientId) {
     const existingVisit = await db.collection<ProfileVisitDoc>('profile_visits').findOne({
       userId: user._id,
@@ -132,7 +143,7 @@ export async function getUserByUsername(username: string, clientId?: string) {
 }
 
 export async function getUserByUsernameForMetadata(username: string) {
-  const user = await getUserByUsername(username); // Reuse logic (without clientId = no view increment)
+  const user = await getUserByUsername(username);
   return user
     ? {
         username: user.username,
@@ -303,7 +314,6 @@ export async function updateUserProfile(userId: string, updates: Partial<User>) 
     backgroundAudio: updates.backgroundAudio?.trim() || '',
   };
 
-  // Check username uniqueness if updating
   if (cleanedUpdates.username) {
     const existing = await db.collection<User>('users').findOne({
       username: cleanedUpdates.username,
@@ -348,7 +358,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>) 
   };
 }
 
-// ─── Admin Functions ─────────────────────────────────
+// ─── Badges ──────────────────────────────────────────
 
 export async function addUserBadge(
   userId: string,
@@ -424,4 +434,119 @@ export async function unbanUser(userId: string) {
     { _id: new ObjectId(userId) },
     { $set: { isBanned: false }, $unset: { bannedAt: '' } }
   );
+}
+
+// ─── NEW: Exported functions required by API routes & pages ───────────────
+
+/**
+ * Records a profile view for a user from a specific client (deduplicated).
+ * Returns true if a new view was recorded.
+ */
+export async function recordProfileView(userId: string, clientId: string): Promise<boolean> {
+  if (!ObjectId.isValid(userId) || !clientId) return false;
+  const db = await connectDB();
+  const userObjectId = new ObjectId(userId);
+
+  const existing = await db.collection<ProfileVisitDoc>('profile_visits').findOne({
+    userId: userObjectId,
+    clientId,
+  });
+
+  if (existing) return false;
+
+  await db.collection('users').updateOne(
+    { _id: userObjectId },
+    { $inc: { profileViews: 1 } }
+  );
+
+  await db.collection<ProfileVisitDoc>('profile_visits').insertOne({
+    _id: new ObjectId(),
+    userId: userObjectId,
+    clientId,
+    visitedAt: new Date(),
+  });
+
+  return true;
+}
+
+/**
+ * Gets the total number of unique profile views (based on profileViews field).
+ */
+export async function getProfileViewCount(userId: string): Promise<number> {
+  if (!ObjectId.isValid(userId)) return 0;
+  const db = await connectDB();
+  const user = await db.collection<User>('users').findOne(
+    { _id: new ObjectId(userId) },
+    { projection: { profileViews: 1 } }
+  );
+  return user?.profileViews || 0;
+}
+
+/**
+ * Logs a referral event.
+ */
+export async function logReferral(referrerId: string, referredUserId: string): Promise<void> {
+  if (!ObjectId.isValid(referrerId) || !ObjectId.isValid(referredUserId)) {
+    throw new Error('Invalid user IDs');
+  }
+  const db = await connectDB();
+  await db.collection<Referral>('referrals').insertOne({
+    _id: new ObjectId(),
+    referrerId: new ObjectId(referrerId),
+    referredUserId: new ObjectId(referredUserId),
+    timestamp: new Date(),
+  });
+}
+
+/**
+ * Gets referral stats for all users.
+ */
+export async function getReferralStats() {
+  const db = await connectDB();
+  const allUsers = await db
+    .collection<User>('users')
+    .find({}, { projection: { _id: 1, username: 1 } })
+    .toArray();
+
+  const referralCounts = await db
+    .collection<Referral>('referrals')
+    .aggregate([{ $group: { _id: '$referrerId', count: { $sum: 1 } } }])
+    .toArray();
+
+  const countMap = new Map<string, number>();
+  referralCounts.forEach((item) => countMap.set(item._id.toString(), item.count));
+
+  return allUsers.map((user) => ({
+    userId: user._id.toString(),
+    username: user.username || 'unknown',
+    usageCount: countMap.get(user._id.toString()) || 0,
+  }));
+}
+
+/**
+ * Gets the latest announcement.
+ */
+export async function getLatestAnnouncement() {
+  const db = await connectDB();
+  return db
+    .collection('announcements')
+    .findOne({}, { sort: { createdAt: -1 } });
+}
+
+/**
+ * Sends a new announcement.
+ */
+export async function sendAnnouncement(content: string, authorId: string) {
+  const db = await connectDB();
+  const result = await db.collection('announcements').insertOne({
+    content,
+    authorId,
+    createdAt: new Date(),
+  });
+  return {
+    _id: result.insertedId,
+    content,
+    authorId,
+    createdAt: new Date(),
+  };
 }

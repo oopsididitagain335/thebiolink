@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, Db, WithId } from 'mongodb';
+import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 // ─── Types ───────────────────────────────────────────
@@ -52,6 +52,19 @@ export interface Referral {
   timestamp: Date;
 }
 
+// Public user type for discovery
+export interface PublicUser {
+  _id: ObjectId;
+  username: string;
+  name: string;
+  avatar?: string;
+  bio?: string;
+  badges: Badge[];
+  isBanned: boolean;
+  bannedAt?: string;
+  profileViews: number;
+}
+
 // ─── MongoDB Connection (Cached) ─────────────────────
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
@@ -72,13 +85,13 @@ export async function connectDB(): Promise<Db> {
   return cachedDb;
 }
 
-// ⚠️ Export alias for backward compatibility with API routes
+// Alias for compatibility
 export const connectToDatabase = async () => {
   const db = await connectDB();
   return { client: cachedClient!, db };
 };
 
-// ─── Helper: Get Links for User ──────────────────────
+// ─── Helper: Get Links ───────────────────────────────
 async function getUserLinks(userId: ObjectId, db: Db) {
   const links = await db.collection<LinkDoc>('links').find({ userId }).toArray();
   return links
@@ -381,14 +394,30 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-export async function getAllUsers() {
+export async function getAllUsers(): Promise<PublicUser[]> {
   const db = await connectDB();
-  const users = await db.collection<User>('users').find({}).toArray();
+  const users = await db.collection<User>('users').find(
+    {},
+    {
+      projection: {
+        passwordHash: 0,
+        email: 0,
+        ipAddress: 0,
+        isEmailVerified: 0,
+        background: 0,
+        backgroundVideo: 0,
+        backgroundAudio: 0,
+        createdAt: 0,
+      },
+    }
+  ).toArray();
+
   return users.map((user) => ({
-    id: user._id.toString(),
-    email: user.email,
+    _id: user._id,
     username: user.username,
     name: user.name || '',
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
     badges: user.badges || [],
     isBanned: user.isBanned || false,
     bannedAt: user.bannedAt,
@@ -436,12 +465,8 @@ export async function unbanUser(userId: string) {
   );
 }
 
-// ─── NEW: Exported functions required by API routes & pages ───────────────
+// ─── Required Exports for API Routes ─────────────────
 
-/**
- * Records a profile view for a user from a specific client (deduplicated).
- * Returns true if a new view was recorded.
- */
 export async function recordProfileView(userId: string, clientId: string): Promise<boolean> {
   if (!ObjectId.isValid(userId) || !clientId) return false;
   const db = await connectDB();
@@ -469,9 +494,6 @@ export async function recordProfileView(userId: string, clientId: string): Promi
   return true;
 }
 
-/**
- * Gets the total number of unique profile views (based on profileViews field).
- */
 export async function getProfileViewCount(userId: string): Promise<number> {
   if (!ObjectId.isValid(userId)) return 0;
   const db = await connectDB();
@@ -482,9 +504,6 @@ export async function getProfileViewCount(userId: string): Promise<number> {
   return user?.profileViews || 0;
 }
 
-/**
- * Logs a referral event.
- */
 export async function logReferral(referrerId: string, referredUserId: string): Promise<void> {
   if (!ObjectId.isValid(referrerId) || !ObjectId.isValid(referredUserId)) {
     throw new Error('Invalid user IDs');
@@ -498,9 +517,6 @@ export async function logReferral(referrerId: string, referredUserId: string): P
   });
 }
 
-/**
- * Gets referral stats for all users.
- */
 export async function getReferralStats() {
   const db = await connectDB();
   const allUsers = await db
@@ -523,19 +539,11 @@ export async function getReferralStats() {
   }));
 }
 
-/**
- * Gets the latest announcement.
- */
 export async function getLatestAnnouncement() {
   const db = await connectDB();
-  return db
-    .collection('announcements')
-    .findOne({}, { sort: { createdAt: -1 } });
+  return db.collection('announcements').findOne({}, { sort: { createdAt: -1 } });
 }
 
-/**
- * Sends a new announcement.
- */
 export async function sendAnnouncement(content: string, authorId: string) {
   const db = await connectDB();
   const result = await db.collection('announcements').insertOne({

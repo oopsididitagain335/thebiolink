@@ -16,7 +16,7 @@ async function checkAccountLimit(ipAddress: string): Promise<boolean> {
 }
 
 async function sendVerificationEmail(email: string, userId: string) {
-  const response = await fetch('https://thebiolinkemail.vercel.app/api/send-verification', {
+  const response = await fetch('https://thebiolinkemail3.vercel.app/api/send-verification', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

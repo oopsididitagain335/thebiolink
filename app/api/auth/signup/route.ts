@@ -1,9 +1,8 @@
 // app/api/auth/signup/route.ts
 import { NextRequest } from 'next/server';
 import { createUser } from '@/lib/storage';
-import { MongoClient, ObjectId } from 'mongodb'; // For IP limit check
+import { hashPassword } from '@/lib/auth';
 
-// ✅ Helper to get client IP correctly
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -12,28 +11,35 @@ function getClientIP(request: NextRequest): string {
   );
 }
 
-// --- IP Account Limit Check (Node.js only) ---
 async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-    // In a real app, store this in MongoDB collection
-    // For simplicity, using a mock check here.
-    // You would query a `signup_attempts` collection.
-    console.log(`Checking account limit for IP: ${ipAddress}`);
-    // Simulate: allow if less than 2 accounts in last 24h from this IP
-    // Replace with actual MongoDB query logic
-    return true; // Placeholder
+  return true; // placeholder
+}
+
+async function sendVerificationEmail(email: string, userId: string) {
+  // ✅ Fixed: removed extra spaces in URL
+  const response = await fetch('https://thebiolinkemail2.vercel.app/api/send-verification', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': '', // 👈 No auth needed (public endpoint)
+    },
+    body: JSON.stringify({ email, id: userId }),
+  });
+
+  if (!response.ok) {
+    console.error('Verification email failed to send');
+  }
 }
 
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
 
-  // --- Account Creation Limit Check ---
-  const canCreateAccount = await checkAccountLimit(ip); // Implement this
+  const canCreateAccount = await checkAccountLimit(ip);
   if (!canCreateAccount) {
     return Response.json({
-      error: 'Account creation limit reached for this IP address'
+      error: 'Account creation limit reached for this IP'
     }, { status: 429 });
   }
-  // --- End Limit Check ---
 
   try {
     const { email, password, username, name, background } = await request.json();
@@ -46,36 +52,46 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
 
-    // Add background validation if provided
     if (background) {
-        try {
-            const url = new URL(background);
-            const validHosts = ['giphy.com', 'media.giphy.com', 'tenor.com', 'media.tenor.com'];
-            const isValidHost = validHosts.some(host => url.hostname.includes(host));
-            const isValidFormat = background.toLowerCase().endsWith('.gif');
-
-            if (!isValidHost || !isValidFormat) {
-                return Response.json({ error: 'Invalid GIF URL. Must be from Giphy or Tenor (.gif)' }, { status: 400 });
-            }
-        } catch {
-            return Response.json({ error: 'Invalid GIF URL format' }, { status: 400 });
+      try {
+        const url = new URL(background);
+        const validHosts = ['giphy.com', 'media.giphy.com', 'tenor.com', 'media.tenor.com'];
+        const isValidHost = validHosts.some(host => url.hostname.includes(host));
+        const isValidFormat = background.toLowerCase().endsWith('.gif');
+        if (!isValidHost || !isValidFormat) {
+          return Response.json({ error: 'Invalid GIF URL. Must be from Giphy or Tenor (.gif)' }, { status: 400 });
         }
+      } catch {
+        return Response.json({ error: 'Invalid GIF URL format' }, { status: 400 });
+      }
     }
 
+    const hashedPassword = await hashPassword(password);
 
-    const user = await createUser(email, password, username, name, background, ip);
+    const user = await createUser(
+      email,
+      hashedPassword,
+      username,
+      name,
+      background,
+      ip,
+      false // isEmailVerified = false
+    );
+
+    // ✉️ Send verification email with user ID
+    await sendVerificationEmail(email, user._id.toString());
 
     return Response.json({
       success: true,
-      message: 'Account created successfully!'
-    });
+      message: 'Account created! Please check your email to verify your account and continue.',
+      requiresVerification: true
+    }, { status: 201 });
+
   } catch (error: any) {
     console.error("Signup error:", error);
-    if (error.message.includes('already')) {
-      return Response.json({
-        error: 'This account already exists'
-      }, { status: 409 });
+    if (error.message?.includes('already exists') || error.code === 11000) {
+      return Response.json({ error: 'An account with this email already exists' }, { status: 409 });
     }
-    return Response.json({ error: 'Account creation failed' }, { status: 400 });
+    return Response.json({ error: 'Account creation failed. Please try again.' }, { status: 500 });
   }
 }

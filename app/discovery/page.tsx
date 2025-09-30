@@ -1,7 +1,7 @@
 // app/discovery/page.tsx
 import { getAllUsers } from '@/lib/storage';
 import Link from 'next/link';
-import ProfileCard from './ProfileCard'; // ✅ Import the Client Component
+import ProfileCard from './ProfileCard';
 
 interface User {
   id: string;
@@ -37,6 +37,12 @@ export default async function DiscoveryPage() {
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Home
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Pricing
               </Link>
               <Link
                 href="/auth/login"

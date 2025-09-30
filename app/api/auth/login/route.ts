@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
   if (attempts && attempts.count >= MAX_ATTEMPTS) {
     const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
     if (timeSinceLastAttempt < LOCKOUT_DURATION_MS) {
-      // ❌ Redirect back to pricing with error
       const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
       url.searchParams.set('login', 'failed');
       url.searchParams.set('error', 'Too many failed attempts. Try again later.');
@@ -39,19 +38,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const contentType = request.headers.get('content-type');
-    let email, password, redirectTo;
+    let email: string | null = null;
+    let password: string | null = null;
+    let redirectTo: string | null = null;
 
     if (contentType?.includes('application/json')) {
       const body = await request.json();
-      ({ email, password, redirectTo } = body);
+      email = body.email;
+      password = body.password;
+      redirectTo = body.redirectTo;
     } else {
       const formData = await request.formData();
-      email = formData.get('email') as string;
-      password = formData.get('password') as string;
-      redirectTo = formData.get('redirectTo') as string;
+      email = formData.get('email') as string | null;
+      password = formData.get('password') as string | null;
+      redirectTo = formData.get('redirectTo') as string | null;
     }
 
-    // Default redirect is /dashboard, but if from pricing, go back
     const safeRedirectTo = redirectTo?.startsWith('/pricing') ? '/pricing' : '/dashboard';
 
     if (!email || !password) {
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
       return Response.redirect(url, 303);
     }
 
-    // ✅ Success: clear attempts and redirect with success
+    // Success
     failedAttempts.delete(ip);
     (await cookies()).set('biolink_session', user._id.toString(), {
       httpOnly: true,
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
     return Response.redirect(url, 303);
 
   } catch (error) {
-    console.error("Login error:", error);
+    console.error('Login error:', error);
     const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
     url.searchParams.set('login', 'failed');
     url.searchParams.set('error', 'Login failed');

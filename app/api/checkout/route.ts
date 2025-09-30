@@ -1,5 +1,4 @@
 // app/api/checkout/route.ts
-import { getServerSession } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { getUserByEmail, updateUserPlan } from '@/lib/db';
@@ -12,52 +11,65 @@ const PLAN_NAMES: Record<number, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.email) {
-    return new Response('Unauthorized', { status: 401 });
+  try {
+    const formData = await req.formData();
+    const email = (formData.get('email') as string)?.trim();
+    const rawPrice = formData.get('price');
+    const priceNum = rawPrice ? parseInt(rawPrice as string, 10) : null;
+
+    if (!email || !priceNum || !VALID_PRICES.includes(priceNum)) {
+      const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
+      url.searchParams.set('error', 'Invalid request');
+      return Response.redirect(url, 303);
+    }
+
+    // ✅ Validate: user must exist (free account)
+    const user = await getUserByEmail(email);
+    if (!user) {
+      const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
+      url.searchParams.set('error', 'No account found with that email. Sign up first!');
+      return Response.redirect(url, 303);
+    }
+
+    // Optional: prevent upgrading already paid users
+    if (user.plan !== 'free') {
+      const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
+      url.searchParams.set('error', 'You already have an active subscription!');
+      return Response.redirect(url, 303);
+    }
+
+    const planName = PLAN_NAMES[priceNum];
+
+    // Create product
+    const product = await stripe.products.create({
+      name: `${planName.charAt(0).toUpperCase() + planName.slice(1)} Plan`,
+      description: `BioLink ${planName} subscription`,
+    });
+
+    // Create GBP price
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: priceNum * 100,
+      currency: 'gbp',
+      recurring: { interval: 'month' },
+    });
+
+    // Create checkout session — pre-fill email
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      customer_email: email, // 👈 pre-fill email in Stripe
+      line_items: [{ price: price.id, quantity: 1 }],
+      success_url: `${process.env.NEXTAUTH_URL}/api/checkout-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&plan=${planName}`,
+      cancel_url: `${process.env.NEXTAUTH_URL}/pricing`,
+    });
+
+    return Response.redirect(checkoutSession.url!, 303);
+
+  } catch (error: any) {
+    console.error('Checkout error:', error);
+    const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
+    url.searchParams.set('error', 'Failed to start checkout. Please try again.');
+    return Response.redirect(url, 303);
   }
-
-  const formData = await req.formData();
-  const rawPrice = formData.get('price');
-  const priceNum = rawPrice ? parseInt(rawPrice as string, 10) : null;
-
-  if (!priceNum || !VALID_PRICES.includes(priceNum)) {
-    return new Response('Invalid price', { status: 400 });
-  }
-
-  const planName = PLAN_NAMES[priceNum];
-  const user = await getUserByEmail(session.user.email);
-  if (!user) return new Response('User not found', { status: 404 });
-
-  // Create product
-  const product = await stripe.products.create({
-    name: `${planName.charAt(0).toUpperCase() + planName.slice(1)} Plan`,
-    description: `BioLink ${planName} subscription`,
-  });
-
-  // Create GBP price (in pence)
-  const price = await stripe.prices.create({
-    product: product.id,
-    unit_amount: priceNum * 100,
-    currency: 'gbp',
-    recurring: { interval: 'month' },
-  });
-
-  // Create checkout session
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    customer_email: session.user.email,
-    line_items: [{ price: price.id, quantity: 1 }],
-    success_url: `${process.env.NEXTAUTH_URL}/dashboard?success=true&plan=${planName}`,
-    cancel_url: `${process.env.NEXTAUTH_URL}/pricing`,
-  });
-
-  // ⚠️ Activate plan immediately (no webhook)
-  await updateUserPlan(session.user.email, planName, checkoutSession.customer as string | null);
-
-  return new Response(null, {
-    status: 303,
-    headers: { Location: checkoutSession.url! },
-  });
 }

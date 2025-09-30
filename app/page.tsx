@@ -1,9 +1,10 @@
+// app/page.tsx
 import Link from 'next/link';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      {/* Navigation Bar (copied from discovery page) */}
+      {/* Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -16,6 +17,12 @@ export default function HomePage() {
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Discovery
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Pricing
               </Link>
               <Link
                 href="/auth/login"
@@ -42,7 +49,7 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Main Content (with top padding to avoid overlap with fixed nav) */}
+      {/* Main Content */}
       <div className="pt-20 p-4">
         <div className="w-full max-w-2xl mx-auto">
           <div className="text-center mb-12">

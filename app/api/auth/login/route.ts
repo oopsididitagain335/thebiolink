@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
 
     const safeRedirectTo = redirectTo?.startsWith('/pricing') ? '/pricing' : '/dashboard';
 
+    // Validate inputs
     if (!email || !password) {
       const url = new URL(safeRedirectTo, process.env.NEXTAUTH_URL || 'http://localhost:3000');
       url.searchParams.set('login', 'failed');
@@ -63,10 +64,24 @@ export async function POST(request: NextRequest) {
       return Response.redirect(url, 303);
     }
 
+    // ✅ Get user and ensure passwordHash is loaded
     const user = await getUserByEmail(email);
-    const dummyHash = await bcrypt.hash('dummy', 12);
-    const isValid = user ? await bcrypt.compare(password, user.passwordHash) : await bcrypt.compare(password, dummyHash);
+    if (!user || !user.passwordHash) {
+      // Track failed attempt
+      if (attempts) {
+        failedAttempts.set(ip, { count: attempts.count + 1, lastAttempt: Date.now() });
+      } else {
+        failedAttempts.set(ip, { count: 1, lastAttempt: Date.now() });
+      }
 
+      const url = new URL(safeRedirectTo, process.env.NEXTAUTH_URL || 'http://localhost:3000');
+      url.searchParams.set('login', 'failed');
+      url.searchParams.set('error', 'Invalid credentials');
+      return Response.redirect(url, 303);
+    }
+
+    // ✅ Compare password securely
+    const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
       if (attempts) {
         failedAttempts.set(ip, { count: attempts.count + 1, lastAttempt: Date.now() });
@@ -80,13 +95,7 @@ export async function POST(request: NextRequest) {
       return Response.redirect(url, 303);
     }
 
-    if (!user) {
-      const url = new URL(safeRedirectTo, process.env.NEXTAUTH_URL || 'http://localhost:3000');
-      url.searchParams.set('login', 'failed');
-      url.searchParams.set('error', 'Authentication failed');
-      return Response.redirect(url, 303);
-    }
-
+    // ✅ Check ban status
     if (user.isBanned) {
       const url = new URL(safeRedirectTo, process.env.NEXTAUTH_URL || 'http://localhost:3000');
       url.searchParams.set('login', 'failed');
@@ -94,7 +103,7 @@ export async function POST(request: NextRequest) {
       return Response.redirect(url, 303);
     }
 
-    // Success
+    // ✅ Success: clear attempts and set session
     failedAttempts.delete(ip);
     (await cookies()).set('biolink_session', user._id.toString(), {
       httpOnly: true,
@@ -108,11 +117,13 @@ export async function POST(request: NextRequest) {
     url.searchParams.set('login', 'success');
     return Response.redirect(url, 303);
 
-  } catch (error) {
-    console.error('Login error:', error);
+  } catch (error: any) {
+    // 🔥 Log real error for debugging
+    console.error('🚨 Login route crashed:', error.message || error);
+
     const url = new URL('/pricing', process.env.NEXTAUTH_URL || 'http://localhost:3000');
     url.searchParams.set('login', 'failed');
-    url.searchParams.set('error', 'Login failed');
+    url.searchParams.set('error', 'Login temporarily unavailable. Please try again.');
     return Response.redirect(url, 303);
   }
 }

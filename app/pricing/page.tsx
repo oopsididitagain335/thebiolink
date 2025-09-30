@@ -4,20 +4,32 @@ import { redirect } from 'next/navigation';
 
 const PLANS = [
   { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
-  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators.' },
-  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced features.' },
+  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators & small projects.' },
+  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced analytics & customization.' },
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default async function PricingPage() {
+export default async function PricingPage({ searchParams }: { searchParams?: { login?: string; error?: string } }) {
   const session = await getServerSession();
   if (!session?.user?.email) {
-    redirect('/auth/login');
+    redirect('/auth/login?redirectTo=/pricing');
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black pt-20 p-4">
       <div className="max-w-6xl mx-auto">
+        {/* Login Feedback Banner */}
+        {searchParams?.login === 'success' && (
+          <div className="mb-6 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-300 text-center">
+            ✅ Logged in successfully! Choose your plan below.
+          </div>
+        )}
+        {searchParams?.login === 'failed' && (
+          <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
+            ❌ {searchParams.error || 'Login failed. Please try again.'}
+          </div>
+        )}
+
         <h1 className="text-4xl font-bold text-white text-center mb-12">Choose Your Plan</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {PLANS.map((plan) => (
@@ -56,6 +68,13 @@ export default async function PricingPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="text-center mt-12 text-gray-500 text-sm">
+          <p>
+            Already have a BioLink? Visit{' '}
+            <span className="font-mono text-indigo-400">thebiolink.lol/youruser</span>
+          </p>
         </div>
       </div>
     </div>

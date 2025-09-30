@@ -1,11 +1,10 @@
 // app/api/subscribe/route.ts
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 import { updateUserPlan } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.email) {
     return new Response('Unauthorized', { status: 401 });
   }

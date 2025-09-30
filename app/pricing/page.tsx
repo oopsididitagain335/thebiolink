@@ -1,39 +1,26 @@
 // app/pricing/page.tsx
-import { getServerSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 const PLANS = [
   { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
-  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators & small projects.' },
-  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced analytics & customization.' },
+  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators.' },
+  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced features.' },
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ login?: string; error?: string }>;
+  searchParams?: Promise<{ error?: string }>;
 }) {
-  // Await searchParams (it's a Promise in App Router)
   const sp = (await searchParams) || {};
-
-  const session = await getServerSession();
-  if (!session?.user?.email) {
-    redirect('/auth/login?redirectTo=/pricing');
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black pt-20 p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Feedback banners */}
-        {sp.login === 'success' && (
-          <div className="mb-6 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-300 text-center">
-            ✅ Logged in successfully! Choose your plan below.
-          </div>
-        )}
-        {sp.login === 'failed' && (
+        {sp.error && (
           <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
-            ❌ {sp.error || 'Login failed. Please try again.'}
+            ❌ {sp.error}
           </div>
         )}
 
@@ -53,6 +40,15 @@ export default async function PricingPage({
                 {plan.id === 'free' ? (
                   <form action="/api/subscribe" method="POST">
                     <input type="hidden" name="plan" value="free" />
+                    <div className="mb-3">
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="your@email.com"
+                        required
+                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
                     <button
                       type="submit"
                       className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg font-medium transition"
@@ -64,11 +60,20 @@ export default async function PricingPage({
                   <form action="/api/checkout" method="POST">
                     <input type="hidden" name="plan" value={plan.id} />
                     <input type="hidden" name="price" value={plan.price} />
+                    <div className="mb-3">
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Your BioLink email"
+                        required
+                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
                     <button
                       type="submit"
                       className="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-lg font-medium transition"
                     >
-                      Subscribe
+                      Subscribe for £{plan.price}/mo
                     </button>
                   </form>
                 )}

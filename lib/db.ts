@@ -12,7 +12,9 @@ export async function connectToDB() {
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  plan: { type: String, default: 'free' }, // 'free', 'basic', 'premium', 'fwiend'
+  passwordHash: String,
+  plan: { type: String, default: 'free' },
+  isBanned: { type: Boolean, default: false },
   stripeCustomerId: String,
 });
 
@@ -20,10 +22,10 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export async function getUserByEmail(email: string) {
   await connectToDB();
-  return User.findOne({ email });
+  return User.findOne({ email }).select('+passwordHash');
 }
 
-export async function updateUserPlan(email: string, plan: string, customerId: string | null = null) {
+export async function updateUserPlan(email: string, plan: string) {
   await connectToDB();
-  await User.findOneAndUpdate({ email }, { plan, stripeCustomerId: customerId });
+  await User.findOneAndUpdate({ email }, { plan });
 }

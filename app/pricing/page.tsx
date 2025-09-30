@@ -9,7 +9,15 @@ const PLANS = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default async function PricingPage({ searchParams }: { searchParams?: { login?: string; error?: string } }) {
+// ✅ Correct: searchParams is a Promise, so we await it or destructure after awaiting
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ login?: string; error?: string }>;
+}) {
+  // Await the searchParams Promise
+  const sp = (await searchParams) || {};
+
   const session = await getServerSession();
   if (!session?.user?.email) {
     redirect('/auth/login?redirectTo=/pricing');
@@ -19,14 +27,14 @@ export default async function PricingPage({ searchParams }: { searchParams?: { l
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black pt-20 p-4">
       <div className="max-w-6xl mx-auto">
         {/* Login Feedback Banner */}
-        {searchParams?.login === 'success' && (
+        {sp.login === 'success' && (
           <div className="mb-6 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-300 text-center">
             ✅ Logged in successfully! Choose your plan below.
           </div>
         )}
-        {searchParams?.login === 'failed' && (
+        {sp.login === 'failed' && (
           <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
-            ❌ {searchParams.error || 'Login failed. Please try again.'}
+            ❌ {sp.error || 'Login failed. Please try again.'}
           </div>
         )}
 

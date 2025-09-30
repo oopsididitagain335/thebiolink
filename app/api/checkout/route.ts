@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { getUserByEmail, updateUserPlan } from '@/lib/db';
 
-// Valid monthly prices in USD
+// Valid monthly prices in GBP
 const VALID_PRICES = [5, 15, 60];
 const PLAN_NAMES: Record<number, string> = {
   5: 'basic',
@@ -37,11 +37,11 @@ export async function POST(req: NextRequest) {
     description: `BioLink ${planName} subscription`,
   });
 
-  // Create recurring price (in cents)
+  // Create recurring price in GBP (pence)
   const price = await stripe.prices.create({
     product: product.id,
-    unit_amount: priceNum * 100,
-    currency: 'usd',
+    unit_amount: priceNum * 100, // Stripe uses smallest currency unit (pence for GBP)
+    currency: 'gbp',             // ← Changed to GBP
     recurring: { interval: 'month' },
   });
 

@@ -1,6 +1,13 @@
 // app/pricing/page.tsx
 import Link from 'next/link';
 
+const PLANS = [
+  { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
+  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators & small projects.' },
+  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced analytics & customization.' },
+  { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
+];
+
 export default async function PricingPage({
   searchParams,
 }: {
@@ -58,6 +65,7 @@ export default async function PricingPage({
       {/* Main Content */}
       <div className="pt-20 p-4">
         <div className="max-w-6xl mx-auto">
+          {/* Error Banner */}
           {sp.error && (
             <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
               ❌ {sp.error}
@@ -65,9 +73,58 @@ export default async function PricingPage({
           )}
 
           <h1 className="text-4xl font-bold text-white text-center mb-12">Choose Your Plan</h1>
-          {/* Your pricing cards go here */}
-          <div className="text-center text-gray-400">
-            <p>Pricing plans will appear here.</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.id}
+                className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center"
+              >
+                <h2 className="text-2xl font-bold text-white">{plan.name}</h2>
+                <p className="text-gray-400 mt-2 text-sm">{plan.description}</p>
+                <div className="mt-4 text-3xl font-bold text-white">
+                  {plan.price === 0 ? 'Free' : `£${plan.price}/mo`}
+                </div>
+                <div className="mt-6">
+                  <form
+                    action={plan.id === 'free' ? '/api/subscribe' : '/api/checkout'}
+                    method="POST"
+                  >
+                    <input type="hidden" name="plan" value={plan.id} />
+                    {plan.id !== 'free' && (
+                      <input type="hidden" name="price" value={plan.price} />
+                    )}
+                    <div className="mb-3">
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Your BioLink email"
+                        required
+                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className={`w-full py-2.5 rounded-lg font-medium transition ${
+                        plan.id === 'free'
+                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                          : 'bg-purple-600 hover:bg-purple-500 text-white'
+                      }`}
+                    >
+                      {plan.id === 'free'
+                        ? 'Use Free Plan'
+                        : `Subscribe for £${plan.price}/mo`}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12 text-gray-500 text-sm">
+            <p>
+              Already have a BioLink? Visit{' '}
+              <span className="font-mono text-indigo-400">thebiolink.lol/youruser</span>
+            </p>
           </div>
         </div>
       </div>

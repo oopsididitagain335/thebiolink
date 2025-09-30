@@ -1,19 +1,18 @@
 // app/pricing/page.tsx
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 const PLANS = [
-  { id: "free", name: "Free", price: 0, description: "Forever free. No card needed." },
-  { id: "basic", name: "Basic", price: 5, description: "Perfect for creators." },
-  { id: "premium", name: "Premium", price: 15, description: "Advanced features." },
-  { id: "fwiend", name: "Fwiend", price: 60, description: "Support the project ❤️" },
+  { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
+  { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators.' },
+  { id: 'premium', name: 'Premium', price: 15, description: 'Advanced features.' },
+  { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
 export default async function PricingPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.email) {
-    redirect("/auth/login");
+    redirect('/auth/login');
   }
 
   return (
@@ -29,10 +28,10 @@ export default async function PricingPage() {
               <h2 className="text-2xl font-bold text-white">{plan.name}</h2>
               <p className="text-gray-400 mt-2 text-sm">{plan.description}</p>
               <div className="mt-4 text-3xl font-bold text-white">
-                {plan.price === 0 ? "Free" : `$${plan.price}/mo`}
+                {plan.price === 0 ? 'Free' : `£${plan.price}/mo`}
               </div>
               <div className="mt-6">
-                {plan.id === "free" ? (
+                {plan.id === 'free' ? (
                   <form action="/api/subscribe" method="POST">
                     <input type="hidden" name="plan" value="free" />
                     <button

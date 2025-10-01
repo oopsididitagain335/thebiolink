@@ -1,52 +1,54 @@
 // app/api/admin/badges/route.ts
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { getUserById, createBadge, getAllBadges } from '@/lib/storage';
+import { connectToDB } from '@/lib/db';
+import { getServerSession } from '@/lib/auth';
 
 export async function GET() {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const user = await getUserById(sessionId);
-    // --- Authorization Check ---
-    if (!user || user.email !== 'lyharry31@gmail.com') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const badges = await getAllBadges();
-    return Response.json(badges);
+    await connectToDB();
+    const Badge = (await import('@/models/Badge')).default;
+    const badges = await Badge.find({}).select('name icon').lean();
+    const safeBadges = badges.map(b => ({
+      ...b,
+      id: b._id.toString(),
+    }));
+    return Response.json(safeBadges);
   } catch (error) {
-    console.error("Admin GET Badges Error:", error);
+    console.error('Fetch badges error:', error);
     return Response.json({ error: 'Failed to fetch badges' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+export async function POST(req: NextRequest) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const user = await getUserById(sessionId);
-    // --- Authorization Check ---
-    if (!user || user.email !== 'lyharry31@gmail.com') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { name, icon } = await request.json();
-
+    const { name, icon } = await req.json();
     if (!name || !icon) {
-      return Response.json({ error: 'Name and icon are required' }, { status: 400 });
+      return Response.json({ error: 'Name and icon required' }, { status: 400 });
     }
 
-    const badge = await createBadge(name, icon);
-    return Response.json(badge);
+    await connectToDB();
+    const Badge = (await import('@/models/Badge')).default;
+
+    const newBadge = new Badge({ name, icon });
+    await newBadge.save();
+
+    return Response.json({
+      id: newBadge._id.toString(),
+      name: newBadge.name,
+      icon: newBadge.icon,
+    });
   } catch (error) {
-    console.error("Admin POST Create Badge Error:", error);
+    console.error('Create badge error:', error);
     return Response.json({ error: 'Failed to create badge' }, { status: 500 });
   }
 }

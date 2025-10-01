@@ -1,110 +1,106 @@
 // app/api/admin/users/route.ts
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { getUserById, getAllUsers, addUserBadge, removeUserBadge } from '@/lib/storage';
-import { ObjectId } from 'mongodb';
+import { connectToDB } from '@/lib/db';
+import { getServerSession } from '@/lib/auth';
 
 export async function GET() {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const user = await getUserById(sessionId);
-    if (!user || user.email !== 'lyharry31@gmail.com') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    await connectToDB();
+    const User = (await import('@/models/User')).default;
 
-    const users = await getAllUsers();
-    return Response.json(users);
+    // ✅ Populate badges if using refs, or ensure they're embedded
+    const users = await User.find({}).select('email username name isBanned badges').lean();
+
+    // Ensure badges is always an array
+    const safeUsers = users.map(user => ({
+      ...user,
+      id: user._id.toString(),
+      badges: Array.isArray(user.badges) ? user.badges : [],
+    }));
+
+    return Response.json(safeUsers);
   } catch (error) {
-    console.error("Admin GET Users Error:", error);
+    console.error('Fetch users error:', error);
     return Response.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+// Add badge to user
+export async function POST(req: NextRequest) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const user = await getUserById(sessionId);
-    if (!user || user.email !== 'lyharry31@gmail.com') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const { userId, badge } = await req.json();
+    if (!userId || !badge?.id) {
+      return Response.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    const { userId, badge } = await request.json();
+    await connectToDB();
+    const User = (await import('@/models/User')).default;
 
-    // --- Robust ObjectId Validation ---
-    let userObjectId: ObjectId;
-    try {
-      userObjectId = new ObjectId(userId);
-    } catch (parseError) {
-      console.error("Invalid UserId for badge add:", userId, parseError);
-      return Response.json({ error: 'Invalid user ID format' }, { status: 400 });
+    const user = await User.findById(userId);
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (!badge || !badge.name || !badge.icon) {
-       return Response.json({ error: 'Invalid badge data provided' }, { status: 400 });
+    // Prevent duplicate badges
+    const badgeExists = user.badges.some((b: any) => b.id === badge.id);
+    if (badgeExists) {
+      return Response.json({ error: 'Badge already awarded' }, { status: 400 });
     }
 
-    await addUserBadge(userId, {
-      id: new ObjectId().toString(), // Generate a new unique ID for the badge instance
+    user.badges.push({
+      id: badge.id,
       name: badge.name,
       icon: badge.icon,
-      awardedAt: new Date().toISOString()
+      awardedAt: new Date().toISOString(),
     });
 
+    await user.save();
+
+    // ✅ Return updated user (or just success)
     return Response.json({ success: true });
-  } catch (error: any) {
-    console.error("Admin POST Add Badge Error:", error);
-    // Check for specific MongoDB errors or return a generic one
-    if (error instanceof Error && error.message.includes('ObjectId')) {
-        return Response.json({ error: 'Invalid user ID' }, { status: 400 });
-    }
+  } catch (error) {
+    console.error('Add badge error:', error);
     return Response.json({ error: 'Failed to add badge' }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+// Remove badge
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const user = await getUserById(sessionId);
-    if (!user || user.email !== 'lyharry31@gmail.com') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const { userId, badgeId } = await req.json();
+    if (!userId || !badgeId) {
+      return Response.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    const { userId, badgeId } = await request.json();
+    await connectToDB();
+    const User = (await import('@/models/User')).default;
 
-    // --- Robust ObjectId Validation ---
-    let userObjectId: ObjectId;
-    try {
-      userObjectId = new ObjectId(userId);
-    } catch (parseError) {
-      console.error("Invalid UserId for badge remove:", userId, parseError);
-      return Response.json({ error: 'Invalid user ID format' }, { status: 400 });
+    const user = await User.findById(userId);
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (!badgeId || typeof badgeId !== 'string') {
-       return Response.json({ error: 'Invalid badge ID provided' }, { status: 400 });
-    }
-
-    await removeUserBadge(userId, badgeId);
+    user.badges = user.badges.filter((b: any) => b.id !== badgeId);
+    await user.save();
 
     return Response.json({ success: true });
-  } catch (error: any) {
-    console.error("Admin DELETE Remove Badge Error:", error);
-    // Check for specific MongoDB errors or return a generic one
-    if (error instanceof Error && error.message.includes('ObjectId')) {
-        return Response.json({ error: 'Invalid user ID' }, { status: 400 });
-    }
+  } catch (error) {
+    console.error('Remove badge error:', error);
     return Response.json({ error: 'Failed to remove badge' }, { status: 500 });
   }
 }

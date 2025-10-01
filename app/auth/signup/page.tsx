@@ -21,12 +21,15 @@ export default function SignupPage() {
   useEffect(() => {
     const prefillUsername = searchParams.get('username');
     if (prefillUsername && !formData.username) {
-      setFormData((prev) => ({ ...prev, username: prefillUsername }));
+      // Sanitize: only allow alphanumeric
+      const clean = prefillUsername.replace(/[^a-zA-Z0-9]/g, '');
+      setFormData((prev) => ({ ...prev, username: clean }));
     }
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
     if (error) setError('');
     if (success) setSuccess('');
   };
@@ -107,6 +110,7 @@ export default function SignupPage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
+                autoComplete="name"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="John Doe"
               />
@@ -123,6 +127,7 @@ export default function SignupPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="email"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="john@example.com"
               />
@@ -133,7 +138,7 @@ export default function SignupPage() {
                 Username
               </label>
               <div className="flex">
-                <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700 text-gray-400">
+                <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700 text-gray-400 select-none">
                   thebiolink.lol/
                 </span>
                 <input
@@ -143,6 +148,10 @@ export default function SignupPage() {
                   required
                   value={formData.username}
                   onChange={handleChange}
+                  autoComplete="username" // 👈 Critical: prevents email autofill
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                   className="flex-1 min-w-0 px-4 py-3 bg-gray-700 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="yourname"
                 />
@@ -150,6 +159,11 @@ export default function SignupPage() {
               <p className="mt-2 text-xs text-gray-500">
                 Only letters and numbers. This will be your public link.
               </p>
+              {formData.username && !/^[a-zA-Z0-9]*$/.test(formData.username) && (
+                <p className="mt-1 text-xs text-red-400">
+                  Username can only contain letters and numbers.
+                </p>
+              )}
             </div>
             
             <div>
@@ -163,6 +177,7 @@ export default function SignupPage() {
                 required
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="new-password"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="••••••••"
               />

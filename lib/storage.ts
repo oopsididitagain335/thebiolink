@@ -377,7 +377,7 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-// ✅ FIXED: Now includes badges in getAllUsers()
+// ✅ FIXED: Now includes avatar, bio, and badges
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database
@@ -387,17 +387,19 @@ export async function getAllUsers() {
       _id: 1,
       username: 1,
       name: 1,
-      email: 1,
+      avatar: 1,
+      bio: 1,
       isBanned: 1,
-      badges: 1, // ← ADDED
+      badges: 1,
     })
     .toArray();
 
   return users.map((user) => ({
     id: user._id.toString(),
-    email: user.email || '',
     username: user.username,
     name: user.name || '',
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
     isBanned: user.isBanned || false,
     badges: Array.isArray(user.badges) ? user.badges : [],
   }));

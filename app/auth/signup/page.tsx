@@ -18,31 +18,40 @@ export default function SignupPage() {
   const searchParams = useSearchParams();
   const usernameRef = useRef<HTMLInputElement>(null);
 
-  // Auto-fill username from URL query on mount
+  // Prefill username from URL — sanitize aggressively
   useEffect(() => {
-    const prefillUsername = searchParams.get('username');
-    if (prefillUsername) {
-      const clean = prefillUsername.replace(/[^a-zA-Z0-9]/g, '');
-      setFormData((prev) => ({ ...prev, username: clean }));
+    const raw = searchParams.get('username');
+    if (raw) {
+      // Only allow alphanumeric, lowercase, and trim
+      const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean && clean !== formData.username) {
+        setFormData((prev) => ({ ...prev, username: clean }));
+      }
     }
   }, [searchParams]);
 
-  // Force re-render + delay focus to prevent browser autofill hijack
+  // Force username field to respect our value after browser autofill settles
   useEffect(() => {
-    if (usernameRef.current && formData.username) {
-      // Wait 100ms to let browser autofill settle, then force our value
-      const timer = setTimeout(() => {
-        usernameRef.current?.focus();
-        usernameRef.current?.select(); // Optional: highlight text for easy edit
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => {
+      if (usernameRef.current && formData.username) {
+        usernameRef.current.value = formData.username;
+        // Optional: focus on mobile if field is empty
+        if (!formData.username) usernameRef.current.focus();
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [formData.username]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    let finalValue = value;
+
+    // Sanitize username in real-time
+    if (name === 'username') {
+      finalValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    setFormData({ ...formData, [name]: finalValue });
     if (error) setError('');
     if (success) setSuccess('');
   };
@@ -53,14 +62,26 @@ export default function SignupPage() {
     setError('');
     setSuccess('');
 
+    if (!formData.name.trim()) {
+      setError('Please enter your full name');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       setIsLoading(false);
       return;
     }
 
-    if (!/^[a-zA-Z0-9]+$/.test(formData.username)) {
-      setError('Username can only contain letters and numbers');
+    if (!/^[a-z0-9]+$/.test(formData.username)) {
+      setError('Username can only contain lowercase letters and numbers');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
       setIsLoading(false);
       return;
     }
@@ -90,30 +111,30 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl font-bold text-white">B</span>
+        <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <span className="text-xl sm:text-2xl font-bold text-white">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Create Account</h1>
-            <p className="text-gray-400">Get started with your BioLink</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Create Account</h1>
+            <p className="text-gray-400 text-sm">Get started with your BioLink</p>
           </div>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-900/50 border border-red-800 text-red-200 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-900/40 border border-red-800/60 text-red-200 rounded-lg text-sm">
               {error}
             </div>
           )}
           
           {success && (
-            <div className="mb-4 p-3 bg-green-900/50 border border-green-800 text-green-200 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-green-900/40 border border-green-800/60 text-green-200 rounded-lg text-sm">
               {success}
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Full Name
               </label>
               <input
@@ -124,13 +145,13 @@ export default function SignupPage() {
                 value={formData.name}
                 onChange={handleChange}
                 autoComplete="name"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-700/70 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                 placeholder="John Doe"
               />
             </div>
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Email Address
               </label>
               <input
@@ -141,17 +162,17 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 autoComplete="email"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-700/70 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                 placeholder="john@example.com"
               />
             </div>
             
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Username
               </label>
               <div className="flex">
-                <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700 text-gray-400 select-none">
+                <span className="inline-flex items-center px-3 sm:px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/70 text-gray-400 text-sm select-none whitespace-nowrap">
                   thebiolink.lol/
                 </span>
                 <input
@@ -163,25 +184,26 @@ export default function SignupPage() {
                   value={formData.username}
                   onChange={handleChange}
                   autoComplete="username"
-                  autoCapitalize="off"
+                  autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
-                  className="flex-1 min-w-0 px-4 py-3 bg-gray-700 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  inputMode="text"
+                  className="flex-1 min-w-0 px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-700/70 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="yourname"
                 />
               </div>
-              <p className="mt-2 text-xs text-gray-500">
-                Only letters and numbers. This will be your public link.
+              <p className="mt-1.5 text-xs text-gray-500">
+                Only lowercase letters and numbers (3–20 chars)
               </p>
-              {formData.username && !/^[a-zA-Z0-9]*$/.test(formData.username) && (
+              {formData.username && !/^[a-z0-9]{3,20}$/.test(formData.username) && (
                 <p className="mt-1 text-xs text-red-400">
-                  Username can only contain letters and numbers.
+                  Must be 3–20 lowercase letters or numbers.
                 </p>
               )}
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Password
               </label>
               <input
@@ -192,10 +214,10 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 autoComplete="new-password"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-700/70 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                 placeholder="••••••••"
               />
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-1.5 text-xs text-gray-500">
                 At least 6 characters
               </p>
             </div>
@@ -203,14 +225,14 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 sm:py-3 rounded-xl font-medium text-sm sm:text-base hover:opacity-95 transition-opacity disabled:opacity-70"
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
           
-          <div className="mt-6 pt-6 border-t border-gray-700 text-center">
-            <p className="text-gray-400 text-sm">
+          <div className="mt-6 pt-5 border-t border-gray-700/50 text-center">
+            <p className="text-gray-400 text-xs sm:text-sm">
               Already have an account?{' '}
               <Link href="/auth/login" className="text-indigo-400 hover:text-indigo-300 font-medium hover:underline">
                 Sign in

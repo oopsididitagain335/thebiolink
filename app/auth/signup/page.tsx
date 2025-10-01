@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -16,16 +16,29 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const usernameRef = useRef<HTMLInputElement>(null);
 
   // Auto-fill username from URL query on mount
   useEffect(() => {
     const prefillUsername = searchParams.get('username');
-    if (prefillUsername && !formData.username) {
-      // Sanitize: only allow alphanumeric
+    if (prefillUsername) {
       const clean = prefillUsername.replace(/[^a-zA-Z0-9]/g, '');
       setFormData((prev) => ({ ...prev, username: clean }));
     }
   }, [searchParams]);
+
+  // Force re-render + delay focus to prevent browser autofill hijack
+  useEffect(() => {
+    if (usernameRef.current && formData.username) {
+      // Wait 100ms to let browser autofill settle, then force our value
+      const timer = setTimeout(() => {
+        usernameRef.current?.focus();
+        usernameRef.current?.select(); // Optional: highlight text for easy edit
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.username]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -142,13 +155,14 @@ export default function SignupPage() {
                   thebiolink.lol/
                 </span>
                 <input
+                  ref={usernameRef}
                   id="username"
                   name="username"
                   type="text"
                   required
                   value={formData.username}
                   onChange={handleChange}
-                  autoComplete="username" // 👈 Critical: prevents email autofill
+                  autoComplete="username"
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck="false"

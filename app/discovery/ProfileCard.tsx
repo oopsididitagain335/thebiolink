@@ -14,7 +14,7 @@ export default function ProfileCard({
 }) {
   return (
     <a
-      href={`https://thebiolink.lol/${username}`}
+      href={`https://thebiolink.lol/${username}`} {/* ✅ NO spaces */}
       target="_blank"
       rel="noopener noreferrer"
       className="block bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center hover:bg-gray-700/50 transition-all duration-200 group"
@@ -26,10 +26,7 @@ export default function ProfileCard({
             alt={name}
             className="object-cover w-full h-full"
             onError={(e) => {
-              // Hide broken image and show fallback via CSS or logic
-              const img = e.currentTarget;
-              img.style.display = 'none';
-              // Optional: you could also add a class to show a fallback, but hiding is simplest
+              e.currentTarget.style.display = 'none';
             }}
           />
         </div>

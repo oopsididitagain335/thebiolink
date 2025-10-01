@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignupPage() {
@@ -15,6 +15,15 @@ export default function SignupPage() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-fill username from URL query on mount
+  useEffect(() => {
+    const prefillUsername = searchParams.get('username');
+    if (prefillUsername && !formData.username) {
+      setFormData((prev) => ({ ...prev, username: prefillUsername }));
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

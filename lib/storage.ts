@@ -20,7 +20,6 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// --- Interfaces ---
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -38,7 +37,7 @@ interface UserDoc {
   bannedAt?: string;
   createdAt: Date;
   profileViews: number;
-  layout?: string; // ✅
+  layout?: string;
 }
 
 interface LinkDoc {
@@ -66,7 +65,6 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// --- Helper: Get Widgets ---
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -79,13 +77,11 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
-// --- Public: Get User by Username (for /:username) ---
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
 
-  // Track unique view
   if (clientId) {
     const visitExists = await db.collection('profile_visits').findOne({ userId: user._id, clientId });
     if (!visitExists) {
@@ -116,33 +112,36 @@ export async function getUserByUsername(username: string, clientId: string) {
       icon: l.icon || '',
       position: l.position || 0,
     })).sort((a, b) => a.position - b.position),
-    widgets, // ✅
-    layout: user.layout || 'classic', // ✅
+    widgets,
+    layout: user.layout || 'classic',
   };
 }
 
-// --- Metadata (no tracking) ---
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
+  
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   return {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    links: links.map(l => ({ url: l.url, title: l.title })),
+    isBanned: user.isBanned || false, // ✅ FIXED
+    links: links.map((link: any) => ({
+      url: link.url || '',
+      title: link.title || '',
+    })),
   };
 }
 
-// --- Auth: Get User by ID (for dashboard) ---
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
   try {
     user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(id) });
   } catch {
-    return null; // invalid ObjectId
+    return null;
   }
   if (!user) return null;
 
@@ -169,7 +168,6 @@ export async function getUserById(id: string) {
   };
 }
 
-// --- Save Functions ---
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -212,7 +210,6 @@ export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
   
-  // Validate username uniqueness
   if (updates.username) {
     const existing = await db.collection('users').findOne({
       username: updates.username,

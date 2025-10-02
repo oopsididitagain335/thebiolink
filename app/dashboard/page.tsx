@@ -236,7 +236,9 @@ export default function Dashboard() {
             <div>
               <h1 className="text-3xl font-bold text-white">Your BioLink Dashboard</h1>
               <p className="text-gray-400 mt-2">
-                Customize your bio link page at{' '}
+                Your bio link is live on both domains:
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 mt-1">
                 <a
                   href={`https://thebiolink.lol/${user.username}`}
                   target="_blank"
@@ -245,7 +247,16 @@ export default function Dashboard() {
                 >
                   thebiolink.lol/{user.username}
                 </a>
-              </p>
+                <span className="text-gray-500 hidden sm:inline">•</span>
+                <a
+                  href={`https://hostnet.wiki/${user.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-purple-400 hover:text-purple-300 hover:underline"
+                >
+                  hostnet.wiki/{user.username}
+                </a>
+              </div>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
               <button
@@ -298,7 +309,10 @@ export default function Dashboard() {
                     />
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
-                    This will be your public link: thebiolink.lol/{user.username}
+                    Your link will be available at both:
+                    <br />
+                    <span className="font-mono">thebiolink.lol/{user.username}</span> and{' '}
+                    <span className="font-mono">hostnet.wiki/{user.username}</span>
                   </p>
                 </div>
 

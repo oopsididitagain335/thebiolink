@@ -1,152 +1,242 @@
 // app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserByEmail } from '@/lib/storage';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { verifyRecaptcha } from '@/lib/recaptcha'; // You'll create this
-import { rateLimit } from '@/lib/rate-limit'; // Redis-backed or in-memory
+import crypto from 'crypto';
+import { getUserByEmail, createSession } from '@/lib/storage';
+import { verifyRecaptcha } from '@/lib/recaptcha';
 
-// Fallback in-memory store (only for dev/small scale)
+// === CONFIGURATION ===
+const MAX_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
+const LOCKOUT_BASE_MINUTES = 15;
+const MIN_HUMAN_DELAY_MS = 800;    // Humans take >800ms to submit
+const MAX_HUMAN_DELAY_MS = 10 * 60 * 1000; // Max 10 minutes (prevent replay)
+const DUMMY_BCRYPT_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'; // bcrypt("dummy")
+
+// === INPUT VALIDATION SCHEMA ===
+const LoginSchema = z.object({
+  email: z.string().email().min(1).max(255),
+  password: z.string().min(1).max(1024), // Prevent DoS via huge passwords
+  recaptchaToken: z.string().min(1),
+  timingToken: z.string().min(1),
+});
+
+// === IN-MEMORY RATE LIMITING STORE (USE REDIS IN PRODUCTION) ===
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
-// Helper to get real client IP
-function getClientIP(request: NextRequest): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
+// === HELPER FUNCTIONS ===
+function getClientIP(req: NextRequest): string {
+  // Check common proxy headers
+  const forwardedFor = req.headers.get('x-forwarded-for');
   if (forwardedFor) {
+    // Take the first IP (original client)
     return forwardedFor.split(',')[0].trim();
   }
-  const realIP = request.headers.get('x-real-ip');
+  const realIP = req.headers.get('x-real-ip');
   if (realIP) {
     return realIP.trim();
   }
   return '127.0.0.1';
 }
 
+function getDeviceFingerprint(req: NextRequest): string {
+  // Create non-PII device fingerprint
+  const parts = [
+    req.headers.get('user-agent') || '',
+    req.headers.get('accept') || '',
+    req.headers.get('accept-language') || '',
+    req.headers.get('accept-encoding') || '',
+  ];
+  return crypto.createHash('sha256').update(parts.join('||')).digest('hex');
+}
+
+function verifyTimingToken(token: string): boolean {
+  const [timestampStr, signature] = token.split('.');
+  
+  // Validate structure
+  if (!timestampStr || !signature || signature.length !== 64) {
+    return false;
+  }
+
+  // Verify HMAC signature
+  const expectedSignature = crypto
+    .createHmac('sha256', process.env.LOGIN_TIMING_SECRET!)
+    .update(timestampStr)
+    .digest('hex');
+
+  const isValidSignature = crypto.timingSafeEqual(
+    Buffer.from(signature, 'hex'),
+    Buffer.from(expectedSignature, 'hex')
+  );
+
+  if (!isValidSignature) {
+    return false;
+  }
+
+  // Check timing window
+  const timestamp = parseInt(timestampStr, 10);
+  if (isNaN(timestamp)) {
+    return false;
+  }
+
+  const ageMs = Date.now() - timestamp;
+  return ageMs >= MIN_HUMAN_DELAY_MS && ageMs <= MAX_HUMAN_DELAY_MS;
+}
+
+async function checkLockout(ip: string, fingerprint: string): Promise<void> {
+  const key = `${ip}:${fingerprint}`;
+  const record = failedAttempts.get(key);
+  
+  if (!record) return;
+
+  // Calculate dynamic lockout duration (exponential backoff)
+  const lockoutMinutes = Math.min(
+    LOCKOUT_BASE_MINUTES * Math.pow(2, record.count - MAX_ATTEMPTS),
+    24 * 60 // Max 24 hours
+  );
+  const lockoutMs = lockoutMinutes * 60 * 1000;
+
+  // Check if still locked out
+  if (record.count >= MAX_ATTEMPTS && (Date.now() - record.lastAttempt) < lockoutMs) {
+    throw { 
+      code: 'LOCKED_OUT', 
+      minutes: Math.ceil(lockoutMinutes) 
+    };
+  }
+
+  // Auto-reset expired lockouts
+  if (record.count >= MAX_ATTEMPTS) {
+    failedAttempts.delete(key);
+  }
+}
+
+async function recordFailedAttempt(ip: string, fingerprint: string): Promise<number> {
+  const key = `${ip}:${fingerprint}`;
+  const now = Date.now();
+  const current = failedAttempts.get(key) || { count: 0, lastAttempt: 0 };
+  const newCount = current.count + 1;
+  failedAttempts.set(key, { count: newCount, lastAttempt: now });
+  return newCount;
+}
+
+async function clearFailedAttempts(ip: string, fingerprint: string): Promise<void> {
+  const key = `${ip}:${fingerprint}`;
+  failedAttempts.delete(key);
+}
+
+// === MAIN HANDLER ===
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-
-  // === 1. RATE LIMITING (Use Redis in prod, fallback to memory) ===
-  const MAX_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
-  const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+  const fingerprint = getDeviceFingerprint(request);
 
   try {
-    // Try Redis-based rate limiter first (recommended for production)
-    await rateLimit(ip, MAX_ATTEMPTS, LOCKOUT_DURATION_MS);
-  } catch (rateLimitError: any) {
-    if (rateLimitError.code === 'RATE_LIMIT_EXCEEDED') {
-      console.warn(`[SECURITY] Rate limit exceeded for IP: ${ip}`);
+    // === 1. PARSE AND VALIDATE REQUEST BODY ===
+    const body = await request.json();
+    const { email, password, recaptchaToken, timingToken } = LoginSchema.parse(body);
+
+    // === 2. VERIFY HUMAN INTERACTION TIMING ===
+    if (!verifyTimingToken(timingToken)) {
+      console.warn(`[SECURITY] Invalid timing token from IP: ${ip}`);
       return NextResponse.json(
-        { error: 'Too many login attempts. Please try again later.' },
-        { status: 429 }
+        { error: 'Security verification failed' },
+        { status: 403 }
       );
     }
-    // If Redis fails, fall back to in-memory (not ideal for clusters)
-    const attempts = failedAttempts.get(ip);
-    if (attempts && attempts.count >= MAX_ATTEMPTS) {
-      const timeSinceLast = Date.now() - attempts.lastAttempt;
-      if (timeSinceLast < LOCKOUT_DURATION_MS) {
+
+    // === 3. CHECK ACCOUNT LOCKOUT STATUS ===
+    try {
+      await checkLockout(ip, fingerprint);
+    } catch (e: any) {
+      if (e.code === 'LOCKED_OUT') {
+        const message = `Too many failed attempts. Please try again in ${e.minutes} minute${e.minutes === 1 ? '' : 's'}.`;
         return NextResponse.json(
-          { error: 'Too many login attempts. Please try again later.' },
+          { error: message },
           { status: 429 }
         );
-      } else {
-        failedAttempts.delete(ip);
       }
-    }
-  }
-
-  // === 2. PARSE & VALIDATE REQUEST ===
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { email, password, recaptchaToken } = body;
-
-  if (!email || !password) {
-    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
-  }
-
-  // === 3. reCAPTCHA v3 VERIFICATION ===
-  if (!recaptchaToken) {
-    return NextResponse.json({ error: 'Missing security token' }, { status: 400 });
-  }
-
-  const captchaScore = await verifyRecaptcha(recaptchaToken);
-  if (captchaScore < 0.7) {
-    console.warn(`[SECURITY] Low reCAPTCHA score (${captchaScore}) from IP: ${ip}`);
-    return NextResponse.json({ error: 'Security check failed' }, { status: 403 });
-  }
-
-  // === 4. AUTHENTICATION WITH TIMING ATTACK PROTECTION ===
-  const user = await getUserByEmail(email.toLowerCase().trim());
-
-  // Always compare against a real hash to prevent timing leaks
-  const dummyHash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'; // precomputed bcrypt of "dummy"
-  const isValid = user
-    ? await bcrypt.compare(password, user.passwordHash)
-    : await bcrypt.compare(password, dummyHash);
-
-  if (!isValid || !user) {
-    // Track failed attempt (use Redis if available)
-    try {
-      await rateLimit(ip, MAX_ATTEMPTS, LOCKOUT_DURATION_MS, true); // increment
-    } catch {
-      // Fallback to in-memory
-      const current = failedAttempts.get(ip) || { count: 0, lastAttempt: 0 };
-      failedAttempts.set(ip, {
-        count: current.count + 1,
-        lastAttempt: Date.now(),
-      });
+      throw e; // Re-throw unexpected errors
     }
 
-    // Log suspicious activity (without exposing user existence)
-    if (!user) {
-      console.info(`[AUTH] Login attempt for non-existent email: ${email} from ${ip}`);
-    } else {
-      console.warn(`[AUTH] Failed login for ${email} from ${ip} (UA: ${userAgent})`);
+    // === 4. VERIFY reCAPTCHA v3 SCORE ===
+    const captchaScore = await verifyRecaptcha(recaptchaToken);
+    if (captchaScore < 0.7) {
+      console.warn(`[SECURITY] Low reCAPTCHA score (${captchaScore}) from IP: ${ip}`);
+      return NextResponse.json(
+        { error: 'Security verification failed' },
+        { status: 403 }
+      );
     }
 
-    // Generic error to prevent user enumeration
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    // === 5. AUTHENTICATE USER (WITH TIMING ATTACK PROTECTION) ===
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await getUserByEmail(normalizedEmail);
+
+    // Constant-time comparison to prevent timing attacks
+    const isValidPassword = user
+      ? await bcrypt.compare(password, user.passwordHash)
+      : await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+
+    if (!isValidPassword || !user) {
+      // Record failed attempt
+      const attempts = await recordFailedAttempt(ip, fingerprint);
+      
+      // Log without revealing user existence
+      if (!user) {
+        console.info(`[AUTH] Login attempt for non-existent email: ${normalizedEmail} from ${ip}`);
+      } else {
+        console.warn(`[AUTH] Failed login for ${normalizedEmail} from ${ip} (attempt #${attempts})`);
+      }
+
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // === 6. POST-AUTH SECURITY CHECKS ===
+    if (user.isBanned) {
+      console.warn(`[SECURITY] Banned user ${user.email} attempted login from ${ip}`);
+      return NextResponse.json(
+        { error: 'This account has been suspended' },
+        { status: 403 }
+      );
+    }
+
+    // === 7. SUCCESS: CREATE SESSION AND SET COOKIE ===
+    await clearFailedAttempts(ip, fingerprint);
+
+    // Generate cryptographically secure session token
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    await createSession(sessionToken, user.id);
+
+    // Set secure HttpOnly cookie
+    (await cookies()).set('biolink_session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    console.info(`[AUTH] Successful login for ${user.email} from ${ip}`);
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      console.error('Login validation error:', error.errors);
+      return NextResponse.json(
+        { error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
+
+    // Handle all other errors
+    console.error('Login route unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Authentication service unavailable' },
+      { status: 500 }
+    );
   }
-
-  // === 5. POST-AUTH SECURITY CHECKS ===
-  if (user.isBanned) {
-    console.warn(`[SECURITY] Banned user ${user.email} attempted login from ${ip}`);
-    return NextResponse.json({ error: 'Account access denied' }, { status: 403 });
-  }
-
-  if (!user.emailVerified) {
-    return NextResponse.json({ error: 'Please verify your email first' }, { status: 403 });
-  }
-
-  // === 6. CLEAR FAILED ATTEMPTS & SET SESSION ===
-  try {
-    await rateLimit(ip, MAX_ATTEMPTS, LOCKOUT_DURATION_MS, false); // reset
-  } catch {
-    failedAttempts.delete(ip);
-  }
-
-  // Set secure, HttpOnly session cookie
-  const sessionCookie = {
-    name: 'biolink_session',
-    value: user._id.toString(),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    path: '/',
-    sameSite: 'lax', // or 'strict' if no cross-site needs
-  };
-
-  (await cookies()).set(sessionCookie);
-
-  // Optional: Rotate session ID on login (advanced)
-  // (Not shown here for simplicity)
-
-  console.info(`[AUTH] Successful login for ${user.email} from ${ip}`);
-  return NextResponse.json({ success: true });
 }

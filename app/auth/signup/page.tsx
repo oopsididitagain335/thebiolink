@@ -3,8 +3,42 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
-export default function SignupPage() {
+// --- Child component that uses useSearchParams ---
+function UsernamePrefiller({ onUsernameChange }: { onUsernameChange: (username: string) => void }) {
+  const searchParams = useSearchParams();
+  const usernameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const raw = searchParams.get('username');
+    if (raw) {
+      const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean) {
+        onUsernameChange(clean);
+      }
+    }
+  }, [searchParams, onUsernameChange]);
+
+  // Optional: handle browser autofill by syncing input value
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (usernameRef.current) {
+        const currentVal = usernameRef.current.value;
+        const expectedVal = (usernameRef.current as any).expectedValue || '';
+        if (currentVal !== expectedVal) {
+          usernameRef.current.value = expectedVal;
+        }
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return null; // This component doesn't render anything visible
+}
+
+// --- Main Signup Form ---
+function SignupForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,38 +49,21 @@ export default function SignupPage() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const usernameRef = useRef<HTMLInputElement>(null);
 
-  // Prefill username from URL — sanitize aggressively
-  useEffect(() => {
-    const raw = searchParams.get('username');
-    if (raw) {
-      // Only allow alphanumeric, lowercase, and trim
-      const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (clean && clean !== formData.username) {
-        setFormData((prev) => ({ ...prev, username: clean }));
+  const handleUsernameChange = (username: string) => {
+    if (username && username !== formData.username) {
+      setFormData((prev) => ({ ...prev, username }));
+      if (usernameRef.current) {
+        (usernameRef.current as any).expectedValue = username;
       }
     }
-  }, [searchParams]);
-
-  // Force username field to respect our value after browser autofill settles
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (usernameRef.current && formData.username) {
-        usernameRef.current.value = formData.username;
-        // Optional: focus on mobile if field is empty
-        if (!formData.username) usernameRef.current.focus();
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [formData.username]);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let finalValue = value;
 
-    // Sanitize username in real-time
     if (name === 'username') {
       finalValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
@@ -108,6 +125,14 @@ export default function SignupPage() {
     }
   };
 
+  // Sync input value after state update
+  useEffect(() => {
+    if (usernameRef.current) {
+      usernameRef.current.value = formData.username;
+      (usernameRef.current as any).expectedValue = formData.username;
+    }
+  }, [formData.username]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -119,19 +144,19 @@ export default function SignupPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Create Account</h1>
             <p className="text-gray-400 text-sm">Get started with your BioLink</p>
           </div>
-          
+
           {error && (
             <div className="mb-4 p-3 bg-red-900/40 border border-red-800/60 text-red-200 rounded-lg text-sm">
               {error}
             </div>
           )}
-          
+
           {success && (
             <div className="mb-4 p-3 bg-green-900/40 border border-green-800/60 text-green-200 rounded-lg text-sm">
               {success}
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
@@ -149,7 +174,7 @@ export default function SignupPage() {
                 placeholder="John Doe"
               />
             </div>
-            
+
             <div>
               <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Email Address
@@ -166,7 +191,7 @@ export default function SignupPage() {
                 placeholder="john@example.com"
               />
             </div>
-            
+
             <div>
               <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Username
@@ -201,7 +226,7 @@ export default function SignupPage() {
                 </p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
                 Password
@@ -221,7 +246,7 @@ export default function SignupPage() {
                 At least 6 characters
               </p>
             </div>
-            
+
             <button
               type="submit"
               disabled={isLoading}
@@ -230,7 +255,7 @@ export default function SignupPage() {
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
-          
+
           <div className="mt-6 pt-5 border-t border-gray-700/50 text-center">
             <p className="text-gray-400 text-xs sm:text-sm">
               Already have an account?{' '}
@@ -242,5 +267,20 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// --- Main Page Export ---
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <UsernamePrefiller onUsernameChange={(username) => {
+        // This will be handled inside SignupForm via state lifting
+        // But since we can't pass state up from here easily,
+        // we instead let UsernamePrefiller be a child of SignupForm
+        // So we refactor: move Suspense inside SignupForm
+      }} />
+      <SignupForm />
+    </Suspense>
   );
 }

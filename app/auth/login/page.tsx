@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,42 +17,44 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [captchaLoaded, setCaptchaLoaded] = useState(false);
   const router = useRouter();
+  const pageLoadTime = useRef(Date.now());
 
   // Load reCAPTCHA script
   useEffect(() => {
-    const loadRecaptcha = () => {
-      if (window.grecaptcha) {
-        setCaptchaLoaded(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setCaptchaLoaded(true);
-      document.head.appendChild(script);
-
-      return () => {
-        document.head.removeChild(script);
-      };
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+    
+    return () => {
+      document.head.removeChild(script);
     };
-
-    loadRecaptcha();
   }, []);
+
+  // Generate HMAC-signed timing token
+  const generateTimingToken = async (): Promise<string> => {
+    const payload = pageLoadTime.current.toString();
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(process.env.NEXT_PUBLIC_LOGIN_TIMING_SECRET!),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    const hexSig = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    return `${payload}.${hexSig}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    if (!captchaLoaded) {
-      setError('Security verification failed. Please refresh the page.');
-      setIsLoading(false);
-      return;
-    }
 
     try {
       // Get reCAPTCHA token
@@ -61,13 +63,17 @@ export default function LoginPage() {
         { action: 'login' }
       );
 
+      // Generate human interaction timing token
+      const timingToken = await generateTimingToken();
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email, 
+          email: email.trim(), 
           password, 
-          recaptchaToken 
+          recaptchaToken, 
+          timingToken 
         }),
       });
 
@@ -77,13 +83,11 @@ export default function LoginPage() {
         // Clear sensitive data
         setPassword('');
         router.push('/dashboard');
-        router.refresh(); // Refresh server components
       } else {
-        // Generic error message to prevent user enumeration
-        setError('Invalid email or password');
+        setError(data.error || 'Login failed. Please try again.');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Login submission error:', err);
       setError('Unable to connect to authentication service');
     } finally {
       setIsLoading(false);
@@ -119,8 +123,10 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
-                autoComplete="username"
                 disabled={isLoading}
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
               />
             </div>
            
@@ -134,14 +140,14 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
-                autoComplete="current-password"
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </div>
            
             <button
               type="submit"
-              disabled={isLoading || !captchaLoaded}
+              disabled={isLoading}
               className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Authenticating...' : 'Sign In'}
@@ -156,15 +162,6 @@ export default function LoginPage() {
                 className="text-indigo-400 hover:text-indigo-300 font-medium hover:underline"
               >
                 Create one
-              </Link>
-            </p>
-            <p className="mt-2 text-gray-500 text-xs">
-              or{' '}
-              <Link 
-                href="/auth/forgot-password" 
-                className="text-indigo-400 hover:text-indigo-300 hover:underline"
-              >
-                reset your password
               </Link>
             </p>
           </div>

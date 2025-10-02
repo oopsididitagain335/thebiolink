@@ -20,6 +20,7 @@ export async function connectDB() {
   return cachedDb;
 }
 
+// --- Interfaces ---
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -31,11 +32,17 @@ interface UserDoc {
   background?: string;
   backgroundVideo?: string;
   backgroundAudio?: string;
-  badges: any[];
+  badges: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    awardedAt: string;
+  }>;
   isEmailVerified: boolean;
   isBanned?: boolean;
   bannedAt?: string;
   createdAt: Date;
+  ipAddress?: string;
   profileViews: number;
   layout?: string;
 }
@@ -65,6 +72,7 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
+// --- Helper: Get Widgets ---
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -77,6 +85,7 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
+// --- PUBLIC: Get user by username (for /:username) ---
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -117,6 +126,7 @@ export async function getUserByUsername(username: string, clientId: string) {
   };
 }
 
+// --- METADATA (for SEO) ---
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -127,7 +137,7 @@ export async function getUserByUsernameForMetadata(username: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    isBanned: user.isBanned || false, // ✅ FIXED
+    isBanned: user.isBanned || false,
     links: links.map((link: any) => ({
       url: link.url || '',
       title: link.title || '',
@@ -135,6 +145,7 @@ export async function getUserByUsernameForMetadata(username: string) {
   };
 }
 
+// --- AUTH: Get user by ID (for dashboard) ---
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -165,9 +176,68 @@ export async function getUserById(id: string) {
       position: l.position || 0,
     })).sort((a, b) => a.position - b.position),
     widgets,
+    badges: user.badges || [],
   };
 }
 
+// --- AUTH: Get user by email (for login) ---
+export async function getUserByEmail(email: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ email });
+  if (!user) return null;
+  return {
+    _id: user._id.toString(),
+    email: user.email,
+    passwordHash: user.passwordHash,
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    isEmailVerified: user.isEmailVerified,
+    isBanned: user.isBanned || false,
+  };
+}
+
+// --- AUTH: Create user (for signup) ---
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
+  const db = await connectDB();
+  const existingEmail = await db.collection('users').findOne({ email });
+  if (existingEmail) throw new Error('Email already registered');
+  const existingUsername = await db.collection('users').findOne({ username });
+  if (existingUsername) throw new Error('Username already taken');
+  const passwordHash = await bcrypt.hash(password, 12);
+  const userId = new ObjectId();
+  await db.collection('users').insertOne({
+    _id: userId,
+    email,
+    username,
+    name,
+    passwordHash,
+    background,
+    ipAddress,
+    badges: [],
+    isEmailVerified: true,
+    isBanned: false,
+    createdAt: new Date(),
+    profileViews: 0,
+    layout: 'classic',
+  } as UserDoc);
+  return {
+    id: userId.toString(),
+    email,
+    username,
+    name,
+    background,
+    badges: [],
+    isEmailVerified: true,
+    isBanned: false,
+    createdAt: new Date().toISOString(),
+    profileViews: 0,
+    layout: 'classic',
+  };
+}
+
+// --- SAVE FUNCTIONS ---
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -228,4 +298,93 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
+}
+
+// --- ADMIN PANEL FUNCTIONS ---
+export async function getAllUsers() {
+  const db = await connectDB();
+  const users = await db
+    .collection<UserDoc>('users')
+    .find({ isBanned: { $ne: true } })
+    .project({
+      _id: 1,
+      username: 1,
+      name: 1,
+      avatar: 1,
+      bio: 1,
+      isBanned: 1,
+      badges: 1,
+    })
+    .toArray();
+
+  return users.map((user) => ({
+    id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
+    isBanned: user.isBanned || false,
+    badges: Array.isArray(user.badges) ? user.badges : [],
+  }));
+}
+
+export async function createBadge(name: string, icon: string) {
+  const db = await connectDB();
+  const badgeId = new ObjectId().toString();
+  await db.collection('badges').insertOne({
+    id: badgeId,
+    name,
+    icon,
+    createdAt: new Date().toISOString()
+  });
+  return { id: badgeId, name, icon };
+}
+
+export async function getAllBadges() {
+  const db = await connectDB();
+  const badges = await db.collection('badges').find({}).toArray();
+  return badges.map((badge: any) => ({
+    id: badge.id,
+    name: badge.name,
+    icon: badge.icon
+  }));
+}
+
+export async function addUserBadge(
+  userId: string,
+  badge: { id: string; name: string; icon: string; awardedAt: string }
+) {
+  const db = await connectDB();
+  const userObjectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $push: { badges: { $each: [badge] } } }
+  );
+}
+
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const db = await connectDB();
+  const userObjectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+export async function banUser(userId: string) {
+  const db = await connectDB();
+  const objectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
+  );
+}
+
+export async function unbanUser(userId: string) {
+  const db = await connectDB();
+  const objectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
+  );
 }

@@ -4,15 +4,11 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-
-// Reuse your existing connectDB and getUserByEmail
 import { connectDB, getUserByEmail } from '@/lib/storage';
 
 // === CONFIGURATION ===
 const MAX_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
 const LOCKOUT_BASE_MINUTES = 15;
-const MIN_HUMAN_DELAY_MS = 800;
-const MAX_HUMAN_DELAY_MS = 10 * 60 * 1000;
 const DUMMY_BCRYPT_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 // === INPUT VALIDATION ===
@@ -20,7 +16,6 @@ const LoginSchema = z.object({
   email: z.string().email().min(1).max(255),
   password: z.string().min(1).max(1024),
   recaptchaToken: z.string().min(1),
-  timingToken: z.string().min(1),
 });
 
 // === IN-MEMORY RATE LIMITING (USE REDIS IN PROD) ===
@@ -43,26 +38,6 @@ function getFingerprint(req: NextRequest): string {
     req.headers.get('accept-encoding') || '',
   ];
   return crypto.createHash('sha256').update(parts.join('||')).digest('hex');
-}
-
-function verifyTimingToken(token: string): boolean {
-  const [ts, sig] = token.split('.');
-  if (!ts || !sig || sig.length !== 64) return false;
-
-  const expected = crypto
-    .createHmac('sha256', process.env.LOGIN_TIMING_SECRET!)
-    .update(ts)
-    .digest('hex');
-
-  const validSig = crypto.timingSafeEqual(
-    Buffer.from(sig, 'hex'),
-    Buffer.from(expected, 'hex')
-  );
-
-  if (!validSig) return false;
-
-  const age = Date.now() - parseInt(ts, 10);
-  return age >= MIN_HUMAN_DELAY_MS && age <= MAX_HUMAN_DELAY_MS;
 }
 
 async function checkLockout(ip: string, fp: string) {
@@ -93,20 +68,19 @@ async function recordFail(ip: string, fp: string): Promise<number> {
 
 // === MAIN HANDLER ===
 export async function POST(request: NextRequest) {
+  // Prevent non-POST requests (like favicon.ico)
+  if (request.method !== 'POST') {
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   const ip = getClientIP(request);
   const fp = getFingerprint(request);
 
   try {
     const body = await request.json();
-    const { email, password, recaptchaToken, timingToken } = LoginSchema.parse(body);
+    const { email, password, recaptchaToken } = LoginSchema.parse(body);
 
-    // 1. Verify human timing
-    if (!verifyTimingToken(timingToken)) {
-      console.warn(`[BOT] Invalid timing from ${ip}`);
-      return NextResponse.json({ error: 'Security check failed' }, { status: 403 });
-    }
-
-    // 2. Check lockout
+    // 1. Check lockout
     try {
       await checkLockout(ip, fp);
     } catch (e: any) {
@@ -119,18 +93,18 @@ export async function POST(request: NextRequest) {
       throw e;
     }
 
-    // 3. Verify reCAPTCHA
+    // 2. Verify reCAPTCHA
     const resCaptcha = await fetch(
       `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
       { method: 'POST' }
     );
     const captchaData = await resCaptcha.json();
-    if (captchaData.score < 0.7) {
-      console.warn(`[BOT] Low CAPTCHA score (${captchaData.score}) from ${ip}`);
+    if (!captchaData.success || captchaData.score < 0.7) {
+      console.warn(`[BOT] CAPTCHA failed (${captchaData.score}) from ${ip}`);
       return NextResponse.json({ error: 'Security check failed' }, { status: 403 });
     }
 
-    // 4. Authenticate
+    // 3. Authenticate
     const user = await getUserByEmail(email.toLowerCase().trim());
     const valid = user
       ? await bcrypt.compare(password, user.passwordHash)
@@ -147,7 +121,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account banned' }, { status: 403 });
     }
 
-    // 5. CREATE SESSION IN DB (without modifying storage.ts)
+    // 4. CREATE SESSION
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const db = await connectDB();
     const { ObjectId } = await import('mongodb');
@@ -156,7 +130,7 @@ export async function POST(request: NextRequest) {
       _id: new ObjectId(),
       sessionToken,
       userId: new ObjectId(user.id),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       createdAt: new Date(),
     });
 

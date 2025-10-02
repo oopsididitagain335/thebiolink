@@ -42,6 +42,14 @@ interface UserData {
   profileViews: number;
 }
 
+interface MetadataUser {
+  name: string;
+  avatar?: string;
+  bio?: string;
+  isBanned: boolean; // ✅ FIXED
+  links: { url: string; title: string }[];
+}
+
 interface PageProps {
   params: Promise<{ username: string }>;
   searchParams: Promise<{ clientId?: string }>;
@@ -99,17 +107,14 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       profileViews = 0,
     } = userData;
 
-    // Validate media URLs
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
 
-    // Sort content by position (fallback to index)
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
     return (
       <div className="min-h-screen relative">
-        {/* Client ID script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -129,7 +134,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           }}
         />
 
-        {/* Background */}
         {backgroundVideo && isValidBackgroundVideo ? (
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
@@ -148,26 +152,21 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 to-black" />
         )}
 
-        {/* Background Audio */}
         {backgroundAudio && (
           <audio autoPlay loop>
             <source src={backgroundAudio} type="audio/mpeg" />
           </audio>
         )}
 
-        {/* Overlay */}
         <div className="absolute inset-0 bg-black/60 z-10"></div>
 
-        {/* Content */}
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
-            {/* Profile Card */}
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6 shadow-xl">
               <Avatar name={name} avatar={avatar} />
               <h1 className="text-2xl font-bold text-white mt-3 mb-1">{name}</h1>
               {bio && <p className="text-gray-200 mb-4 px-2">{bio}</p>}
 
-              {/* Stats */}
               <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
                 <span className="flex items-center gap-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,7 +185,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                 )}
               </div>
 
-              {/* Badges */}
               {badges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                   <Badges badges={badges} />
@@ -194,7 +192,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               )}
             </div>
 
-            {/* Widgets (above links) */}
             {sortedWidgets.length > 0 && (
               <div className="space-y-4 mb-6">
                 {sortedWidgets.map((widget) => (
@@ -223,7 +220,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               </div>
             )}
 
-            {/* Links */}
             {sortedLinks.length > 0 ? (
               <Links links={sortedLinks} />
             ) : (
@@ -232,7 +228,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               </div>
             )}
 
-            {/* Footer */}
             <div className="text-center text-gray-400 text-xs mt-8 pt-6 border-t border-white/10">
               <p className="mb-1">Powered by The BioLink</p>
               <a
@@ -265,8 +260,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
   try {
-    const userData = await getUserByUsernameForMetadata(username);
-    if (!userData || userData.isBanned) {
+    const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
+    if (!userData || userData.isBanned) { // ✅ Now safe
       return { title: 'User Not Found | The BioLink' };
     }
     return {

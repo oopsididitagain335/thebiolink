@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // ✅ sessionId is the user's _id string (not an ObjectId instance)
     const user = await getUserById(sessionId);
     
     if (!user) {
@@ -27,11 +26,11 @@ export async function GET(request: NextRequest) {
         bio: user.bio || '',
         background: user.background || '',
         isEmailVerified: user.isEmailVerified,
-        plan: 'free', // or pull from DB if you add it
+        plan: 'free',
       },
       links: user.links || [],
-      widgets: user.widgets || [], // ✅ from updated storage.ts
-      layout: user.layout || 'classic', // ✅
+      widgets: user.widgets || [],
+      layout: user.layout || 'classic',
     });
   } catch (error) {
     console.error('Dashboard data error:', error);

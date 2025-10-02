@@ -1,7 +1,7 @@
 // app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { updateUserProfile, saveUserLinks } from '@/lib/storage';
+import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage'; // ✅ import saveUserWidgets
 import { z } from 'zod';
 
 const ProfileUpdateSchema = z.object({
@@ -10,6 +10,7 @@ const ProfileUpdateSchema = z.object({
   avatar: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500).optional().or(z.literal('')),
   background: z.string().url().optional().or(z.literal('')),
+  layout: z.string().optional(), // ✅
 });
 
 const LinkSchema = z.object({
@@ -20,7 +21,16 @@ const LinkSchema = z.object({
   position: z.number().int().min(0),
 });
 
+const WidgetSchema = z.object({
+  id: z.string(),
+  type: z.enum(['spotify', 'youtube', 'twitter', 'custom']),
+  title: z.string().optional(),
+  content: z.string().optional(),
+  position: z.number().int().min(0),
+});
+
 const LinksUpdateSchema = z.array(LinkSchema).max(50);
+const WidgetsUpdateSchema = z.array(WidgetSchema).max(20);
 
 export async function PUT(request: NextRequest) {
   const sessionId = (await cookies()).get('biolink_session')?.value;
@@ -30,7 +40,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { profile, links } = body;
+    const { profile, links, widgets } = body;
 
     if (profile) {
       const validatedProfile = ProfileUpdateSchema.parse(profile);
@@ -40,6 +50,11 @@ export async function PUT(request: NextRequest) {
     if (Array.isArray(links)) {
       const validatedLinks = LinksUpdateSchema.parse(links);
       await saveUserLinks(sessionId, validatedLinks);
+    }
+
+    if (Array.isArray(widgets)) {
+      const validatedWidgets = WidgetsUpdateSchema.parse(widgets);
+      await saveUserWidgets(sessionId, validatedWidgets); // ✅
     }
 
     return Response.json({ success: true });

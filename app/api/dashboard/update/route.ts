@@ -10,26 +10,15 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    
-    // ✅ Save profile (only if provided)
-    if (body.profile) {
-      await updateUserProfile(sessionId, body.profile);
-    }
+    const { profile, links, widgets } = await request.json();
 
-    // ✅ Save links (only if provided)
-    if (Array.isArray(body.links)) {
-      await saveUserLinks(sessionId, body.links);
-    }
-
-    // ✅ Save widgets (only if provided)
-    if (Array.isArray(body.widgets)) {
-      await saveUserWidgets(sessionId, body.widgets);
-    }
+    if (profile) await updateUserProfile(sessionId, profile);
+    if (Array.isArray(links)) await saveUserLinks(sessionId, links);
+    if (Array.isArray(widgets)) await saveUserWidgets(sessionId, widgets);
 
     return Response.json({ success: true });
   } catch (error: any) {
-    console.error('Update error:', error.message || error);
-    return Response.json({ error: error.message || 'Update failed' }, { status: 400 });
+    console.error('Update error:', error.message);
+    return Response.json({ error: error.message || 'Save failed' }, { status: 400 });
   }
 }

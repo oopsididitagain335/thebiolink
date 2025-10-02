@@ -24,16 +24,16 @@ interface User {
 }
 
 const FAMOUS_LINKS = [
-  { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
-  { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
-  { title: 'Twitch', icon: 'https://cdn-icons-png.flaticon.com/512/657/657252.png' },
-  { title: 'Twitter / X', icon: 'https://cdn-icons-png.flaticon.com/512/733/733579.png' },
-  { title: 'Discord', icon: 'https://cdn-icons-png.flaticon.com/512/946/946822.png' },
-  { title: 'Spotify', icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111624.png' },
-  { title: 'SoundCloud', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384045.png' },
-  { title: 'Portfolio', icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png' },
-  { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
-  { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
+  { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png  ' },
+  { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png  ' },
+  { title: 'Twitch', icon: 'https://cdn-icons-png.flaticon.com/512/657/657252.png  ' },
+  { title: 'Twitter / X', icon: 'https://cdn-icons-png.flaticon.com/512/733/733579.png  ' },
+  { title: 'Discord', icon: 'https://cdn-icons-png.flaticon.com/512/946/946822.png  ' },
+  { title: 'Spotify', icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111624.png  ' },
+  { title: 'SoundCloud', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384045.png  ' },
+  { title: 'Portfolio', icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png  ' },
+  { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png  ' },
+  { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png  ' },
 ];
 
 export default function Dashboard() {
@@ -236,27 +236,16 @@ export default function Dashboard() {
             <div>
               <h1 className="text-3xl font-bold text-white">Your BioLink Dashboard</h1>
               <p className="text-gray-400 mt-2">
-                Your bio link is live on both domains:
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                Customize your bio link page at{' '}
                 <a
-                  href={`https://thebiolink.lol/${user.username}`}
+                  href={`https://thebiolink.lol/  ${user.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
                 >
                   thebiolink.lol/{user.username}
                 </a>
-                <span className="text-gray-500 hidden sm:inline">•</span>
-                <a
-                  href={`https://hostnet.wiki/${user.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-purple-400 hover:text-purple-300 hover:underline"
-                >
-                  hostnet.wiki/{user.username}
-                </a>
-              </div>
+              </p>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
               <button
@@ -309,10 +298,7 @@ export default function Dashboard() {
                     />
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
-                    Your link will be available at both:
-                    <br />
-                    <span className="font-mono">thebiolink.lol/{user.username}</span> and{' '}
-                    <span className="font-mono">hostnet.wiki/{user.username}</span>
+                    This will be your public link: thebiolink.lol/{user.username}
                   </p>
                 </div>
 
@@ -324,7 +310,7 @@ export default function Dashboard() {
                     value={user.avatar}
                     onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="https://example.com/avatar.jpg"
+                    placeholder="https://example.com/avatar.jpg  "
                   />
                 </div>
 
@@ -336,7 +322,7 @@ export default function Dashboard() {
                     value={user.background}
                     onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="https://media.giphy.com/.../background.gif"
+                    placeholder="https://media.giphy.com/.../background.gif  "
                   />
                   <p className="mt-2 text-xs text-gray-500">
                     Only Giphy/Tenor GIFs allowed (.gif format)
@@ -397,7 +383,7 @@ export default function Dashboard() {
                           value={link.url}
                           onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
                           className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                          placeholder="https://example.com"
+                          placeholder="https://example.com  "
                         />
                       </div>
                     </div>
@@ -560,7 +546,7 @@ export default function Dashboard() {
               <p className="text-gray-300 mb-4">
                 Before saving, please confirm that your profile and links comply with our{' '}
                 <a
-                  href="https://www.thebiolink.lol/community-guidelines"
+                  href="https://www.thebiolink.lol/community-guidelines  "
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-indigo-400 hover:underline"

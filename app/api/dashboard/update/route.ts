@@ -1,7 +1,7 @@
 // app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage'; // ✅ import saveUserWidgets
+import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 import { z } from 'zod';
 
 const ProfileUpdateSchema = z.object({
@@ -10,7 +10,7 @@ const ProfileUpdateSchema = z.object({
   avatar: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500).optional().or(z.literal('')),
   background: z.string().url().optional().or(z.literal('')),
-  layout: z.string().optional(), // ✅
+  layout: z.string().optional(),
 });
 
 const LinkSchema = z.object({
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest) {
 
     if (Array.isArray(widgets)) {
       const validatedWidgets = WidgetsUpdateSchema.parse(widgets);
-      await saveUserWidgets(sessionId, validatedWidgets); // ✅
+      await saveUserWidgets(sessionId, validatedWidgets);
     }
 
     return Response.json({ success: true });

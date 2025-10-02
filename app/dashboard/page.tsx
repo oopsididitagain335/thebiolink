@@ -13,6 +13,14 @@ interface Link {
   position: number;
 }
 
+interface Widget {
+  id: string;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom';
+  title?: string;
+  content?: string; // embed code or URL
+  position: number;
+}
+
 interface User {
   _id: string;
   name: string;
@@ -21,7 +29,7 @@ interface User {
   bio: string;
   background: string;
   isEmailVerified: boolean;
-  plan?: string;
+  plan?: string; // optional
 }
 
 // ========= CONSTANTS =========
@@ -38,6 +46,20 @@ const FAMOUS_LINKS = [
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
 
+const LAYOUT_TEMPLATES = [
+  { id: 'classic', name: 'Classic (Links Only)' },
+  { id: 'social', name: 'Social Focus' },
+  { id: 'creator', name: 'Creator Hub' },
+  { id: 'minimal', name: 'Minimal' },
+];
+
+const WIDGET_TYPES = [
+  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
+  { id: 'youtube', name: 'YouTube Video', icon: '📺' },
+  { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
+  { id: 'custom', name: 'Custom HTML', icon: '</>' },
+];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
@@ -47,22 +69,20 @@ const getBioLinkUrl = (username: string): string => {
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
 
-// ========= DRAGGABLE LINK ITEM (Native HTML5) =========
-const DraggableLinkItem = ({ 
-  link, 
-  index, 
-  onMove, 
-  onChange, 
-  onRemove 
+// ========= DRAGGABLE ITEM (Generic) =========
+const DraggableItem = ({ 
+  children,
+  index,
+  onMove,
+  itemType = 'item'
 }: { 
-  link: Link; 
-  index: number; 
-  onMove: (from: number, to: number) => void; 
-  onChange: (index: number, field: keyof Link, value: string) => void;
-  onRemove: (index: number) => void;
+  children: React.ReactNode;
+  index: number;
+  onMove: (from: number, to: number) => void;
+  itemType?: string;
 }) => {
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', index.toString());
+    e.dataTransfer.setData('text/plain', `${itemType}:${index}`);
     e.currentTarget.classList.add('opacity-60');
   };
 
@@ -72,8 +92,10 @@ const DraggableLinkItem = ({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (fromIndex !== index) {
+    const data = e.dataTransfer.getData('text/plain');
+    const [type, fromIndexStr] = data.split(':');
+    const fromIndex = parseInt(fromIndexStr, 10);
+    if (type === itemType && !isNaN(fromIndex) && fromIndex !== index) {
       onMove(fromIndex, index);
     }
   };
@@ -84,46 +106,9 @@ const DraggableLinkItem = ({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className="border border-gray-700 rounded-xl p-4 bg-gray-700/30 mb-3"
+      className="mb-3"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-          <input
-            type="text"
-            value={link.title}
-            onChange={(e) => onChange(index, 'title', e.target.value)}
-            maxLength={100}
-            className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-            placeholder="My Website"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
-          <input
-            type="url"
-            value={link.url}
-            onChange={(e) => onChange(index, 'url', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-            placeholder="https://example.com"
-          />
-        </div>
-      </div>
-      <div className="flex justify-between items-center">
-        <input
-          type="text"
-          value={link.icon}
-          onChange={(e) => onChange(index, 'icon', e.target.value)}
-          className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
-          placeholder="Icon URL (optional)"
-        />
-        <button
-          onClick={() => onRemove(index)}
-          className="text-red-400 hover:text-red-300 font-medium"
-        >
-          Remove
-        </button>
-      </div>
+      {children}
     </div>
   );
 };
@@ -135,9 +120,13 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
   );
 
+  // ✅ FIXED: Safe plan display
+  const planDisplay = user.plan 
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
+    : 'Free';
+
   return (
     <div className="space-y-6">
-      {/* Profile Card */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -157,30 +146,10 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{user.plan?.charAt(0).toUpperCase() + user.plan.slice(1) || 'Free'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Subscription */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Subscription</h3>
-        {user.plan && user.plan !== 'free' ? (
-          <div>
-            <p className="text-gray-300 mb-4">You're on the <span className="font-bold text-purple-400">{user.plan}</span> plan.</p>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium transition-colors">
-              Cancel Subscription
-            </button>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-gray-400 mb-4">Upgrade to unlock more features!</p>
-            <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-lg font-medium hover:opacity-90">
-              Upgrade Plan
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -248,17 +217,17 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF URL</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
           <input
             type="url"
             name="background"
             value={user.background}
             onChange={handleProfileChange}
             className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="https://media.giphy.com/.../background.gif"
+            placeholder="https://example.com/background.gif"
           />
           <p className="mt-2 text-xs text-gray-500">
-            Only Giphy/Tenor GIFs allowed (.gif format)
+            Supports .gif, .mp4, .webm
           </p>
         </div>
 
@@ -312,26 +281,12 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     setNewLinkTitle('');
   };
 
-  const addFamousLink = (preset: typeof FAMOUS_LINKS[0]) => {
-    setLinks([
-      ...links,
-      {
-        id: Date.now().toString(),
-        url: '',
-        title: preset.title,
-        icon: preset.icon,
-        position: links.length,
-      },
-    ]);
-  };
-
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
 
   return (
     <div className="space-y-6">
-      {/* Link Manager */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-semibold text-white">Link Manager</h2>
@@ -352,32 +307,55 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             >
               + Add Link
             </button>
-            <button
-              onClick={() => FAMOUS_LINKS.forEach(addFamousLink)}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-            >
-              Add Famous Links
-            </button>
           </div>
         </div>
 
         <div className="space-y-4">
           {links.map((link, index) => (
-            <DraggableLinkItem
-              key={link.id}
-              link={link}
-              index={index}
-              onMove={moveLink}
-              onChange={handleLinkChange}
-              onRemove={removeLink}
-            />
+            <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={link.title}
+                      onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
+                      maxLength={100}
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
+                    <input
+                      type="url"
+                      value={link.url}
+                      onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <input
+                    type="text"
+                    value={link.icon}
+                    onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
+                    className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                    placeholder="Icon URL (optional)"
+                  />
+                  <button
+                    onClick={() => removeLink(index)}
+                    className="text-red-400 hover:text-red-300 font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </DraggableItem>
           ))}
 
           {links.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-              </svg>
               <p>No links added yet</p>
             </div>
           )}
@@ -399,88 +377,146 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </div>
             <p className="text-gray-400 text-sm mt-2">Coming Soon</p>
           </div>
-          <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-            <div className="flex items-center">
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/174/174855.png" 
-                alt="Instagram" 
-                className="w-8 h-8 mr-3"
-              />
-              <span className="text-white font-medium">Instagram</span>
-            </div>
-            <button className="mt-2 text-indigo-400 text-sm font-medium">Connect</button>
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const AppearanceTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
+  const addWidget = (type: Widget['type']) => {
+    setWidgets([
+      ...widgets,
+      {
+        id: Date.now().toString(),
+        type,
+        title: type === 'spotify' ? 'My Playlist' : type === 'youtube' ? 'Featured Video' : '',
+        content: '',
+        position: widgets.length,
+      }
+    ]);
+  };
+
+  const updateWidget = (index: number, field: keyof Widget, value: string) => {
+    setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
+  };
+
+  const removeWidget = (index: number) => {
+    setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
+  };
+
+  const moveWidget = (from: number, to: number) => {
+    const newWidgets = [...widgets];
+    const [item] = newWidgets.splice(from, 1);
+    newWidgets.splice(to, 0, item);
+    setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-6 text-white">Theme & Colors</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-3">Theme Style</h3>
-            <div className="flex flex-wrap gap-2">
-              {['Dark', 'Light', 'Gradient'].map((theme) => (
+        <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
+        <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {WIDGET_TYPES.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => addWidget(w.id as Widget['type'])}
+              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
+            >
+              <div className="text-2xl mb-1">{w.icon}</div>
+              <div className="text-xs">{w.name}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {widgets.map((widget, index) => (
+            <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+                <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Widget Title"
+                    value={widget.title || ''}
+                    onChange={(e) => updateWidget(index, 'title', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                  />
+                  <textarea
+                    placeholder={widget.type === 'custom' ? 'Paste HTML or embed code' : 'Enter URL or embed code'}
+                    value={widget.content || ''}
+                    onChange={(e) => updateWidget(index, 'content', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                  />
+                </div>
                 <button
-                  key={theme}
-                  className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600"
+                  onClick={() => removeWidget(index)}
+                  className="mt-3 text-red-400 text-sm"
                 >
-                  {theme}
+                  Remove Widget
                 </button>
-              ))}
+              </div>
+            </DraggableItem>
+          ))}
+
+          {widgets.length === 0 && (
+            <div className="text-center py-6 text-gray-500">
+              No widgets added. Choose one above to get started.
             </div>
-          </div>
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-3">Accent Color</h3>
-            <div className="flex gap-2">
-              {[
-                { name: 'Indigo', color: '#6366f1' },
-                { name: 'Purple', color: '#a855f7' },
-                { name: 'Blue', color: '#3b82f6' },
-                { name: 'Green', color: '#10b981' },
-              ].map((c) => (
-                <div
-                  key={c.name}
-                  className="w-8 h-8 rounded-full cursor-pointer border-2 border-white/20"
-                  style={{ backgroundColor: c.color }}
-                />
-              ))}
-            </div>
-          </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LayoutTab = ({ layout, setLayout, widgets, links }: { 
+  layout: string; 
+  setLayout: (layout: string) => void;
+  widgets: Widget[];
+  links: Link[];
+}) => {
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Layout Template</h2>
+        <p className="text-gray-400 mb-4">Choose how your BioLink page is organized.</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {LAYOUT_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => setLayout(template.id)}
+              className={`p-4 text-left rounded-xl border ${
+                layout === template.id 
+                  ? 'border-indigo-500 bg-indigo-500/10 text-white' 
+                  : 'border-gray-700 bg-gray-700/30 text-gray-300'
+              }`}
+            >
+              <div className="font-medium">{template.name}</div>
+              <div className="text-xs mt-1 opacity-75">
+                {template.id === 'classic' && 'Links only, centered'}
+                {template.id === 'social' && 'Social icons + links'}
+                {template.id === 'creator' && 'Bio + widgets + links'}
+                {template.id === 'minimal' && 'Clean, text-focused'}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-6 text-white">Layout & Typography</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-3">Button Style</h3>
-            <div className="flex gap-2">
-              {['Rounded', 'Square', 'Pill'].map((style) => (
-                <button
-                  key={style}
-                  className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600"
-                  style={{
-                    borderRadius: style === 'Rounded' ? '0.5rem' : style === 'Square' ? '0' : '9999px'
-                  }}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-3">Font Family</h3>
-            <select className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white">
-              <option>Sans Serif</option>
-              <option>Serif</option>
-              <option>Monospace</option>
-            </select>
+        <h3 className="text-lg font-semibold text-white mb-3">Preview</h3>
+        <div className="bg-gray-900/50 rounded-xl p-4 min-h-[200px]">
+          <div className="text-center text-gray-300">
+            <div className="mb-4">Your BioLink Preview</div>
+            {layout === 'creator' && widgets.length > 0 && (
+              <div className="text-xs mb-2 text-purple-400">+ {widgets.length} widget(s)</div>
+            )}
+            <div className="text-xs">{links.length} link(s)</div>
           </div>
         </div>
       </div>
@@ -508,9 +544,11 @@ export default function Dashboard() {
     bio: '',
     background: '',
     isEmailVerified: true,
-    plan: 'free',
+    plan: 'free', // default to 'free' to avoid undefined
   });
   const [links, setLinks] = useState<Link[]>([]);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [layout, setLayout] = useState('classic');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -532,6 +570,11 @@ export default function Dashboard() {
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
 
+        // ✅ Ensure plan is never undefined
+        const plan = data.user.plan && typeof data.user.plan === 'string' 
+          ? data.user.plan 
+          : 'free';
+
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -540,7 +583,7 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: data.user.plan || 'free',
+          plan, // now guaranteed string
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -556,6 +599,20 @@ export default function Dashboard() {
               }))
             : []
         );
+
+        const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
+        const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        setWidgets(
+          sortedWidgets.map((w: any) => ({
+            id: w.id || Date.now().toString(),
+            type: w.type || 'custom',
+            title: w.title || '',
+            content: w.content || '',
+            position: w.position ?? 0,
+          }))
+        );
+
+        setLayout(data.layout || 'classic');
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
@@ -603,6 +660,14 @@ export default function Dashboard() {
           position: index,
         }));
 
+      const widgetsToSend = widgets.map((w, i) => ({
+        id: w.id,
+        type: w.type,
+        title: w.title?.trim() || '',
+        content: w.content?.trim() || '',
+        position: i,
+      }));
+
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -615,6 +680,8 @@ export default function Dashboard() {
             background: user.background?.trim() || '',
           },
           links: linksToSend,
+          widgets: widgetsToSend,
+          layout,
         }),
       });
 
@@ -637,10 +704,11 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
+    { id: 'layout', name: 'Layout' },
     { id: 'appearance', name: 'Appearance' },
     { id: 'links', name: 'Links' },
-    { id: 'badges', name: 'Badges' },
     { id: 'widgets', name: 'Widgets' },
+    { id: 'badges', name: 'Badges' },
     { id: 'tracks', name: 'Tracks' },
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
@@ -657,7 +725,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -692,7 +759,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
@@ -711,18 +777,17 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* Tab Content */}
         <div className="mb-8">
           {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
           {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-          {activeTab === 'appearance' && <AppearanceTab user={user} setUser={setUser} />}
+          {activeTab === 'layout' && <LayoutTab layout={layout} setLayout={setLayout} widgets={widgets} links={links} />}
           {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
-          {['badges', 'widgets', 'tracks', 'manage', 'settings'].includes(activeTab) && (
+          {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+          {['appearance', 'badges', 'tracks', 'manage', 'settings'].includes(activeTab) && (
             <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
           )}
         </div>
 
-        {/* Toast Message */}
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -735,7 +800,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Guidelines Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

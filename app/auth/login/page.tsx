@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const pageLoadTime = useRef(Date.now());
 
   // Load reCAPTCHA script
   useEffect(() => {
@@ -33,24 +32,6 @@ export default function LoginPage() {
     };
   }, []);
 
-  // Generate HMAC-signed timing token
-  const generateTimingToken = async (): Promise<string> => {
-    const payload = pageLoadTime.current.toString();
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(process.env.NEXT_PUBLIC_LOGIN_TIMING_SECRET!),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-    const hexSig = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    return `${payload}.${hexSig}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -63,24 +44,19 @@ export default function LoginPage() {
         { action: 'login' }
       );
 
-      // Generate human interaction timing token
-      const timingToken = await generateTimingToken();
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           email: email.trim(), 
           password, 
-          recaptchaToken, 
-          timingToken 
+          recaptchaToken 
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // Clear sensitive data
         setPassword('');
         router.push('/dashboard');
       } else {

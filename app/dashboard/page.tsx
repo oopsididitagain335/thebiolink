@@ -20,10 +20,9 @@ interface User {
   bio: string;
   background: string;
   isEmailVerified: boolean;
-  plan?: string; // ← Added for subscription status
+  plan?: string;
 }
 
-// ✅ Famous Links Presets
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -77,7 +76,7 @@ export default function Dashboard() {
           bio: data.user.bio || '',
           background: data.user.background || '',
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: data.user.plan || 'free', // ← Include plan
+          plan: data.user.plan || 'free',
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -232,7 +231,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -268,9 +266,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Profile Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Profile Settings</h2>
               <div className="space-y-5">
@@ -347,7 +343,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Links Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-semibold text-white">Link Manager</h2>
@@ -433,9 +428,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Live Preview */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
@@ -455,7 +448,7 @@ export default function Dashboard() {
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) else (
+                  ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
@@ -484,7 +477,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Subscription Card (if paid) */}
             {user.plan && user.plan !== 'free' && (
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold mb-3 text-white">Subscription</h3>
@@ -504,7 +496,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h3 className="text-lg font-semibold mb-4 text-white">Stats</h3>
               <div className="space-y-3">
@@ -536,7 +527,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Status Message */}
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -549,7 +539,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Community Guidelines Confirmation Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

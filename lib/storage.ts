@@ -44,6 +44,7 @@ interface UserDoc {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
+  layout?: string; // ✅ NEW
 }
 
 interface LinkDoc {
@@ -55,6 +56,16 @@ interface LinkDoc {
   position: number;
 }
 
+// ✅ NEW
+interface WidgetDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom';
+  title?: string;
+  content?: string;
+  position: number;
+}
+
 interface ProfileVisitDoc {
   _id: ObjectId;
   userId: ObjectId;
@@ -62,15 +73,16 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// --- User Functions (Node.js only) ---
+// --- User Functions ---
 export async function getUserByUsername(username: string, clientId: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ username });
+  const user = await database.collection<UserDoc>('users').findOne({ username });
 
   if (!user) return null;
 
   if (!clientId) {
-    const links = await database.collection('links').find({ userId: user._id }).toArray();
+    const links = await database.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
+    const widgets = await database.collection<WidgetDoc>('widgets').find({ userId: user._id }).toArray(); // ✅
     return {
       _id: user._id.toString(),
       id: user._id.toString(),
@@ -94,7 +106,15 @@ export async function getUserByUsername(username: string, clientId: string) {
         title: link.title || '',
         icon: link.icon || '',
         position: link.position || 0
-      })).sort((a: any, b: any) => a.position - b.position)
+      })).sort((a: any, b: any) => a.position - b.position),
+      widgets: widgets.map((w: any) => ({ // ✅
+        id: w._id.toString(),
+        type: w.type,
+        title: w.title || '',
+        content: w.content || '',
+        position: w.position || 0,
+      })).sort((a: any, b: any) => a.position - b.position),
+      layout: user.layout || 'classic', // ✅
     };
   }
 
@@ -116,6 +136,7 @@ export async function getUserByUsername(username: string, clientId: string) {
   }
 
   const links = await database.collection('links').find({ userId: user._id }).toArray();
+  const widgets = await database.collection('widgets').find({ userId: user._id }).toArray(); // ✅
   return {
     _id: user._id.toString(),
     id: user._id.toString(),
@@ -139,17 +160,23 @@ export async function getUserByUsername(username: string, clientId: string) {
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a: any, b: any) => a.position - b.position)
+    })).sort((a: any, b: any) => a.position - b.position),
+    widgets: widgets.map((w: any) => ({ // ✅
+      id: w._id.toString(),
+      type: w.type,
+      title: w.title || '',
+      content: w.content || '',
+      position: w.position || 0,
+    })).sort((a: any, b: any) => a.position - b.position),
+    layout: user.layout || 'classic', // ✅
   };
 }
 
 export async function getUserByUsernameForMetadata(username: string) {
   const database = await connectDB();
-  const user = await database.collection('users').findOne({ username });
-
+  const user = await database.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
-
-  const links = await database.collection('links').find({ userId: user._id }).toArray();
+  const links = await database.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   return {
     _id: user._id.toString(),
     id: user._id.toString(),
@@ -180,9 +207,10 @@ export async function getUserByUsernameForMetadata(username: string) {
 export async function getUserById(id: string) {
   const database = await connectDB();
   try {
-    const user = await database.collection('users').findOne({ _id: new ObjectId(id) });
+    const user = await database.collection<UserDoc>('users').findOne({ _id: new ObjectId(id) });
     if (!user) return null;
-    const links = await database.collection('links').find({ userId: user._id }).toArray();
+    const links = await database.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
+    const widgets = await database.collection<WidgetDoc>('widgets').find({ userId: user._id }).toArray(); // ✅
     return {
       _id: user._id.toString(),
       id: user._id.toString(),
@@ -201,13 +229,21 @@ export async function getUserById(id: string) {
       createdAt: user.createdAt || new Date().toISOString(),
       passwordHash: user.passwordHash,
       profileViews: user.profileViews || 0,
+      layout: user.layout || 'classic', // ✅
       links: links.map((link: any) => ({
         id: link._id.toString(),
         url: link.url || '',
         title: link.title || '',
         icon: link.icon || '',
         position: link.position || 0
-      })).sort((a: any, b: any) => a.position - b.position)
+      })).sort((a: any, b: any) => a.position - b.position),
+      widgets: widgets.map((w: any) => ({ // ✅
+        id: w._id.toString(),
+        type: w.type,
+        title: w.title || '',
+        content: w.content || '',
+        position: w.position || 0,
+      })).sort((a: any, b: any) => a.position - b.position),
     };
   } catch {
     return null;
@@ -234,7 +270,8 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date(),
-    profileViews: 0
+    profileViews: 0,
+    layout: 'classic', // ✅
   } as UserDoc);
   return {
     id: userId.toString(),
@@ -246,7 +283,8 @@ export async function createUser(email: string, password: string, username: stri
     isEmailVerified: true,
     isBanned: false,
     createdAt: new Date().toISOString(),
-    profileViews: 0
+    profileViews: 0,
+    layout: 'classic', // ✅
   };
 }
 
@@ -274,7 +312,7 @@ export async function getUserByEmail(email: string) {
     bannedAt: user.bannedAt,
     createdAt: user.createdAt || new Date().toISOString(),
     passwordHash: user.passwordHash,
-    profileViews: user.profileViews || 0
+    profileViews: user.profileViews || 0,
   };
 }
 
@@ -298,6 +336,29 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ NEW
+export async function saveUserWidgets(userId: string, widgets: any[]) {
+  const database = await connectDB();
+  const objectId = new ObjectId(userId);
+  await database.collection('widgets').deleteMany({ userId: objectId });
+  if (widgets.length > 0) {
+    const widgetsToInsert = widgets.map((w: any, index: number) => ({
+      _id: new ObjectId(),
+      userId: objectId,
+      type: w.type || 'custom',
+      title: (w.title || '').trim(),
+      content: (w.content || '').trim(),
+      position: index,
+    }));
+    const validWidgets = widgetsToInsert.filter(w => 
+      ['spotify', 'youtube', 'twitter', 'custom'].includes(w.type)
+    );
+    if (validWidgets.length > 0) {
+      await database.collection('widgets').insertMany(validWidgets);
+    }
+  }
+}
+
 export async function updateUserProfile(userId: string, updates: any) {
   const database = await connectDB();
   const objectId = new ObjectId(userId);
@@ -308,7 +369,8 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
     backgroundVideo: updates.backgroundVideo?.trim() || '',
-    backgroundAudio: updates.backgroundAudio?.trim() || ''
+    backgroundAudio: updates.backgroundAudio?.trim() || '',
+    layout: updates.layout || 'classic', // ✅
   };
   if (cleanedUpdates.username) {
     const existing = await database.collection('users').findOne({
@@ -321,12 +383,13 @@ export async function updateUserProfile(userId: string, updates: any) {
     { _id: objectId },
     { $set: cleanedUpdates }
   );
-  const updatedUserDocument = await database.collection('users').findOne({ _id: objectId });
+  const updatedUserDocument = await database.collection<UserDoc>('users').findOne({ _id: objectId });
   if (!updatedUserDocument) {
     console.error(`Failed to retrieve user after update for ID: ${userId}`);
     throw new Error('User not found after update');
   }
   const links = await database.collection('links').find({ userId: objectId }).toArray();
+  const widgets = await database.collection('widgets').find({ userId: objectId }).toArray(); // ✅
   return {
     _id: updatedUserDocument._id.toString(),
     id: updatedUserDocument._id.toString(),
@@ -345,17 +408,25 @@ export async function updateUserProfile(userId: string, updates: any) {
     createdAt: updatedUserDocument.createdAt || new Date().toISOString(),
     passwordHash: updatedUserDocument.passwordHash,
     profileViews: updatedUserDocument.profileViews || 0,
+    layout: updatedUserDocument.layout || 'classic', // ✅
     links: links.map((link: any) => ({
       id: link._id.toString(),
       url: link.url || '',
       title: link.title || '',
       icon: link.icon || '',
       position: link.position || 0
-    })).sort((a: any, b: any) => a.position - b.position)
+    })).sort((a: any, b: any) => a.position - b.position),
+    widgets: widgets.map((w: any) => ({ // ✅
+      id: w._id.toString(),
+      type: w.type,
+      title: w.title || '',
+      content: w.content || '',
+      position: w.position || 0,
+    })).sort((a: any, b: any) => a.position - b.position),
   };
 }
 
-// --- ADMIN PANEL FUNCTIONS ---
+// --- ADMIN PANEL FUNCTIONS (keep as-is) ---
 export async function addUserBadge(
   userId: string,
   badge: { id: string; name: string; icon: string; awardedAt: string }
@@ -377,7 +448,6 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-// ✅ FIXED: Now includes avatar, bio, and badges
 export async function getAllUsers() {
   const database = await connectDB();
   const users = await database

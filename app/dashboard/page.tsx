@@ -1,9 +1,9 @@
-// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Types
 interface Link {
   id: string;
   url: string;
@@ -23,18 +23,41 @@ interface User {
   plan?: string;
 }
 
+// Famous links (cleaned up: removed trailing spaces)
 const FAMOUS_LINKS = [
-  { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png  ' },
-  { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png  ' },
-  { title: 'Twitch', icon: 'https://cdn-icons-png.flaticon.com/512/657/657252.png  ' },
-  { title: 'Twitter / X', icon: 'https://cdn-icons-png.flaticon.com/512/733/733579.png  ' },
-  { title: 'Discord', icon: 'https://cdn-icons-png.flaticon.com/512/946/946822.png  ' },
-  { title: 'Spotify', icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111624.png  ' },
-  { title: 'SoundCloud', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384045.png  ' },
-  { title: 'Portfolio', icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png  ' },
-  { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png  ' },
-  { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png  ' },
+  { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
+  { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
+  { title: 'Twitch', icon: 'https://cdn-icons-png.flaticon.com/512/657/657252.png' },
+  { title: 'Twitter / X', icon: 'https://cdn-icons-png.flaticon.com/512/733/733579.png' },
+  { title: 'Discord', icon: 'https://cdn-icons-png.flaticon.com/512/946/946822.png' },
+  { title: 'Spotify', icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111624.png' },
+  { title: 'SoundCloud', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384045.png' },
+  { title: 'Portfolio', icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png' },
+  { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
+  { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
+// Helper: Validate username format (safe for URLs)
+const isValidUsername = (username: string): boolean => {
+  // Only allow letters, numbers, underscores, hyphens; 3–30 chars
+  return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
+};
+
+// Helper: Safely construct bio link URL
+const getBioLinkUrl = (username: string): string => {
+  // Double-check validity
+  if (!isValidUsername(username)) {
+    return 'https://thebiolink.lol/';
+  }
+  // Use encodeURIComponent for extra safety (though not strictly needed for this charset)
+  const safeUsername = encodeURIComponent(username);
+  return `https://thebiolink.lol/${safeUsername}`;
+};
+
+// Helper: Safely display username (React already escapes, but we normalize)
+const sanitizeDisplayText = (text: string): string => {
+  return text.trim().replace(/[<>'"&]/g, ''); // optional extra layer
+};
 
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -68,13 +91,17 @@ export default function Dashboard() {
         }
         const data = await res.json();
 
+        // Enforce safe defaults
+        const rawUsername = data.user.username || '';
+        const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
+
         setUser({
           _id: data.user._id || '',
-          name: data.user.name || '',
-          username: data.user.username || '',
-          avatar: data.user.avatar || '',
-          bio: data.user.bio || '',
-          background: data.user.background || '',
+          name: (data.user.name || '').substring(0, 100),
+          username: safeUsername,
+          avatar: (data.user.avatar || '').trim(),
+          bio: (data.user.bio || '').substring(0, 500),
+          background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
         });
@@ -85,9 +112,9 @@ export default function Dashboard() {
           sortedLinks.length > 0
             ? sortedLinks.map((link: any) => ({
                 id: link.id || Date.now().toString() + Math.random(),
-                url: link.url || '',
-                title: link.title || '',
-                icon: link.icon || '',
+                url: (link.url || '').trim(),
+                title: (link.title || '').substring(0, 100),
+                icon: (link.icon || '').trim(),
                 position: link.position ?? 0,
               }))
             : []
@@ -115,12 +142,24 @@ export default function Dashboard() {
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setUser((prevUser) => ({ ...prevUser, [name]: value }));
+    // Prevent dangerous input at point of entry
+    if (name === 'username') {
+      // Allow only safe chars in real-time (UX-friendly)
+      const safeValue = value.replace(/[^a-zA-Z0-9_-]/g, '');
+      setUser((prevUser) => ({ ...prevUser, [name]: safeValue }));
+    } else {
+      setUser((prevUser) => ({ ...prevUser, [name]: value }));
+    }
   };
 
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     setLinks((prevLinks) => {
       const newLinks = [...prevLinks];
+      // Optional: sanitize link URLs (ensure they start with http/https)
+      if (field === 'url' && value && !value.match(/^https?:\/\//i)) {
+        // Auto-prepend https:// for better UX (optional)
+        value = 'https://' + value.replace(/^(https?:\/\/)?/i, '');
+      }
       newLinks[index] = { ...newLinks[index], [field]: value };
       return newLinks;
     });
@@ -159,13 +198,20 @@ export default function Dashboard() {
     setIsSaving(true);
     setMessage(null);
 
+    // Final validation before save
+    if (!isValidUsername(user.username)) {
+      setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
+      setIsSaving(false);
+      return;
+    }
+
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
         .map((link, index) => ({
           id: link.id,
           url: link.url.trim(),
-          title: link.title.trim(),
+          title: link.title.trim().substring(0, 100),
           icon: link.icon?.trim() || '',
           position: index,
         }));
@@ -175,10 +221,10 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profile: {
-            name: user.name.trim(),
+            name: user.name.trim().substring(0, 100),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
-            bio: user.bio?.trim() || '',
+            bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
           },
           links: linksToSend,
@@ -228,6 +274,10 @@ export default function Dashboard() {
     );
   }
 
+  // Construct safe URLs
+  const bioLinkUrl = getBioLinkUrl(user.username);
+  const displayUsername = sanitizeDisplayText(user.username);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -238,12 +288,12 @@ export default function Dashboard() {
               <p className="text-gray-400 mt-2">
                 Customize your bio link page at{' '}
                 <a
-                  href={`https://thebiolink.lol/  ${user.username}`}
+                  href={bioLinkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
                 >
-                  thebiolink.lol/{user.username}
+                  thebiolink.lol/{displayUsername}
                 </a>
               </p>
             </div>
@@ -265,8 +315,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Rest of your JSX remains unchanged — already safe due to React escaping */}
+        {/* ... (keep all your existing form, preview, stats, modal code as-is) ... */}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Profile + Links */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Profile Settings */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Profile Settings</h2>
               <div className="space-y-5">
@@ -277,6 +332,7 @@ export default function Dashboard() {
                     name="name"
                     value={user.name}
                     onChange={handleProfileChange}
+                    maxLength={100}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="John Doe"
                   />
@@ -293,15 +349,17 @@ export default function Dashboard() {
                       name="username"
                       value={user.username}
                       onChange={handleProfileChange}
+                      maxLength={30}
                       className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="yourname"
                     />
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
-                    This will be your public link: thebiolink.lol/{user.username}
+                    Letters, numbers, underscores, hyphens only (3–30 chars)
                   </p>
                 </div>
 
+                {/* Avatar, Background, Bio — unchanged */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
                   <input
@@ -310,7 +368,7 @@ export default function Dashboard() {
                     value={user.avatar}
                     onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="https://example.com/avatar.jpg  "
+                    placeholder="https://example.com/avatar.jpg"
                   />
                 </div>
 
@@ -322,7 +380,7 @@ export default function Dashboard() {
                     value={user.background}
                     onChange={handleProfileChange}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="https://media.giphy.com/.../background.gif  "
+                    placeholder="https://media.giphy.com/.../background.gif"
                   />
                   <p className="mt-2 text-xs text-gray-500">
                     Only Giphy/Tenor GIFs allowed (.gif format)
@@ -335,6 +393,7 @@ export default function Dashboard() {
                     name="bio"
                     value={user.bio}
                     onChange={handleProfileChange}
+                    maxLength={500}
                     rows={3}
                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Tell people about yourself"
@@ -343,6 +402,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Link Manager — unchanged (safe due to React + URL validation) */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-semibold text-white">Link Manager</h2>
@@ -372,6 +432,7 @@ export default function Dashboard() {
                           type="text"
                           value={link.title}
                           onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
+                          maxLength={100}
                           className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                           placeholder="My Website"
                         />
@@ -383,7 +444,7 @@ export default function Dashboard() {
                           value={link.url}
                           onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
                           className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                          placeholder="https://example.com  "
+                          placeholder="https://example.com"
                         />
                       </div>
                     </div>
@@ -428,6 +489,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Right Column: Preview + Stats */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
@@ -546,7 +608,7 @@ export default function Dashboard() {
               <p className="text-gray-300 mb-4">
                 Before saving, please confirm that your profile and links comply with our{' '}
                 <a
-                  href="https://www.thebiolink.lol/community-guidelines  "
+                  href="https://www.thebiolink.lol/community-guidelines"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-indigo-400 hover:underline"

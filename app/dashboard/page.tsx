@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ interface User {
   bio: string;
   background: string;
   isEmailVerified: boolean;
+  plan?: string; // ← Added for subscription status
 }
 
 // ✅ Famous Links Presets
@@ -44,6 +46,7 @@ export default function Dashboard() {
     bio: '',
     background: '',
     isEmailVerified: true,
+    plan: 'free',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +77,7 @@ export default function Dashboard() {
           bio: data.user.bio || '',
           background: data.user.background || '',
           isEmailVerified: data.user.isEmailVerified ?? true,
+          plan: data.user.plan || 'free', // ← Include plan
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -147,12 +151,10 @@ export default function Dashboard() {
     setLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
   };
 
-  // Trigger modal instead of saving directly
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
 
-  // Actual save logic after confirmation
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -197,6 +199,25 @@ export default function Dashboard() {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('Are you sure? Your subscription will be canceled immediately and you’ll be downgraded to the Free plan.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/subscription/cancel', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Subscription canceled. You’re now on the Free plan.' });
+        setUser((prev) => ({ ...prev, plan: 'free' }));
+      } else {
+        throw new Error(data.error || 'Failed to cancel subscription');
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Cancellation failed. Please try again.' });
     }
   };
 
@@ -434,7 +455,7 @@ export default function Dashboard() {
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) : (
+                  ) else (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
@@ -462,6 +483,26 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Subscription Card (if paid) */}
+            {user.plan && user.plan !== 'free' && (
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-3 text-white">Subscription</h3>
+                <p className="text-gray-300 mb-4">
+                  You're on the{' '}
+                  <span className="font-bold text-purple-400">
+                    {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
+                  </span>{' '}
+                  plan.
+                </p>
+                <button
+                  onClick={handleCancelSubscription}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium transition-colors"
+                >
+                  Cancel Subscription
+                </button>
+              </div>
+            )}
 
             {/* Stats Card */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

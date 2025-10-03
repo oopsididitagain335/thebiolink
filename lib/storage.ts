@@ -262,7 +262,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const valid = links
       .filter(l => l.url?.trim() && l.title?.trim())
       .map((l, i) => ({
-        _id: new ObjectId(),
+        _id: new ObjectId(l.id), // ✅ Preserve ID
         userId: uid,
         url: l.url.trim(),
         title: l.title.trim(),
@@ -280,14 +280,14 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   if (widgets.length > 0) {
     const valid = widgets
       .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
-      .map((w, i) => ({
-        _id: new ObjectId(),
+      .map((w) => ({
+        _id: new ObjectId(w.id), // ✅ CRITICAL: Preserve client ID
         userId: uid,
         type: w.type,
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
         url: (w.url || '').trim(),
-        position: i,
+        position: w.position || 0,
       }));
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);
   }

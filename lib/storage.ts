@@ -44,6 +44,11 @@ interface UserDoc {
   ipAddress?: string;
   profileViews: number;
   layout?: string;
+  layoutStructure?: Array<{
+    id: string;
+    type: 'bio' | 'links' | 'widget';
+    widgetId?: string;
+  }>;
 }
 
 interface LinkDoc {
@@ -122,6 +127,10 @@ export async function getUserByUsername(username: string, clientId: string) {
     })).sort((a, b) => a.position - b.position),
     widgets,
     layout: user.layout || 'classic',
+    layoutStructure: user.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'links', type: 'links' }
+    ],
   };
 }
 
@@ -165,6 +174,10 @@ export async function getUserById(id: string) {
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     layout: user.layout || 'classic',
+    layoutStructure: user.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'links', type: 'links' }
+    ],
     links: links.map(l => ({
       id: l._id.toString(),
       url: l.url,
@@ -216,6 +229,10 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date(),
     profileViews: 0,
     layout: 'classic',
+    layoutStructure: [
+      { id: 'bio', type: 'bio' },
+      { id: 'links', type: 'links' }
+    ],
   } as UserDoc);
   return {
     id: userId.toString(),
@@ -229,6 +246,10 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date().toISOString(),
     profileViews: 0,
     layout: 'classic',
+    layoutStructure: [
+      { id: 'bio', type: 'bio' },
+      { id: 'links', type: 'links' }
+    ],
   };
 }
 
@@ -290,6 +311,10 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
     layout: updates.layout || 'classic',
+    layoutStructure: updates.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'links', type: 'links' }
+    ],
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });

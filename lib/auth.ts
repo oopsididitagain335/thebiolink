@@ -25,5 +25,4 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-// ✅ Re-export the official getServerSession with your config
 export { getServerSession };

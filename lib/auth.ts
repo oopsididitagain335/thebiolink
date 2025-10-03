@@ -13,9 +13,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     jwt({ token, user }) {
-      if (user) {
-        token.email = user.email;
-      }
+      if (user) token.email = user.email;
       return token;
     },
     session({ session, token }) {
@@ -27,4 +25,5 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
+// ✅ Re-export the official getServerSession with your config
 export { getServerSession };

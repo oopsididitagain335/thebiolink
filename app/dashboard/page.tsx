@@ -32,6 +32,12 @@ interface User {
   plan?: string;
 }
 
+interface LayoutSection {
+  id: string;
+  type: 'bio' | 'links' | 'widget';
+  widgetId?: string;
+}
+
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -50,13 +56,6 @@ const WIDGET_TYPES = [
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
-];
-
-const LAYOUT_TEMPLATES = [
-  { id: 'classic', name: 'Classic', description: 'Links only, centered' },
-  { id: 'social', name: 'Social Focus', description: 'Icons + links' },
-  { id: 'creator', name: 'Creator Hub', description: 'Bio + widgets + links' },
-  { id: 'minimal', name: 'Minimal', description: 'Clean, text-focused' },
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -478,28 +477,196 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   );
 };
 
-const LayoutTab = ({ layout, setLayout }: { layout: string; setLayout: (layout: string) => void }) => {
+const ProfileBuilderTab = ({ 
+  user, 
+  setUser, 
+  links, 
+  setLinks, 
+  widgets, 
+  setWidgets,
+  layoutStructure,
+  setLayoutStructure
+}: { 
+  user: User; 
+  setUser: (user: User) => void;
+  links: Link[];
+  setLinks: (links: Link[]) => void;
+  widgets: Widget[];
+  setWidgets: (widgets: Widget[]) => void;
+  layoutStructure: LayoutSection[];
+  setLayoutStructure: (sections: LayoutSection[]) => void;
+}) => {
+  const addSection = (type: 'bio' | 'links' | 'widget', widgetId?: string) => {
+    const newSection: LayoutSection = {
+      id: `${type}-${Date.now()}`,
+      type,
+      widgetId
+    };
+    setLayoutStructure([...layoutStructure, newSection]);
+  };
+
+  const removeSection = (id: string) => {
+    setLayoutStructure(layoutStructure.filter(s => s.id !== id));
+  };
+
+  const moveSection = (fromIndex: number, toIndex: number) => {
+    const newSections = [...layoutStructure];
+    const [movedItem] = newSections.splice(fromIndex, 1);
+    newSections.splice(toIndex, 0, movedItem);
+    setLayoutStructure(newSections);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Page Layout</h2>
-        <p className="text-gray-400 mb-6">Choose how your BioLink page is organized.</p>
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
+        <p className="text-gray-400 mb-4">Drag elements below to customize your BioLink layout.</p>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {LAYOUT_TEMPLATES.map((template) => (
+        <div className="mb-6">
+          <h3 className="text-gray-300 text-sm font-medium mb-2">Add to Page</h3>
+          <div className="flex flex-wrap gap-2">
             <button
-              key={template.id}
-              onClick={() => setLayout(template.id)}
-              className={`p-4 text-left rounded-xl border ${
-                layout === template.id 
-                  ? 'border-indigo-500 bg-indigo-500/10 text-white' 
-                  : 'border-gray-700 bg-gray-700/30 text-gray-300'
-              }`}
+              onClick={() => addSection('bio')}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
             >
-              <div className="font-medium">{template.name}</div>
-              <div className="text-xs mt-1 opacity-75">{template.description}</div>
+              + Bio
             </button>
-          ))}
+            <button
+              onClick={() => addSection('links')}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+            >
+              + Links
+            </button>
+            {widgets.map(widget => (
+              <button
+                key={widget.id}
+                onClick={() => addSection('widget', widget.id)}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors"
+              >
+                + {widget.title || widget.type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-gray-300 text-sm font-medium mb-3">Current Layout</h3>
+          <div className="space-y-2">
+            {layoutStructure.map((section, index) => (
+              <DraggableItem 
+                key={section.id} 
+                index={index} 
+                onMove={moveSection} 
+                itemType="section"
+              >
+                <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                    <span className="text-white capitalize">
+                      {section.type === 'widget' 
+                        ? `Widget: ${widgets.find(w => w.id === section.widgetId)?.title || 'Custom'}`
+                        : section.type
+                      }
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeSection(section.id)}
+                    className="text-red-400 hover:text-red-300 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </DraggableItem>
+            ))}
+            
+            {layoutStructure.length === 0 && (
+              <div className="text-gray-500 text-sm py-2 text-center">
+                Drag elements above to start building your profile
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
+        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
+          {user.background && (
+            <div
+              className="absolute inset-0 z-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${user.background})`,
+              }}
+            />
+          )}
+          <div className="absolute inset-0 bg-black/70 z-10"></div>
+          <div className="relative z-20">
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl text-white font-bold">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            
+            <div className="space-y-6">
+              {layoutStructure.map((section) => {
+                if (section.type === 'bio') {
+                  return (
+                    <div key={section.id} className="text-center">
+                      <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                      {user.bio && <p className="text-gray-300">{user.bio}</p>}
+                    </div>
+                  );
+                }
+                
+                if (section.type === 'links' && links.length > 0) {
+                  return (
+                    <div key={section.id} className="space-y-3">
+                      {links
+                        .filter(link => link.url && link.title)
+                        .map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                          >
+                            {link.title}
+                          </a>
+                        ))}
+                    </div>
+                  );
+                }
+                
+                if (section.type === 'widget') {
+                  const widget = widgets.find(w => w.id === section.widgetId);
+                  if (!widget) return null;
+                  
+                  return (
+                    <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                      {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                      <div className="text-gray-400 text-sm italic">
+                        {widget.type === 'spotify' && '🎵 Spotify embed'}
+                        {widget.type === 'youtube' && '📺 YouTube video'}
+                        {widget.type === 'twitter' && '🐦 Twitter feed'}
+                        {widget.type === 'custom' && 'Custom content'}
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return null;
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -516,16 +683,6 @@ const ComingSoonTab = ({ title }: { title: string }) => (
   </div>
 );
 
-const getYouTubeId = (url: string): string => {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
-  return match ? match[1] : '';
-};
-
-const getSpotifyId = (url: string): string => {
-  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
-  return match ? `${match[1]}/${match[2]}` : '';
-};
-
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -539,7 +696,10 @@ export default function Dashboard() {
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [layout, setLayout] = useState('classic');
+  const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
+    { id: 'bio', type: 'bio' },
+    { id: 'links', type: 'links' }
+  ]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -599,7 +759,10 @@ export default function Dashboard() {
           }))
         );
 
-        setLayout(data.layout || 'classic');
+        setLayoutStructure(data.layoutStructure || [
+          { id: 'bio', type: 'bio' },
+          { id: 'links', type: 'links' }
+        ]);
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
@@ -666,7 +829,7 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            layout,
+            layoutStructure,
           },
           links: linksToSend,
           widgets: widgetsToSend,
@@ -692,8 +855,7 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
-    { id: 'layout', name: 'Layout' },
-    { id: 'appearance', name: 'Appearance' },
+    { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'badges', name: 'Badges' },
@@ -768,10 +930,21 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-            {activeTab === 'layout' && <LayoutTab layout={layout} setLayout={setLayout} />}
+            {activeTab === 'builder' && (
+              <ProfileBuilderTab 
+                user={user} 
+                setUser={setUser} 
+                links={links} 
+                setLinks={setLinks} 
+                widgets={widgets} 
+                setWidgets={setWidgets}
+                layoutStructure={layoutStructure}
+                setLayoutStructure={setLayoutStructure}
+              />
+            )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {['appearance', 'badges', 'manage', 'settings'].includes(activeTab) && (
+            {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
           </div>
@@ -806,72 +979,49 @@ export default function Dashboard() {
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
 
-                  {widgets.length > 0 && (
-                    <div className="space-y-4 mt-6">
-                      {widgets.map((widget) => (
-                        <div
-                          key={widget.id}
-                          className="bg-white/10 rounded-lg p-4 text-left"
-                        >
-                          {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                          {widget.type === 'youtube' && widget.url ? (
-                            <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                              <iframe
-                                src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="w-full h-full"
-                              ></iframe>
-                            </div>
-                          ) : widget.type === 'spotify' && widget.url ? (
-                            <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                              <iframe
-                                src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                                frameBorder="0"
-                                allowTransparency={true}
-                                allow="encrypted-media"
-                                className="w-full h-full"
-                              ></iframe>
-                            </div>
-                          ) : widget.type === 'twitter' && widget.url ? (
-                            <div className="bg-gray-800 rounded-lg p-4">
-                              <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                                🐦 View Twitter Feed
-                              </a>
-                            </div>
-                          ) : widget.type === 'custom' && widget.content ? (
-                            <div
-                              className="text-gray-300 text-sm leading-relaxed"
-                              dangerouslySetInnerHTML={{ __html: widget.content }}
-                            />
-                          ) : (
+                  <div className="space-y-6">
+                    {layoutStructure.map((section) => {
+                      if (section.type === 'bio') return null; // Already shown above
+                      
+                      if (section.type === 'links' && links.length > 0) {
+                        return (
+                          <div key={section.id} className="space-y-3">
+                            {links
+                              .filter(link => link.url && link.title)
+                              .map((link, idx) => (
+                                <a
+                                  key={idx}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                                >
+                                  {link.title}
+                                </a>
+                              ))}
+                          </div>
+                        );
+                      }
+                      
+                      if (section.type === 'widget') {
+                        const widget = widgets.find(w => w.id === section.widgetId);
+                        if (!widget) return null;
+                        
+                        return (
+                          <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                            {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                             <div className="text-gray-400 text-sm italic">
                               {widget.type === 'spotify' && '🎵 Spotify embed'}
                               {widget.type === 'youtube' && '📺 YouTube video'}
                               {widget.type === 'twitter' && '🐦 Twitter feed'}
-                              {!widget.type && 'Widget content'}
+                              {widget.type === 'custom' && 'Custom content'}
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="space-y-3 mt-6">
-                    {links
-                      .filter((link) => link.url && link.title)
-                      .map((link, index) => (
-                        <a
-                          key={index}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
-                        >
-                          {link.title}
-                        </a>
-                      ))}
+                          </div>
+                        );
+                      }
+                      
+                      return null;
+                    })}
                   </div>
                 </div>
               </div>

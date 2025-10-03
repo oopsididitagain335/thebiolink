@@ -12,13 +12,21 @@ export async function PUT(request: NextRequest) {
   try {
     const { profile, links, widgets } = await request.json();
 
-    if (profile) await updateUserProfile(sessionId, profile);
-    if (Array.isArray(links)) await saveUserLinks(sessionId, links);
-    if (Array.isArray(widgets)) await saveUserWidgets(sessionId, widgets);
+    if (profile) {
+      await updateUserProfile(sessionId, profile); // ✅ Now includes layoutStructure
+    }
+
+    if (Array.isArray(links)) {
+      await saveUserLinks(sessionId, links);
+    }
+
+    if (Array.isArray(widgets)) {
+      await saveUserWidgets(sessionId, widgets);
+    }
 
     return Response.json({ success: true });
   } catch (error: any) {
     console.error('Update error:', error.message);
-    return Response.json({ error: error.message || 'Save failed' }, { status: 400 });
+    return Response.json({ error: error.message || 'Failed to update data' }, { status: 400 });
   }
 }

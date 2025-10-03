@@ -20,7 +20,6 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// --- Interfaces ---
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -62,6 +61,7 @@ interface WidgetDoc {
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
+  url?: string; // ✅ NEW
   position: number;
 }
 
@@ -72,7 +72,6 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// --- Helper: Get Widgets ---
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -81,11 +80,11 @@ async function getUserWidgets(userId: ObjectId) {
     type: w.type,
     title: w.title || '',
     content: w.content || '',
+    url: w.url || '', // ✅
     position: w.position || 0,
   })).sort((a, b) => a.position - b.position);
 }
 
-// --- PUBLIC: Get user by username (for /:username) ---
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -126,7 +125,6 @@ export async function getUserByUsername(username: string, clientId: string) {
   };
 }
 
-// --- METADATA (for SEO) ---
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -145,7 +143,6 @@ export async function getUserByUsernameForMetadata(username: string) {
   };
 }
 
-// --- AUTH: Get user by ID (for dashboard) ---
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -180,7 +177,6 @@ export async function getUserById(id: string) {
   };
 }
 
-// --- AUTH: Get user by email (for login) ---
 export async function getUserByEmail(email: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ email });
@@ -198,7 +194,6 @@ export async function getUserByEmail(email: string) {
   };
 }
 
-// --- AUTH: Create user (for signup) ---
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
   const existingEmail = await db.collection('users').findOne({ email });
@@ -237,7 +232,6 @@ export async function createUser(email: string, password: string, username: stri
   };
 }
 
-// --- SAVE FUNCTIONS ---
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -270,6 +264,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
         type: w.type,
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
+        url: (w.url || '').trim(), // ✅
         position: i,
       }));
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);

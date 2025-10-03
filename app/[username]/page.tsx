@@ -64,11 +64,13 @@ interface PageProps {
   searchParams: Promise<{ clientId?: string }>;
 }
 
+// Helper: Extract YouTube video ID
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 }
 
+// Helper: Extract Spotify embed path
 function getSpotifyId(url: string): string {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';

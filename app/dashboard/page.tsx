@@ -17,7 +17,7 @@ interface Widget {
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
-  url?: string; // ✅
+  url?: string;
   position: number;
 }
 
@@ -50,6 +50,13 @@ const WIDGET_TYPES = [
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
+];
+
+const LAYOUT_TEMPLATES = [
+  { id: 'classic', name: 'Classic', description: 'Links only, centered' },
+  { id: 'social', name: 'Social Focus', description: 'Icons + links' },
+  { id: 'creator', name: 'Creator Hub', description: 'Bio + widgets + links' },
+  { id: 'minimal', name: 'Minimal', description: 'Clean, text-focused' },
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -433,7 +440,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
                     onChange={(e) => updateWidget(index, 'title', e.target.value)}
                     className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                   />
-                  {/* ✅ URL FIELD */}
                   <input
                     type="url"
                     placeholder="Embed URL (YouTube, Spotify, etc.)"
@@ -472,6 +478,34 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   );
 };
 
+const LayoutTab = ({ layout, setLayout }: { layout: string; setLayout: (layout: string) => void }) => {
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Page Layout</h2>
+        <p className="text-gray-400 mb-6">Choose how your BioLink page is organized.</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {LAYOUT_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => setLayout(template.id)}
+              className={`p-4 text-left rounded-xl border ${
+                layout === template.id 
+                  ? 'border-indigo-500 bg-indigo-500/10 text-white' 
+                  : 'border-gray-700 bg-gray-700/30 text-gray-300'
+              }`}
+            >
+              <div className="font-medium">{template.name}</div>
+              <div className="text-xs mt-1 opacity-75">{template.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -482,13 +516,11 @@ const ComingSoonTab = ({ title }: { title: string }) => (
   </div>
 );
 
-// Helper to extract YouTube ID
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
 
-// Helper to extract Spotify ID
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -620,7 +652,7 @@ export default function Dashboard() {
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
-        url: w.url?.trim() || '', // ✅
+        url: w.url?.trim() || '',
         position: i,
       }));
 
@@ -637,7 +669,7 @@ export default function Dashboard() {
             layout,
           },
           links: linksToSend,
-          widgets: widgetsToSend, // ✅
+          widgets: widgetsToSend,
         }),
       });
 
@@ -660,6 +692,8 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
+    { id: 'layout', name: 'Layout' },
+    { id: 'appearance', name: 'Appearance' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'badges', name: 'Badges' },
@@ -731,18 +765,17 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Tabs */}
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
+            {activeTab === 'layout' && <LayoutTab layout={layout} setLayout={setLayout} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {['badges', 'manage', 'settings'].includes(activeTab) && (
+            {['appearance', 'badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
           </div>
 
-          {/* Right Column: Live Preview */}
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
@@ -773,7 +806,6 @@ export default function Dashboard() {
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
 
-                  {/* Widgets Preview */}
                   {widgets.length > 0 && (
                     <div className="space-y-4 mt-6">
                       {widgets.map((widget) => (
@@ -826,7 +858,6 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {/* Links Preview */}
                   <div className="space-y-3 mt-6">
                     {links
                       .filter((link) => link.url && link.title)

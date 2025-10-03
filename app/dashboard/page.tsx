@@ -34,8 +34,10 @@ interface User {
 
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
   widgetId?: string;
+  height?: number;
+  content?: string;
 }
 
 const FAMOUS_LINKS = [
@@ -496,13 +498,19 @@ const ProfileBuilderTab = ({
   layoutStructure: LayoutSection[];
   setLayoutStructure: (sections: LayoutSection[]) => void;
 }) => {
-  const addSection = (type: 'bio' | 'links' | 'widget', widgetId?: string) => {
+  const addSection = (type: LayoutSection['type'], options: Partial<LayoutSection> = {}) => {
     const newSection: LayoutSection = {
       id: `${type}-${Date.now()}`,
       type,
-      widgetId
+      ...options
     };
     setLayoutStructure([...layoutStructure, newSection]);
+  };
+
+  const updateSection = (id: string, updates: Partial<LayoutSection>) => {
+    setLayoutStructure(layoutStructure.map(s => 
+      s.id === id ? { ...s, ...updates } : s
+    ));
   };
 
   const removeSection = (id: string) => {
@@ -516,42 +524,154 @@ const ProfileBuilderTab = ({
     setLayoutStructure(newSections);
   };
 
+  const renderSectionEditor = (section: LayoutSection, index: number) => {
+    if (section.type === 'spacer') {
+      return (
+        <div className="p-3 bg-gray-700/50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-white text-sm">Spacer</span>
+            <button 
+              onClick={() => removeSection(section.id)}
+              className="text-red-400 hover:text-red-300 text-xs"
+            >
+              Remove
+            </button>
+          </div>
+          <input
+            type="range"
+            min="10"
+            max="100"
+            value={section.height || 20}
+            onChange={(e) => updateSection(section.id, { height: parseInt(e.target.value) })}
+            className="w-full"
+          />
+          <div className="text-xs text-gray-400 mt-1">{section.height || 20}px</div>
+        </div>
+      );
+    }
+
+    if (section.type === 'custom') {
+      return (
+        <div className="p-3 bg-gray-700/50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-white text-sm">Custom HTML</span>
+            <button 
+              onClick={() => removeSection(section.id)}
+              className="text-red-400 hover:text-red-300 text-xs"
+            >
+              Remove
+            </button>
+          </div>
+          <textarea
+            value={section.content || ''}
+            onChange={(e) => updateSection(section.id, { content: e.target.value })}
+            placeholder="Enter custom HTML"
+            className="w-full px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
+            rows={3}
+          />
+        </div>
+      );
+    }
+
+    if (section.type === 'widget') {
+      const widget = widgets.find(w => w.id === section.widgetId);
+      return (
+        <div className="p-3 bg-gray-700/50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-white text-sm">
+              Widget: {widget?.title || 'Unknown'}
+            </span>
+            <button 
+              onClick={() => removeSection(section.id)}
+              className="text-red-400 hover:text-red-300 text-xs"
+            >
+              Remove
+            </button>
+          </div>
+          <select
+            value={section.widgetId || ''}
+            onChange={(e) => updateSection(section.id, { widgetId: e.target.value })}
+            className="w-full bg-gray-600/50 border border-gray-600 rounded text-white text-sm p-1"
+          >
+            <option value="">Select Widget</option>
+            {widgets.map(w => (
+              <option key={w.id} value={w.id}>
+                {w.title || w.type}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-white capitalize text-sm">{section.type}</span>
+          <button 
+            onClick={() => removeSection(section.id)}
+            className="text-red-400 hover:text-red-300 text-xs"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
-        <p className="text-gray-400 mb-4">Drag elements below to customize your BioLink layout.</p>
+        <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
         
-        <div className="mb-6">
-          <h3 className="text-gray-300 text-sm font-medium mb-2">Add to Page</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => addSection('bio')}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
-            >
-              + Bio
-            </button>
-            <button
-              onClick={() => addSection('links')}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
-            >
-              + Links
-            </button>
-            {widgets.map(widget => (
-              <button
-                key={widget.id}
-                onClick={() => addSection('widget', widget.id)}
-                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors"
-              >
-                + {widget.title || widget.type}
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+          <button
+            onClick={() => addSection('bio')}
+            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+          >
+            📝 Bio
+          </button>
+          <button
+            onClick={() => addSection('links')}
+            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+          >
+            🔗 Links
+          </button>
+          <button
+            onClick={() => addSection('spacer', { height: 20 })}
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+          >
+            ⬇️ Spacer
+          </button>
+          <button
+            onClick={() => addSection('custom', { content: '' })}
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+          >
+            ✏️ Custom
+          </button>
         </div>
 
+        {widgets.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
+            <div className="flex flex-wrap gap-2">
+              {widgets.map(widget => (
+                <button
+                  key={widget.id}
+                  onClick={() => addSection('widget', { widgetId: widget.id })}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
+                >
+                  + {widget.title || widget.type}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
-          <h3 className="text-gray-300 text-sm font-medium mb-3">Current Layout</h3>
-          <div className="space-y-2">
+          <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
+          <div className="space-y-3">
             {layoutStructure.map((section, index) => (
               <DraggableItem 
                 key={section.id} 
@@ -559,29 +679,13 @@ const ProfileBuilderTab = ({
                 onMove={moveSection} 
                 itemType="section"
               >
-                <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                    <span className="text-white capitalize">
-                      {section.type === 'widget' 
-                        ? `Widget: ${widgets.find(w => w.id === section.widgetId)?.title || 'Custom'}`
-                        : section.type
-                      }
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeSection(section.id)}
-                    className="text-red-400 hover:text-red-300 text-sm"
-                  >
-                    Remove
-                  </button>
-                </div>
+                {renderSectionEditor(section, index)}
               </DraggableItem>
             ))}
             
             {layoutStructure.length === 0 && (
-              <div className="text-gray-500 text-sm py-2 text-center">
-                Drag elements above to start building your profile
+              <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
+                Click + buttons above to add sections
               </div>
             )}
           </div>
@@ -590,82 +694,124 @@ const ProfileBuilderTab = ({
 
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[400px]">
+        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
           {user.background && (
             <div
               className="absolute inset-0 z-0 bg-cover bg-center"
-              style={{
-                backgroundImage: `url(${user.background})`,
-              }}
+              style={{ backgroundImage: `url(${user.background})` }}
             />
           )}
           <div className="absolute inset-0 bg-black/70 z-10"></div>
-          <div className="relative z-20">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
-              />
-            ) : (
-              <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl text-white font-bold">
-                  {user.name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-            
-            <div className="space-y-6">
-              {layoutStructure.map((section) => {
-                if (section.type === 'bio') {
-                  return (
-                    <div key={section.id} className="text-center">
-                      <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
-                      {user.bio && <p className="text-gray-300">{user.bio}</p>}
-                    </div>
-                  );
-                }
+          <div className="relative z-20 space-y-4">
+            {layoutStructure.map((section) => {
+              if (section.type === 'bio') {
+                return (
+                  <div key={section.id} className="text-center">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl text-white font-bold">
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
+                  </div>
+                );
+              }
+              
+              if (section.type === 'links' && links.length > 0) {
+                return (
+                  <div key={section.id} className="space-y-3">
+                    {links
+                      .filter(link => link.url && link.title)
+                      .map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                        >
+                          {link.title}
+                        </a>
+                      ))}
+                  </div>
+                );
+              }
+              
+              if (section.type === 'widget') {
+                const widget = widgets.find(w => w.id === section.widgetId);
+                if (!widget) return null;
                 
-                if (section.type === 'links' && links.length > 0) {
-                  return (
-                    <div key={section.id} className="space-y-3">
-                      {links
-                        .filter(link => link.url && link.title)
-                        .map((link, idx) => (
-                          <a
-                            key={idx}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
-                          >
-                            {link.title}
-                          </a>
-                        ))}
-                    </div>
-                  );
-                }
-                
-                if (section.type === 'widget') {
-                  const widget = widgets.find(w => w.id === section.widgetId);
-                  if (!widget) return null;
-                  
-                  return (
-                    <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
-                      {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                return (
+                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                    {widget.type === 'youtube' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'spotify' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          frameBorder="0"
+                          allowTransparency={true}
+                          allow="encrypted-media"
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'twitter' && widget.url ? (
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                          🐦 View Twitter Feed
+                        </a>
+                      </div>
+                    ) : widget.type === 'custom' && widget.content ? (
+                      <div
+                        className="text-gray-300 text-sm"
+                        dangerouslySetInnerHTML={{ __html: widget.content }}
+                      />
+                    ) : (
                       <div className="text-gray-400 text-sm italic">
                         {widget.type === 'spotify' && '🎵 Spotify embed'}
                         {widget.type === 'youtube' && '📺 YouTube video'}
                         {widget.type === 'twitter' && '🐦 Twitter feed'}
-                        {widget.type === 'custom' && 'Custom content'}
+                        {!widget.type && 'Widget content'}
                       </div>
-                    </div>
-                  );
-                }
-                
-                return null;
-              })}
-            </div>
+                    )}
+                  </div>
+                );
+              }
+              
+              if (section.type === 'spacer') {
+                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
+              }
+              
+              if (section.type === 'custom' && section.content) {
+                return (
+                  <div 
+                    key={section.id} 
+                    className="bg-white/5 p-4 rounded-lg"
+                    dangerouslySetInnerHTML={{ __html: section.content }}
+                  />
+                );
+              }
+              
+              return null;
+            })}
           </div>
         </div>
       </div>
@@ -683,6 +829,16 @@ const ComingSoonTab = ({ title }: { title: string }) => (
   </div>
 );
 
+const getYouTubeId = (url: string): string => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
+  return match ? match[1] : '';
+};
+
+const getSpotifyId = (url: string): string => {
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  return match ? `${match[1]}/${match[2]}` : '';
+};
+
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -698,6 +854,7 @@ export default function Dashboard() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
     { id: 'bio', type: 'bio' },
+    { id: 'spacer-1', type: 'spacer', height: 20 },
     { id: 'links', type: 'links' }
   ]);
   const [loading, setLoading] = useState(true);
@@ -761,6 +918,7 @@ export default function Dashboard() {
 
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
+          { id: 'spacer-1', type: 'spacer', height: 20 },
           { id: 'links', type: 'links' }
         ]);
       } catch (error) {
@@ -981,7 +1139,7 @@ export default function Dashboard() {
 
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
-                      if (section.type === 'bio') return null; // Already shown above
+                      if (section.type === 'bio') return null;
                       
                       if (section.type === 'links' && links.length > 0) {
                         return (
@@ -1017,6 +1175,20 @@ export default function Dashboard() {
                               {widget.type === 'custom' && 'Custom content'}
                             </div>
                           </div>
+                        );
+                      }
+                      
+                      if (section.type === 'spacer') {
+                        return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
+                      }
+                      
+                      if (section.type === 'custom' && section.content) {
+                        return (
+                          <div 
+                            key={section.id} 
+                            className="bg-white/5 p-4 rounded-lg"
+                            dangerouslySetInnerHTML={{ __html: section.content }}
+                          />
                         );
                       }
                       

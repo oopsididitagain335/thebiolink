@@ -28,6 +28,12 @@ interface Widget {
   position?: number;
 }
 
+interface LayoutSection {
+  id: string;
+  type: 'bio' | 'links' | 'widget';
+  widgetId?: string;
+}
+
 interface UserData {
   name: string;
   avatar?: string;
@@ -38,7 +44,7 @@ interface UserData {
   badges: Badge[];
   links: Link[];
   widgets?: Widget[];
-  layout?: string;
+  layoutStructure?: LayoutSection[];
   isBanned: boolean;
   profileViews: number;
 }
@@ -117,6 +123,10 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       badges = [],
       links = [],
       widgets = [],
+      layoutStructure = [
+        { id: 'bio', type: 'bio' },
+        { id: 'links', type: 'links' }
+      ],
       profileViews = 0,
     } = userData;
 
@@ -175,43 +185,53 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6 shadow-xl">
-              <Avatar name={name} avatar={avatar} />
-              <h1 className="text-2xl font-bold text-white mt-3 mb-1">{name}</h1>
-              {bio && <p className="text-gray-200 mb-4 px-2">{bio}</p>}
+            {layoutStructure.map((section) => {
+              if (section.type === 'bio') {
+                return (
+                  <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6 shadow-xl">
+                    <Avatar name={name} avatar={avatar} />
+                    <h1 className="text-2xl font-bold text-white mt-3 mb-1">{name}</h1>
+                    {bio && <p className="text-gray-200 mb-4 px-2">{bio}</p>}
 
-              <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
-                <span className="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  {profileViews.toLocaleString()}
-                </span>
-                {links.length > 0 && (
-                  <span className="flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                    </svg>
-                    {links.length}
-                  </span>
-                )}
-              </div>
+                    <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {profileViews.toLocaleString()}
+                      </span>
+                      {links.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
+                          </svg>
+                          {links.length}
+                        </span>
+                      )}
+                    </div>
 
-              {badges.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <Badges badges={badges} />
-                </div>
-              )}
-            </div>
+                    {badges.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-white/20">
+                        <Badges badges={badges} />
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
-            {/* Render Widgets */}
-            {sortedWidgets.length > 0 && (
-              <div className="space-y-4 mb-6">
-                {sortedWidgets.map((widget) => (
+              if (section.type === 'links' && sortedLinks.length > 0) {
+                return <Links key={section.id} links={sortedLinks} />;
+              }
+
+              if (section.type === 'widget') {
+                const widget = sortedWidgets.find(w => w.id === section.widgetId);
+                if (!widget) return null;
+
+                return (
                   <div
-                    key={widget.id}
-                    className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left"
+                    key={section.id}
+                    className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left mb-6"
                   >
                     {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url ? (
@@ -254,18 +274,11 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
 
-            {/* Links */}
-            {sortedLinks.length > 0 ? (
-              <Links links={sortedLinks} />
-            ) : (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                No links yet
-              </div>
-            )}
+              return null;
+            })}
 
             <div className="text-center text-gray-400 text-xs mt-8 pt-6 border-t border-white/10">
               <p className="mb-1">Powered by The BioLink</p>

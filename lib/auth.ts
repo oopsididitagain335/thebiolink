@@ -1,16 +1,21 @@
 // lib/auth.ts
 import { getServerSession } from 'next-auth';
-import { NextAuthOptions } from 'next-auth';
+import { type NextAuthOptions } from 'next-auth';
 
-// Minimal auth config (no real providers needed for session checking)
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [],
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: 'jwt' },
-  pages: { signIn: '/auth/login' },
+  session: {
+    strategy: 'jwt',
+  },
+  pages: {
+    signIn: '/auth/login',
+  },
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.email = user.email;
+      if (user) {
+        token.email = user.email;
+      }
       return token;
     },
     session({ session, token }) {
@@ -22,5 +27,4 @@ const authOptions: NextAuthOptions = {
   },
 };
 
-// Re-export for API routes and pages
-export { authOptions, getServerSession };
+export { getServerSession };

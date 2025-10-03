@@ -61,7 +61,7 @@ interface WidgetDoc {
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
-  url?: string; // ✅ NEW
+  url?: string;
   position: number;
 }
 
@@ -80,7 +80,7 @@ async function getUserWidgets(userId: ObjectId) {
     type: w.type,
     title: w.title || '',
     content: w.content || '',
-    url: w.url || '', // ✅
+    url: w.url || '',
     position: w.position || 0,
   })).sort((a, b) => a.position - b.position);
 }
@@ -264,7 +264,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
         type: w.type,
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
-        url: (w.url || '').trim(), // ✅
+        url: (w.url || '').trim(),
         position: i,
       }));
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);

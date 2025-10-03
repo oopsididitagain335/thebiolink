@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// ========= TYPES =========
 interface Link {
   id: string;
   url: string;
@@ -17,7 +16,8 @@ interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
-  content?: string; // embed code or URL
+  content?: string;
+  url?: string; // ✅
   position: number;
 }
 
@@ -29,10 +29,9 @@ interface User {
   bio: string;
   background: string;
   isEmailVerified: boolean;
-  plan?: string; // optional
+  plan?: string;
 }
 
-// ========= CONSTANTS =========
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -46,16 +45,9 @@ const FAMOUS_LINKS = [
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
 
-const LAYOUT_TEMPLATES = [
-  { id: 'classic', name: 'Classic (Links Only)' },
-  { id: 'social', name: 'Social Focus' },
-  { id: 'creator', name: 'Creator Hub' },
-  { id: 'minimal', name: 'Minimal' },
-];
-
 const WIDGET_TYPES = [
-  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
+  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
@@ -69,7 +61,6 @@ const getBioLinkUrl = (username: string): string => {
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
 
-// ========= DRAGGABLE ITEM (Generic) =========
 const DraggableItem = ({ 
   children,
   index,
@@ -113,14 +104,12 @@ const DraggableItem = ({
   );
 };
 
-// ========= TAB COMPONENTS =========
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
     ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
   );
 
-  // ✅ FIXED: Safe plan display
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
@@ -362,7 +351,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         </div>
       </div>
 
-      {/* Connect Services */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -392,6 +380,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
         type,
         title: type === 'spotify' ? 'My Playlist' : type === 'youtube' ? 'Featured Video' : '',
         content: '',
+        url: '',
         position: widgets.length,
       }
     ]);
@@ -444,13 +433,23 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
                     onChange={(e) => updateWidget(index, 'title', e.target.value)}
                     className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                   />
-                  <textarea
-                    placeholder={widget.type === 'custom' ? 'Paste HTML or embed code' : 'Enter URL or embed code'}
-                    value={widget.content || ''}
-                    onChange={(e) => updateWidget(index, 'content', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                  {/* ✅ URL FIELD */}
+                  <input
+                    type="url"
+                    placeholder="Embed URL (YouTube, Spotify, etc.)"
+                    value={widget.url || ''}
+                    onChange={(e) => updateWidget(index, 'url', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                   />
+                  {widget.type === 'custom' && (
+                    <textarea
+                      placeholder="Paste HTML or embed code"
+                      value={widget.content || ''}
+                      onChange={(e) => updateWidget(index, 'content', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                    />
+                  )}
                 </div>
                 <button
                   onClick={() => removeWidget(index)}
@@ -473,57 +472,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   );
 };
 
-const LayoutTab = ({ layout, setLayout, widgets, links }: { 
-  layout: string; 
-  setLayout: (layout: string) => void;
-  widgets: Widget[];
-  links: Link[];
-}) => {
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Layout Template</h2>
-        <p className="text-gray-400 mb-4">Choose how your BioLink page is organized.</p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {LAYOUT_TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              onClick={() => setLayout(template.id)}
-              className={`p-4 text-left rounded-xl border ${
-                layout === template.id 
-                  ? 'border-indigo-500 bg-indigo-500/10 text-white' 
-                  : 'border-gray-700 bg-gray-700/30 text-gray-300'
-              }`}
-            >
-              <div className="font-medium">{template.name}</div>
-              <div className="text-xs mt-1 opacity-75">
-                {template.id === 'classic' && 'Links only, centered'}
-                {template.id === 'social' && 'Social icons + links'}
-                {template.id === 'creator' && 'Bio + widgets + links'}
-                {template.id === 'minimal' && 'Clean, text-focused'}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-4 min-h-[200px]">
-          <div className="text-center text-gray-300">
-            <div className="mb-4">Your BioLink Preview</div>
-            {layout === 'creator' && widgets.length > 0 && (
-              <div className="text-xs mb-2 text-purple-400">+ {widgets.length} widget(s)</div>
-            )}
-            <div className="text-xs">{links.length} link(s)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -534,7 +482,18 @@ const ComingSoonTab = ({ title }: { title: string }) => (
   </div>
 );
 
-// ========= MAIN DASHBOARD =========
+// Helper to extract YouTube ID
+const getYouTubeId = (url: string): string => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
+  return match ? match[1] : '';
+};
+
+// Helper to extract Spotify ID
+const getSpotifyId = (url: string): string => {
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  return match ? `${match[1]}/${match[2]}` : '';
+};
+
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -544,7 +503,7 @@ export default function Dashboard() {
     bio: '',
     background: '',
     isEmailVerified: true,
-    plan: 'free', // default to 'free' to avoid undefined
+    plan: 'free',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -570,11 +529,6 @@ export default function Dashboard() {
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
 
-        // ✅ Ensure plan is never undefined
-        const plan = data.user.plan && typeof data.user.plan === 'string' 
-          ? data.user.plan 
-          : 'free';
-
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -583,7 +537,7 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan, // now guaranteed string
+          plan: 'free',
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -608,6 +562,7 @@ export default function Dashboard() {
             type: w.type || 'custom',
             title: w.title || '',
             content: w.content || '',
+            url: w.url || '',
             position: w.position ?? 0,
           }))
         );
@@ -665,6 +620,7 @@ export default function Dashboard() {
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
+        url: w.url?.trim() || '', // ✅
         position: i,
       }));
 
@@ -678,10 +634,10 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
+            layout,
           },
           links: linksToSend,
-          widgets: widgetsToSend,
-          layout,
+          widgets: widgetsToSend, // ✅
         }),
       });
 
@@ -704,12 +660,9 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
-    { id: 'layout', name: 'Layout' },
-    { id: 'appearance', name: 'Appearance' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'badges', name: 'Badges' },
-    { id: 'tracks', name: 'Tracks' },
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
   ];
@@ -777,15 +730,122 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        <div className="mb-8">
-          {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
-          {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-          {activeTab === 'layout' && <LayoutTab layout={layout} setLayout={setLayout} widgets={widgets} links={links} />}
-          {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
-          {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-          {['appearance', 'badges', 'tracks', 'manage', 'settings'].includes(activeTab) && (
-            <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Tabs */}
+          <div className="lg:col-span-2">
+            {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
+            {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
+            {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
+            {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+            {['badges', 'manage', 'settings'].includes(activeTab) && (
+              <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
+            )}
+          </div>
+
+          {/* Right Column: Live Preview */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+              <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
+              <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+                {user.background && (
+                  <div
+                    className="absolute inset-0 z-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${user.background})`,
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/70 z-10"></div>
+                <div className="relative z-20">
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl text-white font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                  {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
+
+                  {/* Widgets Preview */}
+                  {widgets.length > 0 && (
+                    <div className="space-y-4 mt-6">
+                      {widgets.map((widget) => (
+                        <div
+                          key={widget.id}
+                          className="bg-white/10 rounded-lg p-4 text-left"
+                        >
+                          {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                          {widget.type === 'youtube' && widget.url ? (
+                            <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                              ></iframe>
+                            </div>
+                          ) : widget.type === 'spotify' && widget.url ? (
+                            <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                                frameBorder="0"
+                                allowTransparency={true}
+                                allow="encrypted-media"
+                                className="w-full h-full"
+                              ></iframe>
+                            </div>
+                          ) : widget.type === 'twitter' && widget.url ? (
+                            <div className="bg-gray-800 rounded-lg p-4">
+                              <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                                🐦 View Twitter Feed
+                              </a>
+                            </div>
+                          ) : widget.type === 'custom' && widget.content ? (
+                            <div
+                              className="text-gray-300 text-sm leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: widget.content }}
+                            />
+                          ) : (
+                            <div className="text-gray-400 text-sm italic">
+                              {widget.type === 'spotify' && '🎵 Spotify embed'}
+                              {widget.type === 'youtube' && '📺 YouTube video'}
+                              {widget.type === 'twitter' && '🐦 Twitter feed'}
+                              {!widget.type && 'Widget content'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Links Preview */}
+                  <div className="space-y-3 mt-6">
+                    {links
+                      .filter((link) => link.url && link.title)
+                      .map((link, index) => (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                        >
+                          {link.title}
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {message && (

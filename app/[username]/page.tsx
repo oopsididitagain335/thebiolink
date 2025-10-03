@@ -30,8 +30,10 @@ interface Widget {
 
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
   widgetId?: string;
+  height?: number;
+  content?: string;
 }
 
 interface UserData {
@@ -62,13 +64,11 @@ interface PageProps {
   searchParams: Promise<{ clientId?: string }>;
 }
 
-// Helper: Extract YouTube video ID
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 }
 
-// Helper: Extract Spotify embed path
 function getSpotifyId(url: string): string {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -125,6 +125,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       widgets = [],
       layoutStructure = [
         { id: 'bio', type: 'bio' },
+        { id: 'spacer-1', type: 'spacer', height: 20 },
         { id: 'links', type: 'links' }
       ],
       profileViews = 0,
@@ -274,6 +275,20 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                       </div>
                     )}
                   </div>
+                );
+              }
+
+              if (section.type === 'spacer') {
+                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
+              }
+
+              if (section.type === 'custom' && section.content) {
+                return (
+                  <div 
+                    key={section.id} 
+                    className="bg-white/5 p-4 rounded-lg mb-6"
+                    dangerouslySetInnerHTML={{ __html: section.content }}
+                  />
                 );
               }
 

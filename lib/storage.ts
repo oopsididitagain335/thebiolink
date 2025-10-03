@@ -43,11 +43,12 @@ interface UserDoc {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
-  layout?: string;
   layoutStructure?: Array<{
     id: string;
-    type: 'bio' | 'links' | 'widget';
+    type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
     widgetId?: string;
+    height?: number;
+    content?: string;
   }>;
 }
 
@@ -126,9 +127,9 @@ export async function getUserByUsername(username: string, clientId: string) {
       position: l.position || 0,
     })).sort((a, b) => a.position - b.position),
     widgets,
-    layout: user.layout || 'classic',
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
   };
@@ -173,9 +174,9 @@ export async function getUserById(id: string) {
     bio: user.bio || '',
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
-    layout: user.layout || 'classic',
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
     links: links.map(l => ({
@@ -228,9 +229,9 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: new Date(),
     profileViews: 0,
-    layout: 'classic',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
   } as UserDoc);
@@ -245,9 +246,9 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: new Date().toISOString(),
     profileViews: 0,
-    layout: 'classic',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
   };
@@ -310,9 +311,9 @@ export async function updateUserProfile(userId: string, updates: any) {
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
-    layout: updates.layout || 'classic',
     layoutStructure: updates.layoutStructure || [
       { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
   };

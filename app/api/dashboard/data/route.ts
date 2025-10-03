@@ -26,6 +26,6 @@ export async function GET(request: NextRequest) {
     },
     links: user.links,
     widgets: user.widgets,
-    layout: user.layout,
+    layoutStructure: user.layoutStructure, // ✅ Only this exists now
   });
 }

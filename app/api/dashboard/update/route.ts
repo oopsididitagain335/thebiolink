@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest) {
     const { profile, links, widgets } = await request.json();
 
     if (profile) {
-      await updateUserProfile(sessionId, profile); // ✅ Now includes layoutStructure
+      await updateUserProfile(sessionId, profile);
     }
 
     if (Array.isArray(links)) {

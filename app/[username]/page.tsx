@@ -24,6 +24,7 @@ interface Widget {
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
+  url?: string;
   position?: number;
 }
 
@@ -46,13 +47,25 @@ interface MetadataUser {
   name: string;
   avatar?: string;
   bio?: string;
-  isBanned: boolean; // ✅ FIXED
+  isBanned: boolean;
   links: { url: string; title: string }[];
 }
 
 interface PageProps {
   params: Promise<{ username: string }>;
   searchParams: Promise<{ clientId?: string }>;
+}
+
+// Helper: Extract YouTube video ID
+function getYouTubeId(url: string): string {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
+  return match ? match[1] : '';
+}
+
+// Helper: Extract Spotify embed path
+function getSpotifyId(url: string): string {
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  return match ? `${match[1]}/${match[2]}` : '';
 }
 
 export default async function UserPage({ params, searchParams }: PageProps) {
@@ -192,6 +205,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               )}
             </div>
 
+            {/* Render Widgets */}
             {sortedWidgets.length > 0 && (
               <div className="space-y-4 mb-6">
                 {sortedWidgets.map((widget) => (
@@ -199,10 +213,34 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                     key={widget.id}
                     className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left"
                   >
-                    {widget.title && (
-                      <h3 className="text-white font-medium mb-2 text-sm">{widget.title}</h3>
-                    )}
-                    {widget.type === 'custom' && widget.content ? (
+                    {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
+                    {widget.type === 'youtube' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'spotify' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          frameBorder="0"
+                          allowTransparency={true}
+                          allow="encrypted-media"
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'twitter' && widget.url ? (
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                          🐦 View Twitter Feed
+                        </a>
+                      </div>
+                    ) : widget.type === 'custom' && widget.content ? (
                       <div
                         className="text-gray-300 text-sm leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: widget.content }}
@@ -220,6 +258,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               </div>
             )}
 
+            {/* Links */}
             {sortedLinks.length > 0 ? (
               <Links links={sortedLinks} />
             ) : (
@@ -261,7 +300,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
   try {
     const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
-    if (!userData || userData.isBanned) { // ✅ Now safe
+    if (!userData || userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }
     return {

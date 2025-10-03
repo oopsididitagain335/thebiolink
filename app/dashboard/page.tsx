@@ -968,13 +968,14 @@ export default function Dashboard() {
           position: index,
         }));
 
-      const widgetsToSend = widgets.map((w, i) => ({
+      // ✅ CRITICAL: Preserve widget IDs
+      const widgetsToSend = widgets.map((w) => ({
         id: w.id,
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
         url: w.url?.trim() || '',
-        position: i,
+        position: w.position,
       }));
 
       const response = await fetch('/api/dashboard/update', {
@@ -987,10 +988,10 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            layoutStructure,
+            layoutStructure, // ✅ Only layoutStructure
           },
           links: linksToSend,
-          widgets: widgetsToSend,
+          widgets: widgetsToSend, // ✅ Full widgets with IDs
         }),
       });
 

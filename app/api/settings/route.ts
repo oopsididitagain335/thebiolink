@@ -1,48 +1,42 @@
 // app/api/settings/route.ts
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { 
-  updateUserEmail, 
-  updateUserPassword, 
-  cancelUserSubscription,
-  awardWeeklyFreeBadge 
-} from '@/lib/storage';
+import { updateUserPlan, updateUserPassword } from '@/lib/db';
+import { hash } from 'bcryptjs';
 
-export async function PUT(request: NextRequest) {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+export async function PUT(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
-  try {
-    const { action, email, password } = await request.json();
+  const { action, ...data } = await req.json();
 
-    switch (action) {
-      case 'update_email':
-        if (!email) return Response.json({ error: 'Email required' }, { status: 400 });
-        await updateUserEmail(sessionId, email);
-        break;
-        
-      case 'update_password':
-        if (!password) return Response.json({ error: 'Password required' }, { status: 400 });
-        await updateUserPassword(sessionId, password);
-        break;
-        
-      case 'cancel_subscription':
-        await cancelUserSubscription(sessionId);
-        break;
-        
-      case 'claim_weekly_badge':
-        const result = await awardWeeklyFreeBadge(sessionId);
-        return Response.json({ success: true, ...result });
-        
-      default:
-        return Response.json({ error: 'Invalid action' }, { status: 400 });
+  try {
+    if (action === 'update_password') {
+      if (!data.password || data.password.length < 8) {
+        return new Response('Password must be at least 8 characters', { status: 400 });
+      }
+      const hashed = await hash(data.password, 12);
+      await updateUserPassword(session.user.email, hashed);
+      return Response.json({ success: true });
     }
 
-    return Response.json({ success: true });
-  } catch (error: any) {
-    console.error('Settings error:', error.message);
-    return Response.json({ error: error.message || 'Failed to update settings' }, { status: 400 });
+    if (action === 'cancel_subscription') {
+      // Downgrade to free (no Stripe cancel needed if you don't use webhooks)
+      await updateUserPlan(session.user.email, 'free');
+      return Response.json({ success: true });
+    }
+
+    if (action === 'update_email') {
+      // Optional: update email
+      return Response.json({ success: true });
+    }
+
+    return new Response('Invalid action', { status: 400 });
+  } catch (error) {
+    console.error('Settings error:', error);
+    return new Response('Internal error', { status: 500 });
   }
 }

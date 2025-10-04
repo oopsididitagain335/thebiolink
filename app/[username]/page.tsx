@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
@@ -80,7 +79,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   const { clientId = '' } = await searchParams;
 
   try {
-    const userData = await getUserByUsername(username, clientId);
+    // ✅ FIXED: Only pass `username` — `clientId` is not used in data fetching
+    const userData = await getUserByUsername(username);
 
     // ✅ NOT FOUND — Encourage claiming the username
     if (!userData) {

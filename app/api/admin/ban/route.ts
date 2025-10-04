@@ -1,34 +1,45 @@
-// app/api/admin/ban/route.ts
+// app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
-import { banUser, unbanUser } from '@/lib/storage';
+import { cookies } from 'next/headers';
+import { getUserById } from '@/lib/storage';
 
-function getIP(req: NextRequest): string | undefined {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip')?.trim() ||
-    undefined
-  );
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const { userId, action } = await req.json();
-
-    if (!userId || !action || !['ban', 'unban'].includes(action)) {
-      return Response.json({ error: 'Invalid request' }, { status: 400 });
-    }
-
-    const ipAddress = getIP(req);
-
-    if (action === 'ban') {
-      await banUser(userId, ipAddress);
-    } else {
-      await unbanUser(userId);
-    }
-
-    return Response.json({ success: true });
-  } catch (error) {
-    console.error('Ban action failed:', error);
-    return Response.json({ error: 'Action failed' }, { status: 500 });
+export async function GET(request: NextRequest) {
+  const sessionId = (await cookies()).get('biolink_session')?.value;
+  if (!sessionId) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const user = await getUserById(sessionId);
+  if (!user) {
+    return Response.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // 🔥 CRITICAL: Return 403 if banned — don't just send data
+  if (user.isBanned) {
+    return Response.json(
+      {
+        error: 'banned',
+        message: 'You have been banned from TheBioLink.',
+        appealUrl: 'https://discord.gg/29yDsapcXh'
+      },
+      { status: 403 }
+    );
+  }
+
+  return Response.json({
+    user: {
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar,
+      bio: user.bio,
+      background: user.background,
+      isEmailVerified: user.isEmailVerified,
+      email: user.email,
+      plan: user.plan,
+    },
+    links: user.links,
+    widgets: user.widgets,
+    layoutStructure: user.layoutStructure,
+  });
 }

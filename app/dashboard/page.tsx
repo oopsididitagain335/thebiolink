@@ -1047,7 +1047,7 @@ export default function Dashboard() {
     return hasNoLinks && hasNoWidgets && isDefaultLayout && isDefaultName;
   }, [user, links, widgets, layoutStructure]);
 
-  // ✅ REFETCH FULL DATA FROM SERVER
+  // ✅ REFETCH FULL DATA FROM SERVER AFTER SAVE
   const refetchData = async () => {
     setLoading(true);
     try {

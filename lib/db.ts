@@ -1,5 +1,5 @@
 // lib/db.ts
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 
 let client: MongoClient;
 let db: any;

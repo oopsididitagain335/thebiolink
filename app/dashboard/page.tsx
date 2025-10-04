@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -140,11 +139,8 @@ const OnboardingTutorial = ({
       highlight: "overview"
     }
   ];
-
   if (currentStep >= steps.length) return null;
-
   const step = steps[currentStep];
-
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 border border-indigo-500/30 rounded-2xl p-6 w-full max-w-md relative overflow-hidden">
@@ -1004,7 +1000,6 @@ const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
-
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -1034,15 +1029,12 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
   // ✅ ONBOARDING STATE
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 4;
-
   const router = useRouter();
 
-  // ✅ Detect if user is "first-time / unchanged"
   const isUnchangedUser = useCallback(() => {
     const hasNoLinks = links.length === 0;
     const hasNoWidgets = widgets.length === 0;
@@ -1055,27 +1047,96 @@ export default function Dashboard() {
     return hasNoLinks && hasNoWidgets && isDefaultLayout && isDefaultName;
   }, [user, links, widgets, layoutStructure]);
 
+  // ✅ REFETCH FULL DATA FROM SERVER
+  const refetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/dashboard/data');
+      if (res.status === 403) {
+        const errorData = await res.json().catch(() => ({}));
+        if (errorData.error === 'banned') {
+          alert(`⚠️ ${errorData.message}\nAppeal here: ${errorData.appealUrl}`);
+          router.push('/auth/login');
+          return;
+        }
+      }
+      if (!res.ok) {
+        router.push('/auth/login');
+        return;
+      }
+      const data = await res.json();
+      const rawUsername = data.user.username || '';
+      const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
+
+      setUser({
+        _id: data.user._id || '',
+        name: (data.user.name || '').substring(0, 100),
+        username: safeUsername,
+        avatar: (data.user.avatar || '').trim(),
+        bio: (data.user.bio || '').substring(0, 500),
+        background: (data.user.background || '').trim(),
+        isEmailVerified: data.user.isEmailVerified ?? true,
+        plan: (data.user.plan || 'free').toLowerCase(),
+        email: data.user.email || '',
+      });
+
+      const sortedLinks = [...(data.links || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setLinks(
+        sortedLinks.map((link: any) => ({
+          id: link.id,
+          url: (link.url || '').trim(),
+          title: (link.title || '').substring(0, 100),
+          icon: (link.icon || '').trim(),
+          position: link.position ?? 0,
+        }))
+      );
+
+      const sortedWidgets = [...(data.widgets || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setWidgets(
+        sortedWidgets.map((w: any) => ({
+          id: w.id,
+          type: w.type,
+          title: w.title || '',
+          content: w.content || '',
+          url: w.url || '',
+          position: w.position ?? 0,
+        }))
+      );
+
+      setLayoutStructure(data.layoutStructure || [
+        { id: 'bio', type: 'bio' },
+        { id: 'spacer-1', type: 'spacer', height: 20 },
+        { id: 'links', type: 'links' }
+      ]);
+
+      setMessage({ type: 'success', text: 'Changes saved successfully!' });
+      setShowOnboarding(false);
+    } catch (error) {
+      console.error('Refetch error:', error);
+      setMessage({ type: 'error', text: 'Failed to reload data after save.' });
+    } finally {
+      setLoading(false);
+      setIsSaving(false);
+    }
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/dashboard/data');
-        
-        // 🔒 HANDLE BAN RESPONSE
         if (res.status === 403) {
           const errorData = await res.json().catch(() => ({}));
           if (errorData.error === 'banned') {
-            alert(`⚠️ ${errorData.message}\n\nAppeal here: ${errorData.appealUrl}`);
+            alert(`⚠️ ${errorData.message}\nAppeal here: ${errorData.appealUrl}`);
             router.push('/auth/login');
             return;
           }
         }
-
         if (!res.ok) {
           router.push('/auth/login');
           return;
         }
-
         const data = await res.json();
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
@@ -1090,34 +1151,29 @@ export default function Dashboard() {
           plan: (data.user.plan || 'free').toLowerCase(),
           email: data.user.email || '',
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
-          sortedLinks.length > 0
-            ? sortedLinks.map((link: any) => ({
-                id: link.id || Date.now().toString(),
-                url: (link.url || '').trim(),
-                title: (link.title || '').substring(0, 100),
-                icon: (link.icon || '').trim(),
-                position: link.position ?? 0,
-              }))
-            : []
+          sortedLinks.map((link: any) => ({
+            id: link.id,
+            url: (link.url || '').trim(),
+            title: (link.title || '').substring(0, 100),
+            icon: (link.icon || '').trim(),
+            position: link.position ?? 0,
+          }))
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
           sortedWidgets.map((w: any) => ({
-            id: w.id || Date.now().toString(),
-            type: w.type || 'custom',
+            id: w.id,
+            type: w.type,
             title: w.title || '',
             content: w.content || '',
             url: w.url || '',
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -1130,11 +1186,9 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, [router]);
 
-  // ✅ SHOW ONBOARDING AFTER DATA LOADS
   useEffect(() => {
     if (!loading && isUnchangedUser()) {
       setShowOnboarding(true);
@@ -1198,35 +1252,30 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        // ✅ HIDE ONBOARDING AFTER FIRST SAVE
-        setShowOnboarding(false);
-      } else {
-        const errorMessage = data.error || 'Failed to save changes.';
-        setMessage({ type: 'error', text: errorMessage });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Save failed');
       }
+
+      // ✅ CRITICAL: Refetch to get real widget IDs
+      await refetchData();
     } catch (error: any) {
       console.error('Save error:', error);
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
-    } finally {
+      setMessage({ type: 'error', text: error.message || 'Network error. Please try again.' });
       setIsSaving(false);
     }
   };
 
-  // ✅ ONBOARDING HANDLERS
   const nextStep = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
-      // Auto-switch tab to match tutorial
       const steps = ['customize', 'customize', 'links', 'overview'];
       setActiveTab(steps[currentStep + 1]);
     } else {
       setShowOnboarding(false);
     }
   };
-
   const skipTutorial = () => {
     setShowOnboarding(false);
   };
@@ -1286,7 +1335,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
@@ -1304,7 +1352,6 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
@@ -1414,7 +1461,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1426,7 +1472,6 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
-
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
@@ -1464,8 +1509,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* ✅ RENDER ONBOARDING */}
         {showOnboarding && (
           <OnboardingTutorial 
             currentStep={currentStep} 

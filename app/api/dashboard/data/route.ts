@@ -14,6 +14,18 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
 
+  // 🔒 BAN CHECK
+  if (user.isBanned) {
+    return Response.json(
+      {
+        error: 'banned',
+        message: 'You have been banned from TheBioLink.',
+        appealUrl: 'https://discord.gg/29yDsapcXh'
+      },
+      { status: 403 }
+    );
+  }
+
   return Response.json({
     user: {
       _id: user._id,
@@ -23,9 +35,11 @@ export async function GET(request: NextRequest) {
       bio: user.bio,
       background: user.background,
       isEmailVerified: user.isEmailVerified,
+      email: user.email,
+      plan: user.plan,
     },
     links: user.links,
     widgets: user.widgets,
-    layoutStructure: user.layoutStructure, // ✅ Only this exists now
+    layoutStructure: user.layoutStructure,
   });
 }

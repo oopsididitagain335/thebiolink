@@ -82,86 +82,7 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// === BAN SYSTEM ===
-export async function isIpBanned(ip: string): Promise<boolean> {
-  const db = await connectDB();
-  const record = await db.collection('bannedIPs').findOne({ ip });
-  return !!record;
-}
-
-export async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-  const db = await connectDB();
-  const count = await db.collection('users').countDocuments({ ipAddress });
-  return count < 2;
-}
-
-export async function banAllUsersFromIP(ipAddress: string) {
-  const db = await connectDB();
-  const now = new Date();
-  const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-  await db.collection<UserDoc>('users').updateMany(
-    { 
-      $or: [{ ipAddress: ipAddress }, { lastBannedIp: ipAddress }],
-      isBanned: { $ne: true } 
-    },
-    {
-      $set: {
-        isBanned: true,
-        bannedAt: now.toISOString(),
-        deleteAt: deleteAt.toISOString(),
-        lastBannedIp: ipAddress,
-      }
-    }
-  );
-  await db.collection('bannedIPs').updateOne(
-    { ip: ipAddress },
-    { $setOnInsert: { createdAt: now } },
-    { upsert: true }
-  );
-}
-
-export async function banUser(userId: string, ipAddress?: string) {
-  const db = await connectDB();
-  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
-  if (!user) return;
-  const ipToBan = ipAddress || user.ipAddress || user.lastBannedIp;
-  if (ipToBan) {
-    await banAllUsersFromIP(ipToBan);
-  } else {
-    const now = new Date();
-    const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    await db.collection<UserDoc>('users').updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { isBanned: true, bannedAt: now.toISOString(), deleteAt: deleteAt.toISOString() } }
-    );
-  }
-}
-
-export async function unbanUser(userId: string) {
-  const db = await connectDB();
-  await db.collection<UserDoc>('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { isBanned: false }, $unset: { bannedAt: "", deleteAt: "", lastBannedIp: "" } }
-  );
-}
-
-export async function deleteExpiredBannedAccounts() {
-  const db = await connectDB();
-  const now = new Date();
-  const expiredUsers = await db.collection<UserDoc>('users').find({
-    isBanned: true,
-    deleteAt: { $lt: now.toISOString() }
-  }).toArray();
-  for (const user of expiredUsers) {
-    await db.collection('users').deleteOne({ _id: user._id });
-    await db.collection('links').deleteMany({ userId: user._id });
-    await db.collection('widgets').deleteMany({ userId: user._id });
-    await db.collection('profile_visits').deleteMany({ userId: user._id });
-  }
-  return expiredUsers.length;
-}
-
-// === USER DATA ===
+// === Helper: Get widgets ===
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -175,6 +96,75 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
+// ✅ EXPORTED: getUserByUsername
+export async function getUserByUsername(username: string, clientId: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ username });
+  if (!user) return null;
+
+  if (user.isBanned) {
+    return { isBanned: true };
+  }
+
+  if (clientId) {
+    const visitExists = await db.collection('profile_visits').findOne({ userId: user._id, clientId });
+    if (!visitExists) {
+      await db.collection('users').updateOne({ _id: user._id }, { $inc: { profileViews: 1 } });
+      await db.collection('profile_visits').insertOne({ userId: user._id, clientId, visitedAt: new Date() } as ProfileVisitDoc);
+    }
+  }
+
+  const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
+  const widgets = await getUserWidgets(user._id);
+
+  return {
+    _id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    background: user.background || '',
+    backgroundVideo: user.backgroundVideo || '',
+    backgroundAudio: user.backgroundAudio || '',
+    badges: user.badges || [],
+    isBanned: user.isBanned || false,
+    profileViews: user.profileViews || 0,
+    links: links.map(l => ({
+      id: l._id.toString(),
+      url: l.url,
+      title: l.title,
+      icon: l.icon || '',
+      position: l.position || 0,
+    })).sort((a, b) => a.position - b.position),
+    widgets,
+    layoutStructure: user.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
+      { id: 'links', type: 'links' }
+    ],
+  };
+}
+
+// ✅ EXPORTED: getUserByUsernameForMetadata
+export async function getUserByUsernameForMetadata(username: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ username });
+  if (!user) return null;
+  
+  const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
+  return {
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    isBanned: user.isBanned || false,
+    links: links.map((link: any) => ({
+      url: link.url || '',
+      title: link.title || '',
+    })),
+  };
+}
+
+// ✅ EXPORTED: getUserById
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -184,11 +174,18 @@ export async function getUserById(id: string) {
     return null;
   }
   if (!user) return null;
+
   if (user.isBanned) {
-    return { _id: user._id.toString(), isBanned: true, email: user.email };
+    return {
+      _id: user._id.toString(),
+      isBanned: true,
+      email: user.email,
+    };
   }
+
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   const widgets = await getUserWidgets(user._id);
+
   return {
     _id: user._id.toString(),
     name: user.name || '',
@@ -216,7 +213,25 @@ export async function getUserById(id: string) {
   };
 }
 
-// === SIGNUP & SAVE ===
+// ✅ EXPORTED: getUserByEmail
+export async function getUserByEmail(email: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ email });
+  if (!user) return null;
+  return {
+    _id: user._id.toString(),
+    email: user.email,
+    passwordHash: user.passwordHash,
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    isEmailVerified: user.isEmailVerified,
+    isBanned: user.isBanned || false,
+  };
+}
+
+// ✅ EXPORTED: createUser
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
   const existingEmail = await db.collection('users').findOne({ email });
@@ -265,7 +280,7 @@ export async function createUser(email: string, password: string, username: stri
   };
 }
 
-// ✅ FIXED: Generate new ObjectId — never use client ID
+// ✅ FIXED: saveUserLinks — generate new ObjectId on server
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -274,7 +289,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const valid = links
       .filter(l => l.url?.trim() && l.title?.trim())
       .map((l, i) => ({
-        _id: new ObjectId(),
+        _id: new ObjectId(), // ✅ NEVER use l.id
         userId: uid,
         url: l.url.trim(),
         title: l.title.trim(),
@@ -285,6 +300,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ FIXED: saveUserWidgets — generate new ObjectId on server
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -293,7 +309,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
     const valid = widgets
       .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
       .map((w) => ({
-        _id: new ObjectId(),
+        _id: new ObjectId(), // ✅ NEVER use w.id
         userId: uid,
         type: w.type,
         title: (w.title || '').trim(),
@@ -305,7 +321,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   }
 }
 
-// === Other existing functions (keep as-is) ===
+// === Other existing functions ===
 export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -463,4 +479,83 @@ export async function removeUserBadge(userId: string, badgeId: string) {
     { _id: userObjectId },
     { $pull: { badges: { id: badgeId } } }
   );
+}
+
+// === BAN SYSTEM ===
+export async function isIpBanned(ip: string): Promise<boolean> {
+  const db = await connectDB();
+  const record = await db.collection('bannedIPs').findOne({ ip });
+  return !!record;
+}
+
+export async function checkAccountLimit(ipAddress: string): Promise<boolean> {
+  const db = await connectDB();
+  const count = await db.collection('users').countDocuments({ ipAddress });
+  return count < 2;
+}
+
+export async function banAllUsersFromIP(ipAddress: string) {
+  const db = await connectDB();
+  const now = new Date();
+  const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  await db.collection<UserDoc>('users').updateMany(
+    { 
+      $or: [{ ipAddress: ipAddress }, { lastBannedIp: ipAddress }],
+      isBanned: { $ne: true } 
+    },
+    {
+      $set: {
+        isBanned: true,
+        bannedAt: now.toISOString(),
+        deleteAt: deleteAt.toISOString(),
+        lastBannedIp: ipAddress,
+      }
+    }
+  );
+  await db.collection('bannedIPs').updateOne(
+    { ip: ipAddress },
+    { $setOnInsert: { createdAt: now } },
+    { upsert: true }
+  );
+}
+
+export async function banUser(userId: string, ipAddress?: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
+  if (!user) return;
+  const ipToBan = ipAddress || user.ipAddress || user.lastBannedIp;
+  if (ipToBan) {
+    await banAllUsersFromIP(ipToBan);
+  } else {
+    const now = new Date();
+    const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    await db.collection<UserDoc>('users').updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { isBanned: true, bannedAt: now.toISOString(), deleteAt: deleteAt.toISOString() } }
+    );
+  }
+}
+
+export async function unbanUser(userId: string) {
+  const db = await connectDB();
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { isBanned: false }, $unset: { bannedAt: "", deleteAt: "", lastBannedIp: "" } }
+  );
+}
+
+export async function deleteExpiredBannedAccounts() {
+  const db = await connectDB();
+  const now = new Date();
+  const expiredUsers = await db.collection<UserDoc>('users').find({
+    isBanned: true,
+    deleteAt: { $lt: now.toISOString() }
+  }).toArray();
+  for (const user of expiredUsers) {
+    await db.collection('users').deleteOne({ _id: user._id });
+    await db.collection('links').deleteMany({ userId: user._id });
+    await db.collection('widgets').deleteMany({ userId: user._id });
+    await db.collection('profile_visits').deleteMany({ userId: user._id });
+  }
+  return expiredUsers.length;
 }

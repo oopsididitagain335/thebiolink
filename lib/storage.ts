@@ -262,7 +262,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const valid = links
       .filter(l => l.url?.trim() && l.title?.trim())
       .map((l, i) => ({
-        _id: new ObjectId(l.id), // ✅ Preserve ID
+        _id: new ObjectId(l.id),
         userId: uid,
         url: l.url.trim(),
         title: l.title.trim(),
@@ -281,7 +281,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
     const valid = widgets
       .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
       .map((w) => ({
-        _id: new ObjectId(w.id), // ✅ CRITICAL: Preserve client ID
+        _id: new ObjectId(w.id),
         userId: uid,
         type: w.type,
         title: (w.title || '').trim(),
@@ -319,6 +319,79 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
+}
+
+// ========= INFINITE WEEKLY BADGES & SETTINGS =========
+const getWeeklyId = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil((((now.getTime() - start.getTime()) / 86400000) + start.getDay() + 1) / 7);
+  return `week-${now.getFullYear()}-${weekNumber}`;
+};
+
+const generateDynamicBadge = (weekId: string) => {
+  const emojis = '👑🔥🚀🌐🧙‍♂️🎨🥷🦋🎬🔗💡⚡🎯🌈🤖🎮📱💻🎧📸📚✨🎉🏆🏅🥇🎯🚀🌌🌍🔥';
+  const adjectives = ['Cosmic', 'Quantum', 'Neon', 'Digital', 'Viral', 'Mystic', 'Epic', 'Legendary', 'Cyber', 'Galactic'];
+  const nouns = ['Creator', 'Builder', 'Artist', 'Wizard', 'Ninja', 'Pioneer', 'Legend', 'Master', 'Guru', 'Pro'];
+
+  const seed = weekId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  const randomItem = (arr: string[]) => arr[Math.floor((Math.sin(seed) * 10000) % arr.length)];
+  
+  return {
+    id: `${weekId}-badge`,
+    name: `${randomItem(adjectives)} ${randomItem(nouns)}`,
+    icon: emojis.charAt(seed % emojis.length),
+  };
+};
+
+export async function awardWeeklyFreeBadge(userId: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
+  if (!user) throw new Error('User not found');
+
+  const weekId = getWeeklyId();
+  const badgeId = `${weekId}-badge`;
+  
+  if (user.badges.some(b => b.id === badgeId)) {
+    return { badge: user.badges.find(b => b.id === badgeId)!, message: 'Already claimed' };
+  }
+
+  const newBadge = {
+    ...generateDynamicBadge(weekId),
+    awardedAt: new Date().toISOString(),
+  };
+
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: user._id },
+    { $push: { badges: newBadge } }
+  );
+
+  return { badge: newBadge, message: 'New badge claimed!' };
+}
+
+export async function updateUserEmail(userId: string, newEmail: string) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  const existing = await db.collection('users').findOne({ email: newEmail, _id: { $ne: uid } });
+  if (existing) throw new Error('Email already in use');
+  await db.collection('users').updateOne({ _id: uid }, { $set: { email: newEmail } });
+}
+
+export async function updateUserPassword(userId: string, newPassword: string) {
+  const db = await connectDB();
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { passwordHash } }
+  );
+}
+
+export async function cancelUserSubscription(userId: string) {
+  const db = await connectDB();
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { plan: 'free' } }
+  );
 }
 
 // --- ADMIN PANEL FUNCTIONS ---

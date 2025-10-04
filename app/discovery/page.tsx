@@ -17,11 +17,12 @@ export default async function DiscoveryPage() {
 
   try {
     const users = await getAllUsers();
-    // Extra safety: ensure uniqueness in case JS dedupe missed something
+    // Extra client-side dedupe (defense in depth)
     const seen = new Set<string>();
     validUsers = users.filter(user => {
-      if (!user.username || seen.has(user.username)) return false;
-      seen.add(user.username);
+      const u = user.username.trim().toLowerCase();
+      if (!u || seen.has(u)) return false;
+      seen.add(u);
       return true;
     });
   } catch (error) {
@@ -89,7 +90,7 @@ export default async function DiscoveryPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {validUsers.map((user) => (
                 <ProfileCard
-                  key={user.id} // ✅ Must be unique per user
+                  key={user.id} // ✅ Must be unique
                   username={user.username}
                   name={user.name}
                   avatar={user.avatar}

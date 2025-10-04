@@ -929,24 +929,34 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       </div>
 
       {/* Subscription */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
-        <div className="text-gray-300">
-          <p className="mb-3">Current Plan: <span className="text-purple-400">{user.plan?.charAt(0).toUpperCase() + user.plan?.slice(1) || 'Free'}</span></p>
-          {user.plan && user.plan !== 'free' ? (
-            <button
-              onClick={() => handleUpdate('cancel_subscription')}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium"
-            >
-              Cancel Subscription
-            </button>
-          ) : (
-            <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">
-              Upgrade Plan
-            </button>
-          )}
-        </div>
-      </div>
+<div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+  <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
+  <div className="text-gray-300">
+    {/*
+      Safely compute plan display: 
+      If user.plan exists, capitalize it. Otherwise default to "Free".
+    */}
+    <p className="mb-3">
+      Current Plan:{' '}
+      <span className="text-purple-400">
+        {user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free'}
+      </span>
+    </p>
+
+    {user.plan && user.plan !== 'free' ? (
+      <button
+        onClick={() => handleUpdate('cancel_subscription')}
+        className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium"
+      >
+        Cancel Subscription
+      </button>
+    ) : (
+      <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">
+        Upgrade Plan
+      </button>
+    )}
+  </div>
+</div>
 
       {/* Weekly Badges */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

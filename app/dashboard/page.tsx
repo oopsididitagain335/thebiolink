@@ -30,6 +30,7 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
+  email?: string; // ✅ Added for settings
 }
 
 interface LayoutSection {
@@ -819,6 +820,164 @@ const ProfileBuilderTab = ({
   );
 };
 
+// ✅ NEW: Settings Tab with Badges
+const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  const [email, setEmail] = useState(user.email || '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [badgeMessage, setBadgeMessage] = useState('');
+
+  const handleUpdate = async (action: string, data: any = {}) => {
+    setIsSaving(true);
+    setMessage(null);
+    
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Updated successfully!' });
+        if (action === 'update_email') {
+          setUser({ ...user, email: data.email });
+        }
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Update failed' });
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: 'Network error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClaimBadge = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'claim_weekly_badge' }),
+      });
+      const result = await response.json();
+      setBadgeMessage(result.message || 'Badge claimed!');
+    } catch (error) {
+      setBadgeMessage('Failed to claim badge');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Email */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Email</h2>
+        <div className="space-y-4">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
+            placeholder="your@email.com"
+          />
+          <button
+            onClick={() => handleUpdate('update_email', { email })}
+            disabled={isSaving}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
+          >
+            Update Email
+          </button>
+        </div>
+      </div>
+
+      {/* Password */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Password</h2>
+        <div className="space-y-4">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
+            placeholder="New password"
+          />
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
+            placeholder="Confirm password"
+          />
+          <button
+            onClick={() => {
+              if (password !== confirmPassword) {
+                setMessage({ type: 'error', text: 'Passwords do not match' });
+                return;
+              }
+              handleUpdate('update_password', { password });
+            }}
+            disabled={isSaving}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
+          >
+            Change Password
+          </button>
+        </div>
+      </div>
+
+      {/* Subscription */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
+        <div className="text-gray-300">
+          <p className="mb-3">Current Plan: <span className="text-purple-400">{user.plan?.charAt(0).toUpperCase() + user.plan?.slice(1) || 'Free'}</span></p>
+          {user.plan && user.plan !== 'free' ? (
+            <button
+              onClick={() => handleUpdate('cancel_subscription')}
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium"
+            >
+              Cancel Subscription
+            </button>
+          ) : (
+            <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">
+              Upgrade Plan
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Weekly Badges */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>
+        <p className="text-gray-300 mb-3">Claim a new free badge every Monday! Your collection grows infinitely.</p>
+        <button
+          onClick={handleClaimBadge}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium"
+        >
+          Claim This Week's Badge
+        </button>
+        {badgeMessage && (
+          <p className={`mt-2 text-sm ${badgeMessage.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
+            {badgeMessage}
+          </p>
+        )}
+      </div>
+
+      {message && (
+        <div className={`p-3 rounded-lg ${
+          message.type === 'success' 
+            ? 'bg-green-900/30 text-green-200 border border-green-800' 
+            : 'bg-red-900/30 text-red-200 border border-red-800'
+        }`}>
+          {message.text}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -849,6 +1008,7 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
+    email: '', // ✅ Added
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -887,6 +1047,7 @@ export default function Dashboard() {
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: 'free',
+          email: data.user.email || '', // ✅ Added
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -968,7 +1129,6 @@ export default function Dashboard() {
           position: index,
         }));
 
-      // ✅ CRITICAL: Preserve widget IDs
       const widgetsToSend = widgets.map((w) => ({
         id: w.id,
         type: w.type,
@@ -988,10 +1148,10 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            layoutStructure, // ✅ Only layoutStructure
+            layoutStructure,
           },
           links: linksToSend,
-          widgets: widgetsToSend, // ✅ Full widgets with IDs
+          widgets: widgetsToSend,
         }),
       });
 
@@ -1019,7 +1179,7 @@ export default function Dashboard() {
     { id: 'widgets', name: 'Widgets' },
     { id: 'badges', name: 'Badges' },
     { id: 'manage', name: 'Manage' },
-    { id: 'settings', name: 'Settings' },
+    { id: 'settings', name: 'Settings' }, // ✅ Now functional
   ];
 
   if (loading) {
@@ -1103,7 +1263,8 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {['badges', 'manage', 'settings'].includes(activeTab) && (
+            {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />} // ✅ Added
+            {['badges', 'manage'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
           </div>

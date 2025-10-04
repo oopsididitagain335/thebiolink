@@ -30,7 +30,7 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
-  email?: string; // ✅ Added for settings
+  email?: string;
 }
 
 interface LayoutSection {
@@ -1018,7 +1018,7 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
-    email: '', // ✅ Added
+    email: '', 
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1057,7 +1057,7 @@ export default function Dashboard() {
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: 'free',
-          email: data.user.email || '', // ✅ Added
+          email: data.user.email || '',
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -1273,7 +1273,7 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />} // ✅ Added
+            {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
             {['badges', 'manage'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}

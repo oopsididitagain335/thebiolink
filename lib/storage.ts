@@ -20,11 +20,10 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// ✅ FIXED: Added `plan?: string`
 interface UserDoc {
   _id: ObjectId;
   email: string;
-  username: string;
+  username: string; // ✅ always lowercase
   name: string;
   passwordHash: string;
   avatar?: string;
@@ -46,7 +45,7 @@ interface UserDoc {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
-  plan?: string; // ✅ THIS FIXES THE TYPE ERROR
+  plan?: string;
   layoutStructure?: Array<{
     id: string;
     type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -82,7 +81,6 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// === Helper: Get widgets ===
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -96,22 +94,15 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
-// ✅ EXPORTED: getUserByUsername
-export async function getUserByUsername(username: string, clientId: string) {
+// ✅ getUserByUsername — compare normalized
+export async function getUserByUsername(username: string) {
   const db = await connectDB();
-  const user = await db.collection<UserDoc>('users').findOne({ username });
+  const normalized = username.trim().toLowerCase();
+  const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
   if (!user) return null;
 
   if (user.isBanned) {
     return { isBanned: true };
-  }
-
-  if (clientId) {
-    const visitExists = await db.collection('profile_visits').findOne({ userId: user._id, clientId });
-    if (!visitExists) {
-      await db.collection('users').updateOne({ _id: user._id }, { $inc: { profileViews: 1 } });
-      await db.collection('profile_visits').insertOne({ userId: user._id, clientId, visitedAt: new Date() } as ProfileVisitDoc);
-    }
   }
 
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
@@ -145,10 +136,10 @@ export async function getUserByUsername(username: string, clientId: string) {
   };
 }
 
-// ✅ EXPORTED: getUserByUsernameForMetadata
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
-  const user = await db.collection<UserDoc>('users').findOne({ username });
+  const normalized = username.trim().toLowerCase();
+  const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
   if (!user) return null;
   
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
@@ -164,7 +155,6 @@ export async function getUserByUsernameForMetadata(username: string) {
   };
 }
 
-// ✅ EXPORTED: getUserById
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -213,7 +203,6 @@ export async function getUserById(id: string) {
   };
 }
 
-// ✅ EXPORTED: getUserByEmail
 export async function getUserByEmail(email: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ email });
@@ -231,19 +220,27 @@ export async function getUserByEmail(email: string) {
   };
 }
 
-// ✅ EXPORTED: createUser
+// ✅ createUser — normalize & validate
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
+  const normalizedUsername = username.trim().toLowerCase();
+
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(normalizedUsername)) {
+    throw new Error('Invalid username format');
+  }
+
   const existingEmail = await db.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
-  const existingUsername = await db.collection('users').findOne({ username });
+  
+  const existingUsername = await db.collection('users').findOne({ username: normalizedUsername });
   if (existingUsername) throw new Error('Username already taken');
+
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
   await db.collection('users').insertOne({
     _id: userId,
     email,
-    username,
+    username: normalizedUsername,
     name,
     passwordHash,
     background,
@@ -251,7 +248,7 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    plan: 'free', // ✅ Initialize plan
+    plan: 'free',
     createdAt: new Date(),
     profileViews: 0,
     layoutStructure: [
@@ -260,10 +257,11 @@ export async function createUser(email: string, password: string, username: stri
       { id: 'links', type: 'links' }
     ],
   } as UserDoc);
+  
   return {
     id: userId.toString(),
     email,
-    username,
+    username: normalizedUsername,
     name,
     background,
     badges: [],
@@ -280,7 +278,6 @@ export async function createUser(email: string, password: string, username: stri
   };
 }
 
-// ✅ FIXED: saveUserLinks — generate new ObjectId on server
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -289,7 +286,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const valid = links
       .filter(l => l.url?.trim() && l.title?.trim())
       .map((l, i) => ({
-        _id: new ObjectId(), // ✅ NEVER use l.id
+        _id: new ObjectId(),
         userId: uid,
         url: l.url.trim(),
         title: l.title.trim(),
@@ -300,7 +297,6 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED: saveUserWidgets — generate new ObjectId on server
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -309,7 +305,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
     const valid = widgets
       .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
       .map((w) => ({
-        _id: new ObjectId(), // ✅ NEVER use w.id
+        _id: new ObjectId(),
         userId: uid,
         type: w.type,
         title: (w.title || '').trim(),
@@ -321,32 +317,43 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   }
 }
 
-// === Other existing functions ===
+// ✅ updateUserProfile — normalize, validate, exclude self
 export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
-  if (updates.username) {
+  
+  let cleanUsername = '';
+  if (updates.username !== undefined) {
+    const normalized = updates.username.trim().toLowerCase();
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(normalized)) {
+      throw new Error('Invalid username format');
+    }
     const existing = await db.collection('users').findOne({
-      username: updates.username,
+      username: normalized,
       _id: { $ne: uid }
     });
     if (existing) throw new Error('Username taken');
+    cleanUsername = normalized;
   }
+
+  const current = await getUserById(userId);
   const clean = {
-    name: updates.name?.trim() || '',
-    username: updates.username?.trim().toLowerCase() || '',
-    avatar: updates.avatar?.trim() || '',
-    bio: updates.bio?.trim() || '',
-    background: updates.background?.trim() || '',
-    layoutStructure: updates.layoutStructure || [
+    name: (updates.name || current?.name || '').trim().substring(0, 100),
+    username: cleanUsername || current?.username || '',
+    avatar: (updates.avatar || current?.avatar || '').trim(),
+    bio: (updates.bio || current?.bio || '').trim().substring(0, 500),
+    background: (updates.background || current?.background || '').trim(),
+    layoutStructure: updates.layoutStructure || current?.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
   };
+
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
+// === Remaining functions unchanged ===
 const getWeeklyId = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
@@ -412,7 +419,6 @@ export async function cancelUserSubscription(userId: string) {
   );
 }
 
-// 🔥 FIXED: getAllUsers — with deduplication and strict validation
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db
@@ -430,10 +436,9 @@ export async function getAllUsers() {
       bio: 1,
       isBanned: 1,
     })
-    .sort({ _id: -1 }) // ObjectId is time-based → newest first
+    .sort({ _id: -1 })
     .toArray();
 
-  // Deduplicate by normalized username
   const seen = new Set<string>();
   const uniqueUsers = users.filter(user => {
     const uname = user.username.trim().toLowerCase();
@@ -495,7 +500,6 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-// === BAN SYSTEM ===
 export async function isIpBanned(ip: string): Promise<boolean> {
   const db = await connectDB();
   const record = await db.collection('bannedIPs').findOne({ ip });

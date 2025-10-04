@@ -1,31 +1,35 @@
 // lib/db.ts
-import mongoose from 'mongoose';
+import { MongoClient, ObjectId } from 'mongodb';
 
-let isConnected = false;
+let client: MongoClient;
+let db: any;
 
-export async function connectToDB() {
-  if (!isConnected) {
-    await mongoose.connect(process.env.MONGODB_URI!);
-    isConnected = true;
+export async function connectDB() {
+  if (!db) {
+    client = new MongoClient(process.env.MONGODB_URI!);
+    await client.connect();
+    db = client.db('biolink');
   }
+  return db;
 }
 
-const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  passwordHash: String,
-  plan: { type: String, default: 'free' },
-  isBanned: { type: Boolean, default: false },
-  stripeCustomerId: String,
-});
-
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-
 export async function getUserByEmail(email: string) {
-  await connectToDB();
-  return User.findOne({ email }).select('+passwordHash');
+  const db = await connectDB();
+  return await db.collection('users').findOne({ email });
 }
 
 export async function updateUserPlan(email: string, plan: string) {
-  await connectToDB();
-  await User.findOneAndUpdate({ email }, { plan });
+  const db = await connectDB();
+  await db.collection('users').updateOne(
+    { email },
+    { $set: { plan, updatedAt: new Date() } }
+  );
+}
+
+export async function updateUserPassword(email: string, hashedPassword: string) {
+  const db = await connectDB();
+  await db.collection('users').updateOne(
+    { email },
+    { $set: { password: hashedPassword, updatedAt: new Date() } }
+  );
 }

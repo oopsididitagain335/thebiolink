@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // 🔒 LIVE BAN CHECK
+  // 🔥 CRITICAL: Return 403 if banned — this triggers redirect in dashboard
   if (user.isBanned) {
     return Response.json(
       {

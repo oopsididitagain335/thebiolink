@@ -1,4 +1,3 @@
-// app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import {
@@ -6,7 +5,7 @@ import {
   saveUserLinks,
   saveUserWidgets,
   getUserById,
-  getUserByUsername, // ✅ Make sure this exists in your storage lib
+  getUserByUsername,
 } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
@@ -26,9 +25,10 @@ export async function PUT(request: NextRequest) {
   // ✅ Validate username uniqueness (if username is being changed)
   if (profile?.username) {
     const incomingUsername = profile.username.trim().toLowerCase();
-    
-    // Only check if the username is actually changing
-    if (incomingUsername !== currentUser.username.toLowerCase()) {
+
+    // 🔒 Safely handle possibly undefined currentUser.username
+    const currentUsername = currentUser.username?.toLowerCase();
+    if (incomingUsername !== currentUsername) {
       const existingUser = await getUserByUsername(incomingUsername);
       if (existingUser) {
         return Response.json(
@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Also validate format (optional but safe)
+    // ✅ Validate username format
     if (!/^[a-zA-Z0-9_-]{3,30}$/.test(incomingUsername)) {
       return Response.json(
         { error: 'Username must be 3–30 characters (letters, numbers, _, -).' },

@@ -2,7 +2,7 @@
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
-import { getUserByEmail } from './db'; // Make sure this exists and returns { email, password, ... }
+import { getUserByEmail } from './db';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -23,6 +23,7 @@ export const authOptions: NextAuthOptions = {
         const isPasswordValid = await compare(credentials.password, user.password);
         if (!isPasswordValid) return null;
 
+        // ✅ Return user with `id` as string
         return {
           id: user._id.toString(),
           email: user.email,
@@ -41,14 +42,14 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id; // ✅ user.id exists from authorize()
         token.email = user.email;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id; // ✅ Now safe
         session.user.email = token.email as string;
       }
       return session;
@@ -56,6 +57,5 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-// Re-export getServerSession for convenience
 import { getServerSession } from 'next-auth/next';
 export { getServerSession };

@@ -1,12 +1,11 @@
 // app/api/settings/route.ts
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { NextRequest } from 'next/server';
+import { getServerSession } from '@/lib/auth'; // ✅ Import from lib/auth.ts
 import { updateUserPlan, updateUserPassword } from '@/lib/db';
 import { hash } from 'bcryptjs';
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(); // ✅ No need to pass authOptions in v4 if exported correctly
   if (!session?.user?.email) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -24,14 +23,17 @@ export async function PUT(req: NextRequest) {
     }
 
     if (action === 'cancel_subscription') {
-      // Downgrade to free (no Stripe cancel needed if you don't use webhooks)
       await updateUserPlan(session.user.email, 'free');
       return Response.json({ success: true });
     }
 
     if (action === 'update_email') {
-      // Optional: update email
+      // Optional: update email in DB
       return Response.json({ success: true });
+    }
+
+    if (action === 'claim_weekly_badge') {
+      return Response.json({ message: 'Badge claimed!' });
     }
 
     return new Response('Invalid action', { status: 400 });

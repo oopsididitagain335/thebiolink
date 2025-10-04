@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -425,7 +424,7 @@ export async function getAllUsers() {
     .collection<UserDoc>('users')
     .find({
       isBanned: { $ne: true },
-      username: { $exists: true, $type: 'string', $ne: '', $ne: null },
+      username: { $exists: true, $type: 'string', $ne: '' }, // ✅ FIXED: removed $ne: null
       _id: { $exists: true }
     })
     .project({

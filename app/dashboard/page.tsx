@@ -1,6 +1,6 @@
 // app/dashboard/page.tsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Link {
@@ -102,6 +102,78 @@ const DraggableItem = ({
       className="mb-3"
     >
       {children}
+    </div>
+  );
+};
+
+// ✅ ONBOARDING TUTORIAL MODAL
+const OnboardingTutorial = ({ 
+  currentStep, 
+  onNext, 
+  onSkip,
+  totalSteps 
+}: { 
+  currentStep: number; 
+  onNext: () => void; 
+  onSkip: () => void;
+  totalSteps: number;
+}) => {
+  const steps = [
+    {
+      title: "Welcome to TheBioLink!",
+      content: "Let’s get your profile set up in just a few steps.",
+      highlight: "customize"
+    },
+    {
+      title: "Add Your Bio",
+      content: "Tell the world who you are! Add your name, bio, and avatar.",
+      highlight: "customize"
+    },
+    {
+      title: "Add Your Links",
+      content: "Connect your socials, portfolio, or anything else!",
+      highlight: "links"
+    },
+    {
+      title: "Preview & Publish",
+      content: "Your link is live instantly. Share it anywhere!",
+      highlight: "overview"
+    }
+  ];
+
+  if (currentStep >= steps.length) return null;
+
+  const step = steps[currentStep];
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 border border-indigo-500/30 rounded-2xl p-6 w-full max-w-md relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+        <button
+          onClick={onSkip}
+          className="absolute top-3 right-3 text-gray-400 hover:text-white text-sm"
+        >
+          Skip
+        </button>
+        <div className="text-center py-4">
+          <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl text-white">✨</span>
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
+          <p className="text-gray-300 mb-6">{step.content}</p>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">
+              Step {currentStep + 1} of {totalSteps}
+            </span>
+            <button
+              onClick={onNext}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-lg font-medium hover:opacity-90"
+            >
+              {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -336,22 +408,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
               <p>No links added yet</p>
             </div>
           )}
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-            <div className="flex items-center">
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
-                alt="Discord" 
-                className="w-8 h-8 mr-3"
-              />
-              <span className="text-white font-medium">Discord</span>
-            </div>
-            <p className="text-gray-400 text-sm mt-2">Coming Soon</p>
-          </div>
         </div>
       </div>
     </div>
@@ -772,7 +828,6 @@ const ProfileBuilderTab = ({
   );
 };
 
-// ✅ FIXED SettingsTab: Upgrade → /pricing, Cancel → API, Password reset
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState(user.email || '');
   const [password, setPassword] = useState('');
@@ -780,7 +835,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [badgeMessage, setBadgeMessage] = useState('');
-
   const handleUpdate = async (action: string, data: any = {}) => {
     setIsSaving(true);
     setMessage(null);
@@ -808,7 +862,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setIsSaving(false);
     }
   };
-
   const handleClaimBadge = async () => {
     try {
       const response = await fetch('/api/settings', {
@@ -822,14 +875,10 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setBadgeMessage('Failed to claim badge');
     }
   };
-
-  // ✅ Handle all plan states safely (including missing plan)
   const normalizedPlan = (user.plan || 'free').toLowerCase();
   const isFreePlan = normalizedPlan === 'free';
-
   return (
     <div className="space-y-6">
-      {/* Email */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Email</h2>
         <div className="space-y-4">
@@ -849,8 +898,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-
-      {/* Password */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Password</h2>
         <div className="space-y-4">
@@ -887,8 +934,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-
-      {/* Subscription */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
         <div className="text-gray-300">
@@ -917,8 +962,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           )}
         </div>
       </div>
-
-      {/* Weekly Badges */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>
         <p className="text-gray-300 mb-3">Claim a new free badge every Monday!</p>
@@ -934,7 +977,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </p>
         )}
       </div>
-
       {message && (
         <div className={`p-3 rounded-lg ${
           message.type === 'success' 
@@ -992,17 +1034,48 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // ✅ ONBOARDING STATE
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const totalSteps = 4;
+
   const router = useRouter();
+
+  // ✅ Detect if user is "first-time / unchanged"
+  const isUnchangedUser = useCallback(() => {
+    const hasNoLinks = links.length === 0;
+    const hasNoWidgets = widgets.length === 0;
+    const isDefaultLayout = layoutStructure.length === 3 &&
+      layoutStructure[0].type === 'bio' &&
+      layoutStructure[1].type === 'spacer' &&
+      layoutStructure[2].type === 'links';
+    const isDefaultName = !user.name.trim() || 
+      (user.email && user.name === user.email.split('@')[0]);
+    return hasNoLinks && hasNoWidgets && isDefaultLayout && isDefaultName;
+  }, [user, links, widgets, layoutStructure]);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/dashboard/data');
+        
+        // 🔒 HANDLE BAN RESPONSE
+        if (res.status === 403) {
+          const errorData = await res.json().catch(() => ({}));
+          if (errorData.error === 'banned') {
+            alert(`⚠️ ${errorData.message}\n\nAppeal here: ${errorData.appealUrl}`);
+            router.push('/auth/login');
+            return;
+          }
+        }
+
         if (!res.ok) {
           router.push('/auth/login');
           return;
         }
+
         const data = await res.json();
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
@@ -1014,9 +1087,10 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: (data.user.plan || 'free').toLowerCase(), // ✅ normalize on load
+          plan: (data.user.plan || 'free').toLowerCase(),
           email: data.user.email || '',
         });
+
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1030,6 +1104,7 @@ export default function Dashboard() {
               }))
             : []
         );
+
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1042,6 +1117,7 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
+
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -1054,8 +1130,16 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchUserData();
   }, [router]);
+
+  // ✅ SHOW ONBOARDING AFTER DATA LOADS
+  useEffect(() => {
+    if (!loading && isUnchangedUser()) {
+      setShowOnboarding(true);
+    }
+  }, [loading, isUnchangedUser]);
 
   const handleLogout = async () => {
     try {
@@ -1117,6 +1201,8 @@ export default function Dashboard() {
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
+        // ✅ HIDE ONBOARDING AFTER FIRST SAVE
+        setShowOnboarding(false);
       } else {
         const errorMessage = data.error || 'Failed to save changes.';
         setMessage({ type: 'error', text: errorMessage });
@@ -1127,6 +1213,22 @@ export default function Dashboard() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // ✅ ONBOARDING HANDLERS
+  const nextStep = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
+      // Auto-switch tab to match tutorial
+      const steps = ['customize', 'customize', 'links', 'overview'];
+      setActiveTab(steps[currentStep + 1]);
+    } else {
+      setShowOnboarding(false);
+    }
+  };
+
+  const skipTutorial = () => {
+    setShowOnboarding(false);
   };
 
   const tabs = [
@@ -1184,6 +1286,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
@@ -1201,6 +1304,7 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
@@ -1310,6 +1414,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1321,6 +1426,7 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
+
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
@@ -1357,6 +1463,16 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ✅ RENDER ONBOARDING */}
+        {showOnboarding && (
+          <OnboardingTutorial 
+            currentStep={currentStep} 
+            onNext={nextStep} 
+            onSkip={skipTutorial}
+            totalSteps={totalSteps}
+          />
         )}
       </div>
     </div>

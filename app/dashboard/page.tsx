@@ -10,6 +10,7 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -18,6 +19,7 @@ interface Widget {
   url?: string;
   position: number;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -29,6 +31,7 @@ interface User {
   plan?: string;
   email?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -780,8 +783,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [badgeMessage, setBadgeMessage] = useState('');
-
-  const handleUpdate = async (action: string, data: any = {}) => {
+  const handleUpdate = async (action: string,  any = {}) => {
     setIsSaving(true);
     setMessage(null);
     try {
@@ -808,7 +810,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setIsSaving(false);
     }
   };
-
   const handleClaimBadge = async () => {
     try {
       const response = await fetch('/api/settings', {
@@ -822,11 +823,9 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setBadgeMessage('Failed to claim badge');
     }
   };
-
   // ✅ Handle all plan states safely (including missing plan)
   const normalizedPlan = (user.plan || 'free').toLowerCase();
   const isFreePlan = normalizedPlan === 'free';
-
   return (
     <div className="space-y-6">
       {/* Email */}
@@ -849,7 +848,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-
       {/* Password */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Password</h2>
@@ -887,7 +885,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-
       {/* Subscription */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
@@ -917,7 +914,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           )}
         </div>
       </div>
-
       {/* Weekly Badges */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>
@@ -934,7 +930,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </p>
         )}
       </div>
-
       {message && (
         <div className={`p-3 rounded-lg ${
           message.type === 'success' 
@@ -1104,7 +1099,7 @@ export default function Dashboard() {
         body: JSON.stringify({
           profile: {
             name: user.name.trim().substring(0, 100),
-            username: user.username.trim().toLowerCase(),
+            username: user.username.trim(), // ✅ REMOVED .toLowerCase()
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',

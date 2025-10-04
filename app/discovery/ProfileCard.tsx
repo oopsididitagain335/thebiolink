@@ -14,7 +14,7 @@ export default function ProfileCard({
 }) {
   return (
     <a
-      href={`https://thebiolink.lol/${username}`}
+      href={`https://thebiolink.lol/${username}`} // ✅ NO EXTRA SPACES
       target="_blank"
       rel="noopener noreferrer"
       className="block bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 text-center hover:bg-gray-700/50 transition-all duration-200 group"

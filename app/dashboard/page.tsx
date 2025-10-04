@@ -928,7 +928,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
         </div>
       </div>
 
-      {/* Subscription */}
+{/* Subscription */}
 <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
   <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
   <div className="text-gray-300">
@@ -951,13 +951,15 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
         Cancel Subscription
       </button>
     ) : (
-      <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">
+      <button
+        onClick={() => window.location.href = '/pricing'}
+        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90"
+      >
         Upgrade Plan
       </button>
     )}
   </div>
 </div>
-
       {/* Weekly Badges */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>

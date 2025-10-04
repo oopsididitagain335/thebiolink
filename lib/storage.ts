@@ -412,11 +412,16 @@ export async function cancelUserSubscription(userId: string) {
   );
 }
 
+// 🔥 FIXED: getAllUsers — with deduplication and strict validation
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db
     .collection<UserDoc>('users')
-    .find({ isBanned: { $ne: true } })
+    .find({
+      isBanned: { $ne: true },
+      username: { $exists: true, $type: 'string', $ne: '', $ne: null },
+      _id: { $exists: true }
+    })
     .project({
       _id: 1,
       username: 1,
@@ -424,17 +429,26 @@ export async function getAllUsers() {
       avatar: 1,
       bio: 1,
       isBanned: 1,
-      badges: 1,
     })
+    .sort({ _id: -1 }) // ObjectId is time-based → newest first
     .toArray();
-  return users.map((user) => ({
+
+  // Deduplicate by normalized username
+  const seen = new Set<string>();
+  const uniqueUsers = users.filter(user => {
+    const uname = user.username.trim().toLowerCase();
+    if (!uname || seen.has(uname)) return false;
+    seen.add(uname);
+    return true;
+  });
+
+  return uniqueUsers.map(user => ({
     id: user._id.toString(),
-    username: user.username,
-    name: user.name || '',
-    avatar: user.avatar || undefined,
-    bio: user.bio || undefined,
-    isBanned: user.isBanned || false,
-    badges: Array.isArray(user.badges) ? user.badges : [],
+    username: user.username.trim(),
+    name: user.name?.trim() || user.username.trim(),
+    avatar: user.avatar?.trim() || undefined,
+    bio: user.bio?.trim() || undefined,
+    isBanned: !!user.isBanned,
   }));
 }
 

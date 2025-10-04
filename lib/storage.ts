@@ -80,14 +80,6 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// === NEW: Check if IP is banned ===
-export async function isIpBanned(ip: string): Promise<boolean> {
-  const db = await connectDB();
-  const record = await db.collection('bannedIPs').findOne({ ip });
-  return !!record;
-}
-
-// === Helper: Get widgets ===
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -101,7 +93,6 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
-// === Public: Get user by username ===
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -150,7 +141,24 @@ export async function getUserByUsername(username: string, clientId: string) {
   };
 }
 
-// === Public: Get user by ID (for dashboard) ===
+export async function getUserByUsernameForMetadata(username: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ username });
+  if (!user) return null;
+  
+  const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
+  return {
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    isBanned: user.isBanned || false,
+    links: links.map((link: any) => ({
+      url: link.url || '',
+      title: link.title || '',
+    })),
+  };
+}
+
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -161,7 +169,6 @@ export async function getUserById(id: string) {
   }
   if (!user) return null;
 
-  // 🔒 RETURN BANNED STATUS
   if (user.isBanned) {
     return {
       _id: user._id.toString(),
@@ -200,10 +207,70 @@ export async function getUserById(id: string) {
   };
 }
 
-// === Other existing functions (getUserByEmail, createUser, etc.) — keep as-is ===
-// ... (retain all your existing functions like createUser, saveUserLinks, etc.)
+export async function getUserByEmail(email: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ email });
+  if (!user) return null;
+  return {
+    _id: user._id.toString(),
+    email: user.email,
+    passwordHash: user.passwordHash,
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    isEmailVerified: user.isEmailVerified,
+    isBanned: user.isBanned || false,
+  };
+}
 
-// ✅ FIXED: saveUserLinks — generate new ObjectId on server
+export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
+  const db = await connectDB();
+  const existingEmail = await db.collection('users').findOne({ email });
+  if (existingEmail) throw new Error('Email already registered');
+  const existingUsername = await db.collection('users').findOne({ username });
+  if (existingUsername) throw new Error('Username already taken');
+  const passwordHash = await bcrypt.hash(password, 12);
+  const userId = new ObjectId();
+  await db.collection('users').insertOne({
+    _id: userId,
+    email,
+    username,
+    name,
+    passwordHash,
+    background,
+    ipAddress,
+    badges: [],
+    isEmailVerified: true,
+    isBanned: false,
+    createdAt: new Date(),
+    profileViews: 0,
+    layoutStructure: [
+      { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
+      { id: 'links', type: 'links' }
+    ],
+  } as UserDoc);
+  return {
+    id: userId.toString(),
+    email,
+    username,
+    name,
+    background,
+    badges: [],
+    isEmailVerified: true,
+    isBanned: false,
+    createdAt: new Date().toISOString(),
+    profileViews: 0,
+    layoutStructure: [
+      { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
+      { id: 'links', type: 'links' }
+    ],
+  };
+}
+
+// ✅ FIXED: Generate new ObjectId on server — never trust client ID
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -212,7 +279,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
     const valid = links
       .filter(l => l.url?.trim() && l.title?.trim())
       .map((l, i) => ({
-        _id: new ObjectId(), // ✅ NEVER use l.id
+        _id: new ObjectId(),
         userId: uid,
         url: l.url.trim(),
         title: l.title.trim(),
@@ -223,7 +290,7 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ FIXED: saveUserWidgets — generate new ObjectId on server
+// ✅ FIXED: Generate new ObjectId on server
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -232,7 +299,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
     const valid = widgets
       .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
       .map((w) => ({
-        _id: new ObjectId(), // ✅ NEVER use w.id
+        _id: new ObjectId(),
         userId: uid,
         type: w.type,
         title: (w.title || '').trim(),
@@ -244,35 +311,243 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   }
 }
 
-// === Admin: Ban user ===
-export async function banUser(userId: string, ipAddress?: string) {
+export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
-  const objectId = new ObjectId(userId);
-  const now = new Date();
-  const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
-
-  const update: any = {
-    isBanned: true,
-    bannedAt: now.toISOString(),
-    deleteAt: deleteAt.toISOString(),
-  };
-
-  if (ipAddress) {
-    update.lastBannedIp = ipAddress;
-    await db.collection('bannedIPs').updateOne(
-      { ip: ipAddress },
-      { $setOnInsert: { createdAt: now } },
-      { upsert: true }
-    );
+  const uid = new ObjectId(userId);
+  
+  if (updates.username) {
+    const existing = await db.collection('users').findOne({
+      username: updates.username,
+      _id: { $ne: uid }
+    });
+    if (existing) throw new Error('Username taken');
   }
 
+  const clean = {
+    name: updates.name?.trim() || '',
+    username: updates.username?.trim().toLowerCase() || '',
+    avatar: updates.avatar?.trim() || '',
+    bio: updates.bio?.trim() || '',
+    background: updates.background?.trim() || '',
+    layoutStructure: updates.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
+      { id: 'links', type: 'links' }
+    ],
+  };
+
+  await db.collection('users').updateOne({ _id: uid }, { $set: clean });
+}
+
+const getWeeklyId = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil((((now.getTime() - start.getTime()) / 86400000) + start.getDay() + 1) / 7);
+  return `week-${now.getFullYear()}-${weekNumber}`;
+};
+
+const generateDynamicBadge = (weekId: string) => {
+  const emojis = '👑🔥🚀🌐🧙‍♂️🎨🥷🦋🎬🔗💡⚡🎯🌈🤖🎮📱💻🎧📸📚✨🎉🏆🏅🥇🎯🚀🌌🌍🔥';
+  const adjectives = ['Cosmic', 'Quantum', 'Neon', 'Digital', 'Viral', 'Mystic', 'Epic', 'Legendary', 'Cyber', 'Galactic'];
+  const nouns = ['Creator', 'Builder', 'Artist', 'Wizard', 'Ninja', 'Pioneer', 'Legend', 'Master', 'Guru', 'Pro'];
+
+  const seed = weekId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  const randomItem = (arr: string[]) => arr[Math.floor((Math.sin(seed) * 10000) % arr.length)];
+  
+  return {
+    id: `${weekId}-badge`,
+    name: `${randomItem(adjectives)} ${randomItem(nouns)}`,
+    icon: emojis.charAt(seed % emojis.length),
+  };
+};
+
+export async function awardWeeklyFreeBadge(userId: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
+  if (!user) throw new Error('User not found');
+
+  const weekId = getWeeklyId();
+  const badgeId = `${weekId}-badge`;
+  
+  if (user.badges.some(b => b.id === badgeId)) {
+    return { badge: user.badges.find(b => b.id === badgeId)!, message: 'Already claimed' };
+  }
+
+  const newBadge = {
+    ...generateDynamicBadge(weekId),
+    awardedAt: new Date().toISOString(),
+  };
+
   await db.collection<UserDoc>('users').updateOne(
-    { _id: objectId },
-    { $set: update }
+    { _id: user._id },
+    { $push: { badges: newBadge } }
+  );
+
+  return { badge: newBadge, message: 'New badge claimed!' };
+}
+
+export async function updateUserEmail(userId: string, newEmail: string) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  const existing = await db.collection('users').findOne({ email: newEmail, _id: { $ne: uid } });
+  if (existing) throw new Error('Email already in use');
+  await db.collection('users').updateOne({ _id: uid }, { $set: { email: newEmail } });
+}
+
+export async function updateUserPassword(userId: string, newPassword: string) {
+  const db = await connectDB();
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { passwordHash } }
   );
 }
 
-// === Admin: Unban user ===
+export async function cancelUserSubscription(userId: string) {
+  const db = await connectDB();
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { plan: 'free' } }
+  );
+}
+
+export async function getAllUsers() {
+  const db = await connectDB();
+  const users = await db
+    .collection<UserDoc>('users')
+    .find({ isBanned: { $ne: true } })
+    .project({
+      _id: 1,
+      username: 1,
+      name: 1,
+      avatar: 1,
+      bio: 1,
+      isBanned: 1,
+      badges: 1,
+    })
+    .toArray();
+
+  return users.map((user) => ({
+    id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
+    isBanned: user.isBanned || false,
+    badges: Array.isArray(user.badges) ? user.badges : [],
+  }));
+}
+
+export async function createBadge(name: string, icon: string) {
+  const db = await connectDB();
+  const badgeId = new ObjectId().toString();
+  await db.collection('badges').insertOne({
+    id: badgeId,
+    name,
+    icon,
+    createdAt: new Date().toISOString()
+  });
+  return { id: badgeId, name, icon };
+}
+
+export async function getAllBadges() {
+  const db = await connectDB();
+  const badges = await db.collection('badges').find({}).toArray();
+  return badges.map((badge: any) => ({
+    id: badge.id,
+    name: badge.name,
+    icon: badge.icon
+  }));
+}
+
+export async function addUserBadge(
+  userId: string,
+  badge: { id: string; name: string; icon: string; awardedAt: string }
+) {
+  const db = await connectDB();
+  const userObjectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $push: { badges: { $each: [badge] } } }
+  );
+}
+
+export async function removeUserBadge(userId: string, badgeId: string) {
+  const db = await connectDB();
+  const userObjectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: userObjectId },
+    { $pull: { badges: { id: badgeId } } }
+  );
+}
+
+// === BAN SYSTEM ===
+export async function isIpBanned(ip: string): Promise<boolean> {
+  const db = await connectDB();
+  const record = await db.collection('bannedIPs').findOne({ ip });
+  return !!record;
+}
+
+export async function checkAccountLimit(ipAddress: string): Promise<boolean> {
+  const db = await connectDB();
+  const count = await db.collection('users').countDocuments({ ipAddress });
+  return count < 2; // Max 2 accounts per IP — EVER
+}
+
+export async function banAllUsersFromIP(ipAddress: string) {
+  const db = await connectDB();
+  const now = new Date();
+  const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+  await db.collection<UserDoc>('users').updateMany(
+    { 
+      $or: [
+        { ipAddress: ipAddress },
+        { lastBannedIp: ipAddress }
+      ],
+      isBanned: { $ne: true } 
+    },
+    {
+      $set: {
+        isBanned: true,
+        bannedAt: now.toISOString(),
+        deleteAt: deleteAt.toISOString(),
+        lastBannedIp: ipAddress,
+      }
+    }
+  );
+
+  await db.collection('bannedIPs').updateOne(
+    { ip: ipAddress },
+    { $setOnInsert: { createdAt: now } },
+    { upsert: true }
+  );
+}
+
+export async function banUser(userId: string, ipAddress?: string) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
+  if (!user) return;
+
+  const ipToBan = ipAddress || user.ipAddress || user.lastBannedIp;
+  if (ipToBan) {
+    await banAllUsersFromIP(ipToBan);
+  } else {
+    const now = new Date();
+    const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    await db.collection<UserDoc>('users').updateOne(
+      { _id: new ObjectId(userId) },
+      {
+        $set: {
+          isBanned: true,
+          bannedAt: now.toISOString(),
+          deleteAt: deleteAt.toISOString(),
+        }
+      }
+    );
+  }
+}
+
 export async function unbanUser(userId: string) {
   const db = await connectDB();
   const objectId = new ObjectId(userId);
@@ -285,11 +560,9 @@ export async function unbanUser(userId: string) {
   );
 }
 
-// === Cron: Delete expired banned accounts ===
 export async function deleteExpiredBannedAccounts() {
   const db = await connectDB();
   const now = new Date();
-
   const expiredUsers = await db.collection<UserDoc>('users').find({
     isBanned: true,
     deleteAt: { $lt: now.toISOString() }
@@ -301,9 +574,5 @@ export async function deleteExpiredBannedAccounts() {
     await db.collection('widgets').deleteMany({ userId: user._id });
     await db.collection('profile_visits').deleteMany({ userId: user._id });
   }
-
   return expiredUsers.length;
 }
-
-// === Keep all your other existing functions (updateUserProfile, awardWeeklyFreeBadge, etc.) ===
-// ... (no changes needed)

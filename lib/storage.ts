@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 let cachedClient: MongoClient | null = null;
@@ -20,6 +21,7 @@ interface UserDoc {
   _id: ObjectId;
   email: string;
   username: string;
+  usernameLower: string;
   name: string;
   passwordHash: string;
   avatar?: string;
@@ -88,7 +90,7 @@ async function getUserWidgets(userId: ObjectId) {
 export async function getUserByUsername(username: string) {
   const db = await connectDB();
   const normalized = username.trim().toLowerCase();
-  const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
+  const user = await db.collection<UserDoc>('users').findOne({ usernameLower: normalized });
   if (!user) return null;
   if (user.isBanned) {
     return { isBanned: true };
@@ -125,7 +127,7 @@ export async function getUserByUsername(username: string) {
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
   const normalized = username.trim().toLowerCase();
-  const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
+  const user = await db.collection<UserDoc>('users').findOne({ usernameLower: normalized });
   if (!user) return null;
  
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
@@ -202,21 +204,23 @@ export async function getUserByEmail(email: string) {
 }
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
-  const normalizedUsername = username.trim().toLowerCase();
-  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(normalizedUsername)) {
+  const originalUsername = username.trim();
+  const normalizedUsername = originalUsername.toLowerCase();
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(originalUsername)) {
     throw new Error('Invalid username format');
   }
   const existingEmail = await db.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
  
-  const existingUsername = await db.collection('users').findOne({ username: normalizedUsername });
+  const existingUsername = await db.collection('users').findOne({ usernameLower: normalizedUsername });
   if (existingUsername) throw new Error('Username already taken');
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
   await db.collection('users').insertOne({
     _id: userId,
     email,
-    username: normalizedUsername,
+    username: originalUsername,
+    usernameLower: normalizedUsername,
     name,
     passwordHash,
     background,
@@ -237,7 +241,7 @@ export async function createUser(email: string, password: string, username: stri
   return {
     id: userId.toString(),
     email,
-    username: normalizedUsername,
+    username: originalUsername,
     name,
     background,
     badges: [],
@@ -295,31 +299,35 @@ export async function updateUserProfile(userId: string, updates: any) {
   const uid = new ObjectId(userId);
  
   let cleanUsername = '';
+  let cleanUsernameLower = '';
   if (updates.username !== undefined) {
-    const normalized = updates.username.trim().toLowerCase();
-    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(normalized)) {
+    const original = updates.username.trim();
+    const normalized = original.toLowerCase();
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(original)) {
       throw new Error('Invalid username format');
     }
     const existing = await db.collection('users').findOne({
-      username: normalized,
+      usernameLower: normalized,
       _id: { $ne: uid }
     });
     if (existing) throw new Error('Username taken');
-    cleanUsername = normalized;
+    cleanUsername = original;
+    cleanUsernameLower = normalized;
   }
   const current = await getUserById(userId);
   const clean = {
     name: (updates.name || current?.name || '').trim().substring(0, 100),
-    username: cleanUsername || current?.username || '',
-    avatar: (updates.avatar || current?.avatar || '').trim(),
-    bio: (updates.bio || current?.bio || '').trim().substring(0, 500),
-    background: (updates.background || current?.background || '').trim(),
-    layoutStructure: updates.layoutStructure || current?.layoutStructure || [
-      { id: 'bio', type: 'bio' },
-      { id: 'spacer-1', type: 'spacer', height: 20 },
-      { id: 'links', type: 'links' }
-    ],
   };
+  if (cleanUsername) clean.username = cleanUsername;
+  if (cleanUsernameLower) clean.usernameLower = cleanUsernameLower;
+  clean.avatar = (updates.avatar || current?.avatar || '').trim();
+  clean.bio = (updates.bio || current?.bio || '').trim().substring(0, 500);
+  clean.background = (updates.background || current?.background || '').trim();
+  clean.layoutStructure = updates.layoutStructure || current?.layoutStructure || [
+    { id: 'bio', type: 'bio' },
+    { id: 'spacer-1', type: 'spacer', height: 20 },
+    { id: 'links', type: 'links' }
+  ];
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 const getWeeklyId = () => {
@@ -387,7 +395,7 @@ export async function getAllUsers() {
     .collection<UserDoc>('users')
     .find({
       isBanned: { $ne: true },
-      username: { $exists: true, $type: 'string', $ne: '' },
+      usernameLower: { $exists: true, $type: 'string', $ne: '' },
       _id: { $exists: true }
     })
     .project({

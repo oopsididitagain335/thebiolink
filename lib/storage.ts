@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -23,7 +22,7 @@ export async function connectDB() {
 interface UserDoc {
   _id: ObjectId;
   email: string;
-  username: string;
+  username: string; // ✅ always lowercase
   name: string;
   passwordHash: string;
   avatar?: string;
@@ -94,6 +93,7 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
+// ✅ getUserByUsername — compare normalized
 export async function getUserByUsername(username: string) {
   const db = await connectDB();
   const normalized = username.trim().toLowerCase();
@@ -219,6 +219,7 @@ export async function getUserByEmail(email: string) {
   };
 }
 
+// ✅ createUser — normalize & validate
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
   const normalizedUsername = username.trim().toLowerCase();
@@ -315,6 +316,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   }
 }
 
+// ✅ updateUserProfile — normalize, validate, exclude self
 export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -350,7 +352,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- Rest of your functions unchanged ---
+// === Remaining functions unchanged ===
 const getWeeklyId = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
@@ -422,7 +424,7 @@ export async function getAllUsers() {
     .collection<UserDoc>('users')
     .find({
       isBanned: { $ne: true },
-      username: { $exists: true, $type: 'string', $ne: '', $ne: null },
+      username: { $exists: true, $type: 'string', $ne: '' }, // ✅ FIXED: removed $ne: null
       _id: { $exists: true }
     })
     .project({

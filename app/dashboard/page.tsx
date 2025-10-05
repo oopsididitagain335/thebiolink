@@ -1,7 +1,9 @@
 // app/dashboard/page.tsx
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
 interface Link {
   id: string;
   url: string;
@@ -9,6 +11,7 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -17,6 +20,7 @@ interface Widget {
   url?: string;
   position: number;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -26,8 +30,8 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
-  email?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -35,6 +39,7 @@ interface LayoutSection {
   height?: number;
   content?: string;
 }
+
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -47,25 +52,29 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
-const DraggableItem = ({
+
+const DraggableItem = ({ 
   children,
   index,
   onMove,
   itemType = 'item'
-}: {
+}: { 
   children: React.ReactNode;
   index: number;
   onMove: (from: number, to: number) => void;
@@ -75,9 +84,11 @@ const DraggableItem = ({
     e.dataTransfer.setData('text/plain', `${itemType}:${index}`);
     e.currentTarget.classList.add('opacity-60');
   };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const data = e.dataTransfer.getData('text/plain');
@@ -87,8 +98,9 @@ const DraggableItem = ({
       onMove(fromIndex, index);
     }
   };
+
   return (
-    <div
+    <div 
       draggable
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -99,14 +111,17 @@ const DraggableItem = ({
     </div>
   );
 };
+
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
     ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
   );
-  const planDisplay = user.plan
-    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1).toLowerCase()
+
+  const planDisplay = user.plan 
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -136,6 +151,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -146,6 +162,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -162,6 +179,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             placeholder="John Doe"
           />
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
           <div className="flex">
@@ -182,6 +200,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             Letters, numbers, underscores, hyphens only (3–30 chars)
           </p>
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
           <input
@@ -193,6 +212,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
           <input
@@ -207,6 +227,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             Supports .gif, .mp4, .webm
           </p>
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
           <textarea
@@ -223,21 +244,25 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
+
   const moveLink = (fromIndex: number, toIndex: number) => {
     const newLinks = [...links];
     const [movedItem] = newLinks.splice(fromIndex, 1);
     newLinks.splice(toIndex, 0, movedItem);
     setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
   };
+
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
-    setLinks(links.map((link, i) =>
-      i === index
-        ? { ...link, [field]: field === 'url' && value && !/^https?:\/\//i.test(value) ? 'https://' + value : value }
+    setLinks(links.map((link, i) => 
+      i === index 
+        ? { ...link, [field]: field === 'url' && value && !/^https?:\/\//i.test(value) ? 'https://' + value : value } 
         : link
     ));
   };
+
   const addLink = () => {
     const preset = FAMOUS_LINKS.find(l => l.title === newLinkTitle);
     setLinks([
@@ -252,9 +277,11 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     ]);
     setNewLinkTitle('');
   };
+
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -279,6 +306,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </button>
           </div>
         </div>
+
         <div className="space-y-4">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
@@ -322,6 +350,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
               </div>
             </DraggableItem>
           ))}
+
           {links.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <p>No links added yet</p>
@@ -329,14 +358,15 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
           )}
         </div>
       </div>
+
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
             <div className="flex items-center">
-              <img
-                src="https://cdn-icons-png.flaticon.com/512/946/946822.png"
-                alt="Discord"
+              <img 
+                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
+                alt="Discord" 
                 className="w-8 h-8 mr-3"
               />
               <span className="text-white font-medium">Discord</span>
@@ -348,6 +378,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
+
 const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -362,23 +393,28 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
       }
     ]);
   };
+
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
+
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
+
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
     newWidgets.splice(to, 0, item);
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
         <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
+        
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {WIDGET_TYPES.map((w) => (
             <button
@@ -391,6 +427,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             </button>
           ))}
         </div>
+
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
@@ -430,6 +467,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
               </div>
             </DraggableItem>
           ))}
+
           {widgets.length === 0 && (
             <div className="text-center py-6 text-gray-500">
               No widgets added. Choose one above to get started.
@@ -440,17 +478,18 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     </div>
   );
 };
-const ProfileBuilderTab = ({
-  user,
-  setUser,
-  links,
-  setLinks,
-  widgets,
+
+const ProfileBuilderTab = ({ 
+  user, 
+  setUser, 
+  links, 
+  setLinks, 
+  widgets, 
   setWidgets,
   layoutStructure,
   setLayoutStructure
-}: {
-  user: User;
+}: { 
+  user: User; 
   setUser: (user: User) => void;
   links: Link[];
   setLinks: (links: Link[]) => void;
@@ -467,27 +506,31 @@ const ProfileBuilderTab = ({
     };
     setLayoutStructure([...layoutStructure, newSection]);
   };
+
   const updateSection = (id: string, updates: Partial<LayoutSection>) => {
-    setLayoutStructure(layoutStructure.map(s =>
+    setLayoutStructure(layoutStructure.map(s => 
       s.id === id ? { ...s, ...updates } : s
     ));
   };
+
   const removeSection = (id: string) => {
     setLayoutStructure(layoutStructure.filter(s => s.id !== id));
   };
+
   const moveSection = (fromIndex: number, toIndex: number) => {
     const newSections = [...layoutStructure];
     const [movedItem] = newSections.splice(fromIndex, 1);
     newSections.splice(toIndex, 0, movedItem);
     setLayoutStructure(newSections);
   };
+
   const renderSectionEditor = (section: LayoutSection, index: number) => {
     if (section.type === 'spacer') {
       return (
         <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Spacer</span>
-            <button
+            <button 
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -506,12 +549,13 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
+
     if (section.type === 'custom') {
       return (
         <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Custom HTML</span>
-            <button
+            <button 
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -528,6 +572,7 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
+
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
@@ -536,7 +581,7 @@ const ProfileBuilderTab = ({
             <span className="text-white text-sm">
               Widget: {widget?.title || 'Unknown'}
             </span>
-            <button
+            <button 
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -558,11 +603,12 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
+
     return (
       <div className="p-3 bg-gray-700/50 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-white capitalize text-sm">{section.type}</span>
-          <button
+          <button 
             onClick={() => removeSection(section.id)}
             className="text-red-400 hover:text-red-300 text-xs"
           >
@@ -572,11 +618,13 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
         <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
+        
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           <button
             onClick={() => addSection('bio')}
@@ -603,6 +651,7 @@ const ProfileBuilderTab = ({
             ✏️ Custom
           </button>
         </div>
+
         {widgets.length > 0 && (
           <div className="mb-6">
             <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
@@ -619,19 +668,21 @@ const ProfileBuilderTab = ({
             </div>
           </div>
         )}
+
         <div>
           <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
           <div className="space-y-3">
             {layoutStructure.map((section, index) => (
-              <DraggableItem
-                key={section.id}
-                index={index}
-                onMove={moveSection}
+              <DraggableItem 
+                key={section.id} 
+                index={index} 
+                onMove={moveSection} 
                 itemType="section"
               >
                 {renderSectionEditor(section, index)}
               </DraggableItem>
             ))}
+            
             {layoutStructure.length === 0 && (
               <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
                 Click + buttons above to add sections
@@ -640,6 +691,7 @@ const ProfileBuilderTab = ({
           </div>
         </div>
       </div>
+
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
         <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
@@ -673,6 +725,7 @@ const ProfileBuilderTab = ({
                   </div>
                 );
               }
+              
               if (section.type === 'links' && links.length > 0) {
                 return (
                   <div key={section.id} className="space-y-3">
@@ -692,9 +745,11 @@ const ProfileBuilderTab = ({
                   </div>
                 );
               }
+              
               if (section.type === 'widget') {
                 const widget = widgets.find(w => w.id === section.widgetId);
                 if (!widget) return null;
+                
                 return (
                   <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                     {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
@@ -740,18 +795,21 @@ const ProfileBuilderTab = ({
                   </div>
                 );
               }
+              
               if (section.type === 'spacer') {
                 return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
               }
+              
               if (section.type === 'custom' && section.content) {
                 return (
-                  <div
-                    key={section.id}
+                  <div 
+                    key={section.id} 
                     className="bg-white/5 p-4 rounded-lg"
                     dangerouslySetInnerHTML={{ __html: section.content }}
                   />
                 );
               }
+              
               return null;
             })}
           </div>
@@ -760,170 +818,7 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
-const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const [email, setEmail] = useState(user.email || '');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [badgeMessage, setBadgeMessage] = useState('');
- 
-  const handleUpdate = async (action: string, data: any = {}) => {
-    setIsSaving(true);
-    setMessage(null);
-    try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...data }),
-      });
-      const result = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Updated successfully!' });
-        if (action === 'update_email') {
-          setUser({ ...user, email: data.email });
-        }
-        if (action === 'cancel_subscription') {
-          setUser({ ...user, plan: 'free' });
-        }
-      } else {
-        setMessage({ type: 'error', text: result.error || 'Update failed' });
-      }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: 'Network error' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
- 
-  const handleClaimBadge = async () => {
-    try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'claim_weekly_badge' }),
-      });
-      const result = await response.json();
-      setBadgeMessage(result.message || 'Badge claimed!');
-    } catch (error) {
-      setBadgeMessage('Failed to claim badge');
-    }
-  };
- 
-  const normalizedPlan = (user.plan || 'free').toLowerCase();
-  const isFreePlan = normalizedPlan === 'free';
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Email</h2>
-        <div className="space-y-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
-            placeholder="your@email.com"
-          />
-          <button
-            onClick={() => handleUpdate('update_email', { email })}
-            disabled={isSaving}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
-          >
-            Update Email
-          </button>
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Password</h2>
-        <div className="space-y-4">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
-            placeholder="New password (min 8 chars)"
-          />
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white"
-            placeholder="Confirm password"
-          />
-          <button
-            onClick={() => {
-              if (password !== confirmPassword) {
-                setMessage({ type: 'error', text: 'Passwords do not match' });
-                return;
-              }
-              if (password.length < 8) {
-                setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
-                return;
-              }
-              handleUpdate('update_password', { password });
-            }}
-            disabled={isSaving}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
-          >
-            Change Password
-          </button>
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
-        <div className="text-gray-300">
-          <p className="mb-3">
-            Current Plan:{' '}
-            <span className="text-purple-400">
-              {user.plan
-                ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1).toLowerCase()
-                : 'Free'}
-            </span>
-          </p>
-          {isFreePlan ? (
-            <button
-              onClick={() => (window.location.href = '/pricing')}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90"
-            >
-              Upgrade Plan
-            </button>
-          ) : (
-            <button
-              onClick={() => handleUpdate('cancel_subscription')}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium"
-            >
-              Cancel Subscription
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>
-        <p className="text-gray-300 mb-3">Claim a new free badge every Monday!</p>
-        <button
-          onClick={handleClaimBadge}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium"
-        >
-          Claim This Week's Badge
-        </button>
-        {badgeMessage && (
-          <p className={`mt-2 text-sm ${badgeMessage.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
-            {badgeMessage}
-          </p>
-        )}
-      </div>
-      {message && (
-        <div className={`p-3 rounded-lg ${
-          message.type === 'success'
-            ? 'bg-green-900/30 text-green-200 border border-green-800'
-            : 'bg-red-900/30 text-red-200 border border-red-800'
-        }`}>
-          {message.text}
-        </div>
-      )}
-    </div>
-  );
-};
+
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -933,14 +828,17 @@ const ComingSoonTab = ({ title }: { title: string }) => (
     </div>
   </div>
 );
+
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
+
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 };
+
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -951,7 +849,6 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
-    email: '',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -966,6 +863,7 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -976,8 +874,10 @@ export default function Dashboard() {
           return;
         }
         const data = await res.json();
+
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
+
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -986,9 +886,9 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: (data.user.plan || 'free').toLowerCase(),
-          email: data.user.email || '',
+          plan: 'free',
         });
+
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1002,6 +902,7 @@ export default function Dashboard() {
               }))
             : []
         );
+
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1014,6 +915,7 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
+
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -1026,8 +928,10 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchUserData();
   }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1037,18 +941,22 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
+
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
+
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
+
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
+
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1059,6 +967,8 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
+
+      // ✅ CRITICAL: Preserve widget IDs
       const widgetsToSend = widgets.map((w) => ({
         id: w.id,
         type: w.type,
@@ -1067,23 +977,26 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: w.position,
       }));
+
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profile: {
             name: user.name.trim().substring(0, 100),
-            username: user.username.trim(),
+            username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            layoutStructure,
+            layoutStructure, // ✅ Only layoutStructure
           },
           links: linksToSend,
-          widgets: widgetsToSend,
+          widgets: widgetsToSend, // ✅ Full widgets with IDs
         }),
       });
+
       const data = await response.json();
+
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
       } else {
@@ -1097,6 +1010,7 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
+
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1107,6 +1021,7 @@ export default function Dashboard() {
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
   ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1114,6 +1029,7 @@ export default function Dashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1150,6 +1066,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
@@ -1167,17 +1084,18 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
             {activeTab === 'builder' && (
-              <ProfileBuilderTab
-                user={user}
-                setUser={setUser}
-                links={links}
-                setLinks={setLinks}
-                widgets={widgets}
+              <ProfileBuilderTab 
+                user={user} 
+                setUser={setUser} 
+                links={links} 
+                setLinks={setLinks} 
+                widgets={widgets} 
                 setWidgets={setWidgets}
                 layoutStructure={layoutStructure}
                 setLayoutStructure={setLayoutStructure}
@@ -1185,11 +1103,11 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
-            {['badges', 'manage'].includes(activeTab) && (
+            {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
           </div>
+
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
@@ -1219,9 +1137,11 @@ export default function Dashboard() {
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
+
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
+                      
                       if (section.type === 'links' && links.length > 0) {
                         return (
                           <div key={section.id} className="space-y-3">
@@ -1241,9 +1161,11 @@ export default function Dashboard() {
                           </div>
                         );
                       }
+                      
                       if (section.type === 'widget') {
                         const widget = widgets.find(w => w.id === section.widgetId);
                         if (!widget) return null;
+                        
                         return (
                           <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
@@ -1256,18 +1178,21 @@ export default function Dashboard() {
                           </div>
                         );
                       }
+                      
                       if (section.type === 'spacer') {
                         return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
                       }
+                      
                       if (section.type === 'custom' && section.content) {
                         return (
-                          <div
-                            key={section.id}
+                          <div 
+                            key={section.id} 
                             className="bg-white/5 p-4 rounded-lg"
                             dangerouslySetInnerHTML={{ __html: section.content }}
                           />
                         );
                       }
+                      
                       return null;
                     })}
                   </div>
@@ -1276,6 +1201,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1287,6 +1213,7 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
+
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

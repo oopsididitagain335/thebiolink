@@ -1,11 +1,11 @@
 // app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
-  const sessionId = (await cookies()).get('biolink_session')?.value;
-  if (!sessionId) {
+  const user = await getCurrentUser();
+  if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -13,15 +13,15 @@ export async function PUT(request: NextRequest) {
     const { profile, links, widgets } = await request.json();
 
     if (profile) {
-      await updateUserProfile(sessionId, profile);
+      await updateUserProfile(user._id, profile);
     }
 
     if (Array.isArray(links)) {
-      await saveUserLinks(sessionId, links);
+      await saveUserLinks(user._id, links);
     }
 
     if (Array.isArray(widgets)) {
-      await saveUserWidgets(sessionId, widgets);
+      await saveUserWidgets(user._id, widgets);
     }
 
     return Response.json({ success: true });

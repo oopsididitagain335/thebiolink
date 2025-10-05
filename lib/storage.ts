@@ -1,10 +1,7 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
-
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
-
 export async function connectDB() {
   if (cachedDb) return cachedDb;
   if (!cachedClient) {
@@ -19,7 +16,6 @@ export async function connectDB() {
   }
   return cachedDb;
 }
-
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -54,7 +50,6 @@ interface UserDoc {
     content?: string;
   }>;
 }
-
 interface LinkDoc {
   _id: ObjectId;
   userId: ObjectId;
@@ -63,7 +58,6 @@ interface LinkDoc {
   icon?: string;
   position: number;
 }
-
 interface WidgetDoc {
   _id: ObjectId;
   userId: ObjectId;
@@ -73,14 +67,12 @@ interface WidgetDoc {
   url?: string;
   position: number;
 }
-
 interface ProfileVisitDoc {
   _id: ObjectId;
   userId: ObjectId;
   clientId: string;
   visitedAt: Date;
 }
-
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -93,20 +85,16 @@ async function getUserWidgets(userId: ObjectId) {
     position: w.position || 0,
   })).sort((a, b) => a.position - b.position);
 }
-
 export async function getUserByUsername(username: string) {
   const db = await connectDB();
   const normalized = username.trim().toLowerCase();
   const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
   if (!user) return null;
-
   if (user.isBanned) {
     return { isBanned: true };
   }
-
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   const widgets = await getUserWidgets(user._id);
-
   return {
     _id: user._id.toString(),
     username: user.username,
@@ -134,13 +122,12 @@ export async function getUserByUsername(username: string) {
     ],
   };
 }
-
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
   const normalized = username.trim().toLowerCase();
   const user = await db.collection<UserDoc>('users').findOne({ username: normalized });
   if (!user) return null;
-  
+ 
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   return {
     name: user.name || '',
@@ -153,7 +140,6 @@ export async function getUserByUsernameForMetadata(username: string) {
     })),
   };
 }
-
 export async function getUserById(id: string) {
   const db = await connectDB();
   let user;
@@ -163,7 +149,6 @@ export async function getUserById(id: string) {
     return null;
   }
   if (!user) return null;
-
   if (user.isBanned) {
     return {
       _id: user._id.toString(),
@@ -171,10 +156,8 @@ export async function getUserById(id: string) {
       email: user.email,
     };
   }
-
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   const widgets = await getUserWidgets(user._id);
-
   return {
     _id: user._id.toString(),
     name: user.name || '',
@@ -201,7 +184,6 @@ export async function getUserById(id: string) {
     badges: user.badges || [],
   };
 }
-
 export async function getUserByEmail(email: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ email });
@@ -218,21 +200,17 @@ export async function getUserByEmail(email: string) {
     isBanned: user.isBanned || false,
   };
 }
-
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
   const normalizedUsername = username.trim().toLowerCase();
-
   if (!/^[a-zA-Z0-9_-]{3,30}$/.test(normalizedUsername)) {
     throw new Error('Invalid username format');
   }
-
   const existingEmail = await db.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
-  
+ 
   const existingUsername = await db.collection('users').findOne({ username: normalizedUsername });
   if (existingUsername) throw new Error('Username already taken');
-
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
   await db.collection('users').insertOne({
@@ -255,7 +233,7 @@ export async function createUser(email: string, password: string, username: stri
       { id: 'links', type: 'links' }
     ],
   } as UserDoc);
-  
+ 
   return {
     id: userId.toString(),
     email,
@@ -275,7 +253,6 @@ export async function createUser(email: string, password: string, username: stri
     ],
   };
 }
-
 export async function saveUserLinks(userId: string, links: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -294,7 +271,6 @@ export async function saveUserLinks(userId: string, links: any[]) {
     if (valid.length > 0) await db.collection('links').insertMany(valid);
   }
 }
-
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -314,11 +290,10 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);
   }
 }
-
 export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
-  
+ 
   let cleanUsername = '';
   if (updates.username !== undefined) {
     const normalized = updates.username.trim().toLowerCase();
@@ -332,7 +307,6 @@ export async function updateUserProfile(userId: string, updates: any) {
     if (existing) throw new Error('Username taken');
     cleanUsername = normalized;
   }
-
   const current = await getUserById(userId);
   const clean = {
     name: (updates.name || current?.name || '').trim().substring(0, 100),
@@ -346,17 +320,14 @@ export async function updateUserProfile(userId: string, updates: any) {
       { id: 'links', type: 'links' }
     ],
   };
-
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
-
 const getWeeklyId = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
   const weekNumber = Math.ceil((((now.getTime() - start.getTime()) / 86400000) + start.getDay() + 1) / 7);
   return `week-${now.getFullYear()}-${weekNumber}`;
 };
-
 const generateDynamicBadge = (weekId: string) => {
   const emojis = '👑🔥🚀🌐🧙‍♂️🎨🥷🦋🎬🔗💡⚡🎯🌈🤖🎮📱💻🎧📸📚✨🎉🏆🏅🥇🎯🚀🌌🌍🔥';
   const adjectives = ['Cosmic', 'Quantum', 'Neon', 'Digital', 'Viral', 'Mystic', 'Epic', 'Legendary', 'Cyber', 'Galactic'];
@@ -369,7 +340,6 @@ const generateDynamicBadge = (weekId: string) => {
     icon: emojis.charAt(seed % emojis.length),
   };
 };
-
 export async function awardWeeklyFreeBadge(userId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
@@ -389,7 +359,6 @@ export async function awardWeeklyFreeBadge(userId: string) {
   );
   return { badge: newBadge, message: 'New badge claimed!' };
 }
-
 export async function updateUserEmail(userId: string, newEmail: string) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -397,7 +366,6 @@ export async function updateUserEmail(userId: string, newEmail: string) {
   if (existing) throw new Error('Email already in use');
   await db.collection('users').updateOne({ _id: uid }, { $set: { email: newEmail } });
 }
-
 export async function updateUserPassword(userId: string, newPassword: string) {
   const db = await connectDB();
   const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -406,7 +374,6 @@ export async function updateUserPassword(userId: string, newPassword: string) {
     { $set: { passwordHash } }
   );
 }
-
 export async function cancelUserSubscription(userId: string) {
   const db = await connectDB();
   await db.collection('users').updateOne(
@@ -414,14 +381,13 @@ export async function cancelUserSubscription(userId: string) {
     { $set: { plan: 'free' } }
   );
 }
-
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db
     .collection<UserDoc>('users')
     .find({
       isBanned: { $ne: true },
-      username: { $exists: true, $type: 'string', $ne: '', $ne: null },
+      username: { $exists: true, $type: 'string', $ne: '' },
       _id: { $exists: true }
     })
     .project({
@@ -434,7 +400,6 @@ export async function getAllUsers() {
     })
     .sort({ _id: -1 })
     .toArray();
-
   const seen = new Set<string>();
   const uniqueUsers = users.filter(user => {
     const uname = user.username.trim().toLowerCase();
@@ -442,7 +407,6 @@ export async function getAllUsers() {
     seen.add(uname);
     return true;
   });
-
   return uniqueUsers.map(user => ({
     id: user._id.toString(),
     username: user.username.trim(),
@@ -452,7 +416,6 @@ export async function getAllUsers() {
     isBanned: !!user.isBanned,
   }));
 }
-
 export async function createBadge(name: string, icon: string) {
   const db = await connectDB();
   const badgeId = new ObjectId().toString();
@@ -464,7 +427,6 @@ export async function createBadge(name: string, icon: string) {
   });
   return { id: badgeId, name, icon };
 }
-
 export async function getAllBadges() {
   const db = await connectDB();
   const badges = await db.collection('badges').find({}).toArray();
@@ -474,7 +436,6 @@ export async function getAllBadges() {
     icon: badge.icon
   }));
 }
-
 export async function addUserBadge(
   userId: string,
   badge: { id: string; name: string; icon: string; awardedAt: string }
@@ -486,7 +447,6 @@ export async function addUserBadge(
     { $push: { badges: { $each: [badge] } } }
   );
 }
-
 export async function removeUserBadge(userId: string, badgeId: string) {
   const db = await connectDB();
   const userObjectId = new ObjectId(userId);
@@ -495,27 +455,24 @@ export async function removeUserBadge(userId: string, badgeId: string) {
     { $pull: { badges: { id: badgeId } } }
   );
 }
-
 export async function isIpBanned(ip: string): Promise<boolean> {
   const db = await connectDB();
   const record = await db.collection('bannedIPs').findOne({ ip });
   return !!record;
 }
-
 export async function checkAccountLimit(ipAddress: string): Promise<boolean> {
   const db = await connectDB();
   const count = await db.collection('users').countDocuments({ ipAddress });
   return count < 2;
 }
-
 export async function banAllUsersFromIP(ipAddress: string) {
   const db = await connectDB();
   const now = new Date();
   const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
   await db.collection<UserDoc>('users').updateMany(
-    { 
+    {
       $or: [{ ipAddress: ipAddress }, { lastBannedIp: ipAddress }],
-      isBanned: { $ne: true } 
+      isBanned: { $ne: true }
     },
     {
       $set: {
@@ -532,7 +489,6 @@ export async function banAllUsersFromIP(ipAddress: string) {
     { upsert: true }
   );
 }
-
 export async function banUser(userId: string, ipAddress?: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
@@ -549,7 +505,6 @@ export async function banUser(userId: string, ipAddress?: string) {
     );
   }
 }
-
 export async function unbanUser(userId: string) {
   const db = await connectDB();
   await db.collection<UserDoc>('users').updateOne(
@@ -557,7 +512,6 @@ export async function unbanUser(userId: string) {
     { $set: { isBanned: false }, $unset: { bannedAt: "", deleteAt: "", lastBannedIp: "" } }
   );
 }
-
 export async function deleteExpiredBannedAccounts() {
   const db = await connectDB();
   const now = new Date();

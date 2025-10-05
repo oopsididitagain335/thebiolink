@@ -5,13 +5,11 @@ import { updateUserPlan, updateUserPassword } from '@/lib/db';
 import { hash } from 'bcryptjs';
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(); // ✅ No need to pass authOptions in v4 if exported correctly
+  const session = await getServerSession(); // ✅ No args needed with wrapper
   if (!session?.user?.email) {
     return new Response('Unauthorized', { status: 401 });
   }
-
   const { action, ...data } = await req.json();
-
   try {
     if (action === 'update_password') {
       if (!data.password || data.password.length < 8) {
@@ -21,21 +19,17 @@ export async function PUT(req: NextRequest) {
       await updateUserPassword(session.user.email, hashed);
       return Response.json({ success: true });
     }
-
     if (action === 'cancel_subscription') {
       await updateUserPlan(session.user.email, 'free');
       return Response.json({ success: true });
     }
-
     if (action === 'update_email') {
       // Optional: update email in DB
       return Response.json({ success: true });
     }
-
     if (action === 'claim_weekly_badge') {
       return Response.json({ message: 'Badge claimed!' });
     }
-
     return new Response('Invalid action', { status: 400 });
   } catch (error) {
     console.error('Settings error:', error);

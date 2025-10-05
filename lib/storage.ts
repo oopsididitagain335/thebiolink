@@ -43,6 +43,7 @@ interface UserDoc {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
+  plan?: string; // ← ADDED PLAN FIELD
   layoutStructure?: Array<{
     id: string;
     type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -119,6 +120,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     badges: user.badges || [],
     isBanned: user.isBanned || false,
     profileViews: user.profileViews || 0,
+    plan: user.plan || 'free', // ← RETURN PLAN
     links: links.map(l => ({
       id: l._id.toString(),
       url: l.url,
@@ -146,6 +148,7 @@ export async function getUserByUsernameForMetadata(username: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     isBanned: user.isBanned || false,
+    plan: user.plan || 'free', // ← RETURN PLAN
     links: links.map((link: any) => ({
       url: link.url || '',
       title: link.title || '',
@@ -174,6 +177,7 @@ export async function getUserById(id: string) {
     bio: user.bio || '',
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
+    plan: user.plan || 'free', // ← RETURN PLAN
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -205,6 +209,7 @@ export async function getUserByEmail(email: string) {
     bio: user.bio || '',
     isEmailVerified: user.isEmailVerified,
     isBanned: user.isBanned || false,
+    plan: user.plan || 'free', // ← RETURN PLAN
   };
 }
 
@@ -229,6 +234,7 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: new Date(),
     profileViews: 0,
+    plan: 'free', // ← DEFAULT PLAN
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -246,6 +252,7 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: new Date().toISOString(),
     profileViews: 0,
+    plan: 'free', // ← RETURN PLAN
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -311,6 +318,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
+    plan: updates.plan || 'free', // ← SAVE PLAN IF PROVIDED
     layoutStructure: updates.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -335,6 +343,7 @@ export async function getAllUsers() {
       bio: 1,
       isBanned: 1,
       badges: 1,
+      plan: 1, // ← INCLUDE PLAN
     })
     .toArray();
 
@@ -345,6 +354,7 @@ export async function getAllUsers() {
     avatar: user.avatar || undefined,
     bio: user.bio || undefined,
     isBanned: user.isBanned || false,
+    plan: user.plan || 'free', // ← RETURN PLAN
     badges: Array.isArray(user.badges) ? user.badges : [],
   }));
 }

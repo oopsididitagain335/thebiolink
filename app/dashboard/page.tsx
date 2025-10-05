@@ -2,6 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
 interface Link {
   id: string;
   url: string;
@@ -9,6 +10,7 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -17,6 +19,7 @@ interface Widget {
   url?: string;
   position: number;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -27,6 +30,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -34,6 +38,7 @@ interface LayoutSection {
   height?: number;
   content?: string;
 }
+
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -46,19 +51,23 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
+
 const DraggableItem = ({ 
   children,
   index,
@@ -98,6 +107,7 @@ const DraggableItem = ({
     </div>
   );
 };
+
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -135,6 +145,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -222,6 +233,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -347,6 +359,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
+
 const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -439,6 +452,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     </div>
   );
 };
+
 const ProfileBuilderTab = ({ 
   user, 
   setUser, 
@@ -759,6 +773,7 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
+
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -768,14 +783,17 @@ const ComingSoonTab = ({ title }: { title: string }) => (
     </div>
   </div>
 );
+
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
+
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 };
+
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -800,6 +818,7 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -861,6 +880,7 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -870,9 +890,11 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
+
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
+
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -910,6 +932,7 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
+            plan: user.plan || 'free', // ✅ SAVE PLAN
             layoutStructure,
           },
           links: linksToSend,
@@ -930,6 +953,7 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
+
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -940,6 +964,7 @@ export default function Dashboard() {
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
   ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -947,6 +972,7 @@ export default function Dashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

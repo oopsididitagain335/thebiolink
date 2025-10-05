@@ -1,6 +1,5 @@
 // app/dashboard/page.tsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -29,7 +28,7 @@ interface User {
   bio: string;
   background: string;
   isEmailVerified: boolean;
-  plan?: string;
+  plan: string; // ✅ Not optional — always defined
 }
 
 interface LayoutSection {
@@ -69,6 +68,7 @@ const getBioLinkUrl = (username: string): string => {
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
 
+// --- Draggable Component ---
 const DraggableItem = ({ 
   children,
   index,
@@ -84,11 +84,7 @@ const DraggableItem = ({
     e.dataTransfer.setData('text/plain', `${itemType}:${index}`);
     e.currentTarget.classList.add('opacity-60');
   };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const data = e.dataTransfer.getData('text/plain');
@@ -98,7 +94,6 @@ const DraggableItem = ({
       onMove(fromIndex, index);
     }
   };
-
   return (
     <div 
       draggable
@@ -112,12 +107,12 @@ const DraggableItem = ({
   );
 };
 
+// --- Tabs ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
     ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
   );
-
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
@@ -179,7 +174,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             placeholder="John Doe"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
           <div className="flex">
@@ -200,7 +194,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             Letters, numbers, underscores, hyphens only (3–30 chars)
           </p>
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
           <input
@@ -212,7 +205,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
           <input
@@ -227,7 +219,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             Supports .gif, .mp4, .webm
           </p>
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
           <textarea
@@ -247,14 +238,12 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
 
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
-
   const moveLink = (fromIndex: number, toIndex: number) => {
     const newLinks = [...links];
     const [movedItem] = newLinks.splice(fromIndex, 1);
     newLinks.splice(toIndex, 0, movedItem);
     setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
   };
-
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     setLinks(links.map((link, i) => 
       i === index 
@@ -262,7 +251,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         : link
     ));
   };
-
   const addLink = () => {
     const preset = FAMOUS_LINKS.find(l => l.title === newLinkTitle);
     setLinks([
@@ -277,7 +265,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     ]);
     setNewLinkTitle('');
   };
-
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
@@ -306,7 +293,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </button>
           </div>
         </div>
-
         <div className="space-y-4">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
@@ -350,29 +336,11 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
               </div>
             </DraggableItem>
           ))}
-
           {links.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <p>No links added yet</p>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-            <div className="flex items-center">
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
-                alt="Discord" 
-                className="w-8 h-8 mr-3"
-              />
-              <span className="text-white font-medium">Discord</span>
-            </div>
-            <p className="text-gray-400 text-sm mt-2">Coming Soon</p>
-          </div>
         </div>
       </div>
     </div>
@@ -384,7 +352,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     setWidgets([
       ...widgets,
       {
-        id: Date.now().toString(),
+        id: Date.now().toString(), // Temporary ID — will be replaced by DB on save
         type,
         title: type === 'spotify' ? 'My Playlist' : type === 'youtube' ? 'Featured Video' : '',
         content: '',
@@ -393,15 +361,12 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
       }
     ]);
   };
-
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
-
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
-
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
@@ -414,7 +379,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
         <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
-        
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {WIDGET_TYPES.map((w) => (
             <button
@@ -427,7 +391,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             </button>
           ))}
         </div>
-
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
@@ -467,7 +430,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
               </div>
             </DraggableItem>
           ))}
-
           {widgets.length === 0 && (
             <div className="text-center py-6 text-gray-500">
               No widgets added. Choose one above to get started.
@@ -506,17 +468,12 @@ const ProfileBuilderTab = ({
     };
     setLayoutStructure([...layoutStructure, newSection]);
   };
-
   const updateSection = (id: string, updates: Partial<LayoutSection>) => {
-    setLayoutStructure(layoutStructure.map(s => 
-      s.id === id ? { ...s, ...updates } : s
-    ));
+    setLayoutStructure(layoutStructure.map(s => s.id === id ? { ...s, ...updates } : s));
   };
-
   const removeSection = (id: string) => {
     setLayoutStructure(layoutStructure.filter(s => s.id !== id));
   };
-
   const moveSection = (fromIndex: number, toIndex: number) => {
     const newSections = [...layoutStructure];
     const [movedItem] = newSections.splice(fromIndex, 1);
@@ -549,7 +506,6 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
-
     if (section.type === 'custom') {
       return (
         <div className="p-3 bg-gray-700/50 rounded-lg">
@@ -572,7 +528,6 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
-
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
@@ -603,7 +558,6 @@ const ProfileBuilderTab = ({
         </div>
       );
     }
-
     return (
       <div className="p-3 bg-gray-700/50 rounded-lg">
         <div className="flex items-center justify-between">
@@ -624,7 +578,6 @@ const ProfileBuilderTab = ({
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
         <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
-        
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           <button
             onClick={() => addSection('bio')}
@@ -651,7 +604,6 @@ const ProfileBuilderTab = ({
             ✏️ Custom
           </button>
         </div>
-
         {widgets.length > 0 && (
           <div className="mb-6">
             <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
@@ -668,7 +620,6 @@ const ProfileBuilderTab = ({
             </div>
           </div>
         )}
-
         <div>
           <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
           <div className="space-y-3">
@@ -682,136 +633,11 @@ const ProfileBuilderTab = ({
                 {renderSectionEditor(section, index)}
               </DraggableItem>
             ))}
-            
             {layoutStructure.length === 0 && (
               <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
                 Click + buttons above to add sections
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-          {user.background && (
-            <div
-              className="absolute inset-0 z-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${user.background})` }}
-            />
-          )}
-          <div className="absolute inset-0 bg-black/70 z-10"></div>
-          <div className="relative z-20 space-y-4">
-            {layoutStructure.map((section) => {
-              if (section.type === 'bio') {
-                return (
-                  <div key={section.id} className="text-center">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-white font-bold">
-                          {user.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
-                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
-                  </div>
-                );
-              }
-              
-              if (section.type === 'links' && links.length > 0) {
-                return (
-                  <div key={section.id} className="space-y-3">
-                    {links
-                      .filter(link => link.url && link.title)
-                      .map((link, idx) => (
-                        <a
-                          key={idx}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
-                        >
-                          {link.title}
-                        </a>
-                      ))}
-                  </div>
-                );
-              }
-              
-              if (section.type === 'widget') {
-                const widget = widgets.find(w => w.id === section.widgetId);
-                if (!widget) return null;
-                
-                return (
-                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
-                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                    {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                          frameBorder="0"
-                          allowTransparency={true}
-                          allow="encrypted-media"
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
-                        </a>
-                      </div>
-                    ) : widget.type === 'custom' && widget.content ? (
-                      <div
-                        className="text-gray-300 text-sm"
-                        dangerouslySetInnerHTML={{ __html: widget.content }}
-                      />
-                    ) : (
-                      <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && '🎵 Spotify embed'}
-                        {widget.type === 'youtube' && '📺 YouTube video'}
-                        {widget.type === 'twitter' && '🐦 Twitter feed'}
-                        {!widget.type && 'Widget content'}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              
-              if (section.type === 'spacer') {
-                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
-              }
-              
-              if (section.type === 'custom' && section.content) {
-                return (
-                  <div 
-                    key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
-                  />
-                );
-              }
-              
-              return null;
-            })}
           </div>
         </div>
       </div>
@@ -840,6 +666,7 @@ const getSpotifyId = (url: string): string => {
 };
 
 export default function Dashboard() {
+  // ✅ Initialize with EMPTY plan — will be filled from API
   const [user, setUser] = useState<User>({
     _id: '',
     name: '',
@@ -848,8 +675,9 @@ export default function Dashboard() {
     bio: '',
     background: '',
     isEmailVerified: true,
-    plan: 'free',
+    plan: '', // ✅ Critical: not hardcoded to 'free'
   });
+
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -857,6 +685,7 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 20 },
     { id: 'links', type: 'links' }
   ]);
+
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -878,6 +707,7 @@ export default function Dashboard() {
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
 
+        // ✅ CRITICAL: Use plan from API, fallback to 'free' only if missing
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -886,28 +716,26 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: 'free',
+          plan: data.user.plan || 'free', // ✅ Now uses real plan
         });
 
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
-          sortedLinks.length > 0
-            ? sortedLinks.map((link: any) => ({
-                id: link.id || Date.now().toString(),
-                url: (link.url || '').trim(),
-                title: (link.title || '').substring(0, 100),
-                icon: (link.icon || '').trim(),
-                position: link.position ?? 0,
-              }))
-            : []
+          sortedLinks.map((link: any) => ({
+            id: link._id || link.id || Date.now().toString(), // Prefer DB ID
+            url: (link.url || '').trim(),
+            title: (link.title || '').substring(0, 100),
+            icon: (link.icon || '').trim(),
+            position: link.position ?? 0,
+          }))
         );
 
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
           sortedWidgets.map((w: any) => ({
-            id: w.id || Date.now().toString(),
+            id: w._id || w.id || Date.now().toString(), // ✅ Preserve DB ID if exists
             type: w.type || 'custom',
             title: w.title || '',
             content: w.content || '',
@@ -961,21 +789,21 @@ export default function Dashboard() {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
         .map((link, index) => ({
-          id: link.id,
+          id: link.id, // ✅ Send existing ID — backend will update, not insert
           url: link.url.trim(),
           title: link.title.trim().substring(0, 100),
           icon: link.icon?.trim() || '',
           position: index,
         }));
 
-      // ✅ CRITICAL: Preserve widget IDs
-      const widgetsToSend = widgets.map((w) => ({
-        id: w.id,
+      // ✅ CRITICAL: Send widget IDs so backend can UPDATE, not INSERT
+      const widgetsToSend = widgets.map((w, index) => ({
+        id: w.id, // This ID comes from DB (or temp, but backend handles it)
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
         url: w.url?.trim() || '',
-        position: w.position,
+        position: index,
       }));
 
       const response = await fetch('/api/dashboard/update', {
@@ -988,15 +816,14 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            layoutStructure, // ✅ Only layoutStructure
+            layoutStructure,
           },
           links: linksToSend,
-          widgets: widgetsToSend, // ✅ Full widgets with IDs
+          widgets: widgetsToSend,
         }),
       });
 
       const data = await response.json();
-
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
       } else {
@@ -1107,7 +934,6 @@ export default function Dashboard() {
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
           </div>
-
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
@@ -1115,9 +941,7 @@ export default function Dashboard() {
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
-                    style={{
-                      backgroundImage: `url(${user.background})`,
-                    }}
+                    style={{ backgroundImage: `url(${user.background})` }}
                   />
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
@@ -1137,11 +961,9 @@ export default function Dashboard() {
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
-
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
-                      
                       if (section.type === 'links' && links.length > 0) {
                         return (
                           <div key={section.id} className="space-y-3">
@@ -1161,11 +983,9 @@ export default function Dashboard() {
                           </div>
                         );
                       }
-                      
                       if (section.type === 'widget') {
                         const widget = widgets.find(w => w.id === section.widgetId);
                         if (!widget) return null;
-                        
                         return (
                           <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
@@ -1178,11 +998,9 @@ export default function Dashboard() {
                           </div>
                         );
                       }
-                      
                       if (section.type === 'spacer') {
                         return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
                       }
-                      
                       if (section.type === 'custom' && section.content) {
                         return (
                           <div 
@@ -1192,7 +1010,6 @@ export default function Dashboard() {
                           />
                         );
                       }
-                      
                       return null;
                     })}
                   </div>

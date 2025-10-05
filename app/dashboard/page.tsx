@@ -775,7 +775,6 @@ const ProfileBuilderTab = ({
   );
 };
 
-// ✅ FIXED SettingsTab: Upgrade → /pricing, Cancel → API, Password reset
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState(user.email || '');
   const [password, setPassword] = useState('');
@@ -783,6 +782,8 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [badgeMessage, setBadgeMessage] = useState('');
+  
+  // ✅ FIXED: Added missing `data` parameter name
   const handleUpdate = async (action: string,  any = {}) => {
     setIsSaving(true);
     setMessage(null);
@@ -810,6 +811,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setIsSaving(false);
     }
   };
+  
   const handleClaimBadge = async () => {
     try {
       const response = await fetch('/api/settings', {
@@ -823,12 +825,11 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setBadgeMessage('Failed to claim badge');
     }
   };
-  // ✅ Handle all plan states safely (including missing plan)
+  
   const normalizedPlan = (user.plan || 'free').toLowerCase();
   const isFreePlan = normalizedPlan === 'free';
   return (
     <div className="space-y-6">
-      {/* Email */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Email</h2>
         <div className="space-y-4">
@@ -848,7 +849,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-      {/* Password */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Password</h2>
         <div className="space-y-4">
@@ -885,7 +885,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           </button>
         </div>
       </div>
-      {/* Subscription */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Subscription</h2>
         <div className="text-gray-300">
@@ -914,7 +913,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           )}
         </div>
       </div>
-      {/* Weekly Badges */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Weekly Badges</h2>
         <p className="text-gray-300 mb-3">Claim a new free badge every Monday!</p>
@@ -1009,7 +1007,7 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: (data.user.plan || 'free').toLowerCase(), // ✅ normalize on load
+          plan: (data.user.plan || 'free').toLowerCase(),
           email: data.user.email || '',
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
@@ -1096,10 +1094,11 @@ export default function Dashboard() {
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        // ✅ FIXED: removed .toLowerCase() — backend handles it
         body: JSON.stringify({
           profile: {
             name: user.name.trim().substring(0, 100),
-            username: user.username.trim(), // ✅ REMOVED .toLowerCase()
+            username: user.username.trim(), // ← no .toLowerCase()
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',

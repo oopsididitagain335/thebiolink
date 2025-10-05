@@ -70,7 +70,8 @@ export async function getServerSession() {
 
 // Optional: Keep custom getCurrentUser if used elsewhere (e.g., for non-NextAuth paths)
 export async function getCurrentUser() {
-  const sessionCookie = cookies().get('biolink_session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('biolink_session')?.value;
   if (!sessionCookie || !ObjectId.isValid(sessionCookie)) {
     return null;
   }

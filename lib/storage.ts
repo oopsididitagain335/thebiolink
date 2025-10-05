@@ -20,14 +20,10 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// ========================
-// USER DOCUMENT INTERFACE
-// ========================
-export interface UserDoc {
+interface UserDoc {
   _id: ObjectId;
   email: string;
   username: string;
-  usernameLower: string;
   name: string;
   passwordHash: string;
   avatar?: string;
@@ -44,12 +40,9 @@ export interface UserDoc {
   isEmailVerified: boolean;
   isBanned?: boolean;
   bannedAt?: string;
-  deleteAt?: string;
-  lastBannedIp?: string;
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
-  plan?: string;
   layoutStructure?: Array<{
     id: string;
     type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -78,9 +71,13 @@ interface WidgetDoc {
   position: number;
 }
 
-// ========================
-// HELPER FUNCTIONS
-// ========================
+interface ProfileVisitDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  clientId: string;
+  visitedAt: Date;
+}
+
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -94,19 +91,22 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
-// ========================
-// USER FETCHING
-// ========================
-export async function getUserByUsername(username: string) {
+export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
-  const normalized = username.trim().toLowerCase();
-  const user = await db.collection<UserDoc>('users').findOne({ usernameLower: normalized });
+  const user = await db.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
-  if (user.isBanned) {
-    return { isBanned: true };
+
+  if (clientId) {
+    const visitExists = await db.collection('profile_visits').findOne({ userId: user._id, clientId });
+    if (!visitExists) {
+      await db.collection('users').updateOne({ _id: user._id }, { $inc: { profileViews: 1 } });
+      await db.collection('profile_visits').insertOne({ userId: user._id, clientId, visitedAt: new Date() } as ProfileVisitDoc);
+    }
   }
+
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   const widgets = await getUserWidgets(user._id);
+
   return {
     _id: user._id.toString(),
     username: user.username,
@@ -117,7 +117,7 @@ export async function getUserByUsername(username: string) {
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
-    isBanned: false,
+    isBanned: user.isBanned || false,
     profileViews: user.profileViews || 0,
     links: links.map(l => ({
       id: l._id.toString(),
@@ -137,16 +137,19 @@ export async function getUserByUsername(username: string) {
 
 export async function getUserByUsernameForMetadata(username: string) {
   const db = await connectDB();
-  const normalized = username.trim().toLowerCase();
-  const user = await db.collection<UserDoc>('users').findOne({ usernameLower: normalized });
+  const user = await db.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
+  
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   return {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    isBanned: !!user.isBanned,
-    links: links.map(l => ({ url: l.url || '', title: l.title || '' })),
+    isBanned: user.isBanned || false,
+    links: links.map((link: any) => ({
+      url: link.url || '',
+      title: link.title || '',
+    })),
   };
 }
 
@@ -159,11 +162,10 @@ export async function getUserById(id: string) {
     return null;
   }
   if (!user) return null;
-  if (user.isBanned) {
-    return { _id: user._id.toString(), isBanned: true, email: user.email };
-  }
+
   const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
   const widgets = await getUserWidgets(user._id);
+
   return {
     _id: user._id.toString(),
     name: user.name || '',
@@ -172,8 +174,6 @@ export async function getUserById(id: string) {
     bio: user.bio || '',
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
-    email: user.email,
-    plan: user.plan || 'free',
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -204,31 +204,22 @@ export async function getUserByEmail(email: string) {
     avatar: user.avatar || '',
     bio: user.bio || '',
     isEmailVerified: user.isEmailVerified,
-    isBanned: !!user.isBanned,
+    isBanned: user.isBanned || false,
   };
 }
 
-// ========================
-// USER CREATION & UPDATE
-// ========================
 export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
   const db = await connectDB();
-  const originalUsername = username.trim();
-  const normalizedUsername = originalUsername.toLowerCase();
-  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(originalUsername)) {
-    throw new Error('Invalid username format');
-  }
   const existingEmail = await db.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
-  const existingUsername = await db.collection('users').findOne({ usernameLower: normalizedUsername });
+  const existingUsername = await db.collection('users').findOne({ username });
   if (existingUsername) throw new Error('Username already taken');
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
   await db.collection('users').insertOne({
     _id: userId,
     email,
-    username: originalUsername,
-    usernameLower: normalizedUsername,
+    username,
     name,
     passwordHash,
     background,
@@ -236,7 +227,6 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    plan: 'free',
     createdAt: new Date(),
     profileViews: 0,
     layoutStructure: [
@@ -248,13 +238,12 @@ export async function createUser(email: string, password: string, username: stri
   return {
     id: userId.toString(),
     email,
-    username: originalUsername,
+    username,
     name,
     background,
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    plan: 'free',
     createdAt: new Date().toISOString(),
     profileViews: 0,
     layoutStructure: [
@@ -265,48 +254,101 @@ export async function createUser(email: string, password: string, username: stri
   };
 }
 
+export async function saveUserLinks(userId: string, links: any[]) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  await db.collection('links').deleteMany({ userId: uid });
+  if (links.length > 0) {
+    const valid = links
+      .filter(l => l.url?.trim() && l.title?.trim())
+      .map((l, i) => ({
+        _id: new ObjectId(),
+        userId: uid,
+        url: l.url.trim(),
+        title: l.title.trim(),
+        icon: l.icon?.trim() || '',
+        position: i,
+      }));
+    if (valid.length > 0) await db.collection('links').insertMany(valid);
+  }
+}
+
+export async function saveUserWidgets(userId: string, widgets: any[]) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  await db.collection('widgets').deleteMany({ userId: uid });
+  if (widgets.length > 0) {
+    const valid = widgets
+      .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
+      .map((w, i) => ({
+        _id: new ObjectId(),
+        userId: uid,
+        type: w.type,
+        title: (w.title || '').trim(),
+        content: (w.content || '').trim(),
+        url: (w.url || '').trim(),
+        position: i,
+      }));
+    if (valid.length > 0) await db.collection('widgets').insertMany(valid);
+  }
+}
+
 export async function updateUserProfile(userId: string, updates: any) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
-  let cleanUsername = '';
-  let cleanUsernameLower = '';
-  if (updates.username !== undefined) {
-    const original = updates.username.trim();
-    const normalized = original.toLowerCase();
-    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(original)) {
-      throw new Error('Invalid username format');
-    }
+  
+  if (updates.username) {
     const existing = await db.collection('users').findOne({
-      usernameLower: normalized,
+      username: updates.username,
       _id: { $ne: uid }
     });
     if (existing) throw new Error('Username taken');
-    cleanUsername = original;
-    cleanUsernameLower = normalized;
   }
-  const current = await getUserById(userId);
-  if (!current || (current as any).isBanned) throw new Error('User not found or banned');
-  let clean: any = {
-    name: (updates.name || current.name || '').trim().substring(0, 100),
+
+  const clean = {
+    name: updates.name?.trim() || '',
+    username: updates.username?.trim().toLowerCase() || '',
+    avatar: updates.avatar?.trim() || '',
+    bio: updates.bio?.trim() || '',
+    background: updates.background?.trim() || '',
+    layoutStructure: updates.layoutStructure || [
+      { id: 'bio', type: 'bio' },
+      { id: 'spacer-1', type: 'spacer', height: 20 },
+      { id: 'links', type: 'links' }
+    ],
   };
-  if (cleanUsername) {
-    clean.username = cleanUsername;
-    clean.usernameLower = cleanUsernameLower;
-  }
-  clean.avatar = (updates.avatar || current.avatar || '').trim();
-  clean.bio = (updates.bio || current.bio || '').trim().substring(0, 500);
-  clean.background = (updates.background || current.background || '').trim();
-  clean.layoutStructure = updates.layoutStructure || current.layoutStructure || [
-    { id: 'bio', type: 'bio' },
-    { id: 'spacer-1', type: 'spacer', height: 20 },
-    { id: 'links', type: 'links' }
-  ];
+
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// ========================
-// BADGE MANAGEMENT ✅ (CRITICAL SECTION)
-// ========================
+// --- ADMIN PANEL FUNCTIONS ---
+export async function getAllUsers() {
+  const db = await connectDB();
+  const users = await db
+    .collection<UserDoc>('users')
+    .find({ isBanned: { $ne: true } })
+    .project({
+      _id: 1,
+      username: 1,
+      name: 1,
+      avatar: 1,
+      bio: 1,
+      isBanned: 1,
+      badges: 1,
+    })
+    .toArray();
+
+  return users.map((user) => ({
+    id: user._id.toString(),
+    username: user.username,
+    name: user.name || '',
+    avatar: user.avatar || undefined,
+    bio: user.bio || undefined,
+    isBanned: user.isBanned || false,
+    badges: Array.isArray(user.badges) ? user.badges : [],
+  }));
+}
+
 export async function createBadge(name: string, icon: string) {
   const db = await connectDB();
   const badgeId = new ObjectId().toString();
@@ -350,167 +392,20 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-// ========================
-// ADMIN USER MANAGEMENT
-// ========================
-export async function getAllUsers() {
+export async function banUser(userId: string) {
   const db = await connectDB();
-  const users = await db
-    .collection<UserDoc>('users')
-    .find({
-      isBanned: { $ne: true },
-      usernameLower: { $exists: true, $type: 'string', $ne: '' },
-    })
-    .project({
-      _id: 1,
-      username: 1,
-      name: 1,
-      avatar: 1,
-      bio: 1,
-      isBanned: 1,
-    })
-    .sort({ _id: -1 })
-    .toArray();
-  const seen = new Set<string>();
-  const uniqueUsers = users.filter(user => {
-    const uname = user.username.trim().toLowerCase();
-    if (!uname || seen.has(uname)) return false;
-    seen.add(uname);
-    return true;
-  });
-  return uniqueUsers.map(user => ({
-    id: user._id.toString(),
-    username: user.username.trim(),
-    name: user.name?.trim() || user.username.trim(),
-    avatar: user.avatar?.trim() || undefined,
-    bio: user.bio?.trim() || undefined,
-    isBanned: !!user.isBanned,
-  }));
-}
-
-export async function banUser(userId: string, ipAddress?: string) {
-  const db = await connectDB();
-  const user = await db.collection<UserDoc>('users').findOne({ _id: new ObjectId(userId) });
-  if (!user) return;
-  const ipToBan = ipAddress || user.ipAddress || user.lastBannedIp;
-  const now = new Date();
-  const deleteAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-  if (ipToBan) {
-    await db.collection<UserDoc>('users').updateMany(
-      { $or: [{ ipAddress: ipToBan }, { lastBannedIp: ipToBan }], isBanned: { $ne: true } },
-      { $set: { isBanned: true, bannedAt: now.toISOString(), deleteAt: deleteAt.toISOString(), lastBannedIp: ipToBan } }
-    );
-    await db.collection('bannedIPs').updateOne({ ip: ipToBan }, { $setOnInsert: { createdAt: now } }, { upsert: true });
-  } else {
-    await db.collection<UserDoc>('users').updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { isBanned: true, bannedAt: now.toISOString(), deleteAt: deleteAt.toISOString() } }
-    );
-  }
+  const objectId = new ObjectId(userId);
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: objectId },
+    { $set: { isBanned: true, bannedAt: new Date().toISOString() } }
+  );
 }
 
 export async function unbanUser(userId: string) {
   const db = await connectDB();
+  const objectId = new ObjectId(userId);
   await db.collection<UserDoc>('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { isBanned: false }, $unset: { bannedAt: "", deleteAt: "", lastBannedIp: "" } }
+    { _id: objectId },
+    { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
-}
-
-// ========================
-// SECURITY & ABUSE PREVENTION
-// ========================
-export async function isIpBanned(ip: string): Promise<boolean> {
-  const db = await connectDB();
-  const record = await db.collection('bannedIPs').findOne({ ip });
-  return !!record;
-}
-
-export async function checkAccountLimit(ipAddress: string): Promise<boolean> {
-  const db = await connectDB();
-  const count = await db.collection('users').countDocuments({ ipAddress });
-  return count < 2;
-}
-
-// ========================
-// AUTH & PROFILE
-// ========================
-export async function updateUserEmail(userId: string, newEmail: string) {
-  const db = await connectDB();
-  const uid = new ObjectId(userId);
-  const existing = await db.collection('users').findOne({ email: newEmail, _id: { $ne: uid } });
-  if (existing) throw new Error('Email already in use');
-  await db.collection('users').updateOne({ _id: uid }, { $set: { email: newEmail } });
-}
-
-export async function updateUserPassword(userId: string, newPassword: string) {
-  const db = await connectDB();
-  const passwordHash = await bcrypt.hash(newPassword, 12);
-  await db.collection('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { passwordHash } }
-  );
-}
-
-export async function cancelUserSubscription(userId: string) {
-  const db = await connectDB();
-  await db.collection('users').updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { plan: 'free' } }
-  );
-}
-
-export async function deleteExpiredBannedAccounts() {
-  const db = await connectDB();
-  const now = new Date();
-  const expiredUsers = await db.collection<UserDoc>('users').find({
-    isBanned: true,
-    deleteAt: { $lt: now.toISOString() }
-  }).toArray();
-  for (const user of expiredUsers) {
-    await db.collection('users').deleteOne({ _id: user._id });
-    await db.collection('links').deleteMany({ userId: user._id });
-    await db.collection('widgets').deleteMany({ userId: user._id });
-    await db.collection('profile_visits').deleteMany({ userId: user._id });
-  }
-  return expiredUsers.length;
-}
-
-export async function saveUserLinks(userId: string, links: any[]) {
-  const db = await connectDB();
-  const uid = new ObjectId(userId);
-  await db.collection('links').deleteMany({ userId: uid });
-  if (links.length > 0) {
-    const valid = links
-      .filter(l => l.url?.trim() && l.title?.trim())
-      .map((l, i) => ({
-        _id: new ObjectId(),
-        userId: uid,
-        url: l.url.trim(),
-        title: l.title.trim(),
-        icon: l.icon?.trim() || '',
-        position: i,
-      }));
-    if (valid.length > 0) await db.collection('links').insertMany(valid);
-  }
-}
-
-export async function saveUserWidgets(userId: string, widgets: any[]) {
-  const db = await connectDB();
-  const uid = new ObjectId(userId);
-  await db.collection('widgets').deleteMany({ userId: uid });
-  if (widgets.length > 0) {
-    const valid = widgets
-      .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
-      .map(w => ({
-        _id: new ObjectId(),
-        userId: uid,
-        type: w.type,
-        title: (w.title || '').trim(),
-        content: (w.content || '').trim(),
-        url: (w.url || '').trim(),
-        position: w.position || 0,
-      }));
-    if (valid.length > 0) await db.collection('widgets').insertMany(valid);
-  }
 }

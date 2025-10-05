@@ -1,4 +1,4 @@
-// api/dashboard/update/route.ts
+// app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import {

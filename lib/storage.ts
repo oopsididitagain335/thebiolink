@@ -315,11 +315,13 @@ export async function updateUserProfile(userId: string, updates: any) {
     cleanUsernameLower = normalized;
   }
   const current = await getUserById(userId);
-  const clean = {
+  let clean: Partial<UserDoc> = {
     name: (updates.name || current?.name || '').trim().substring(0, 100),
   };
-  if (cleanUsername) clean.username = cleanUsername;
-  if (cleanUsernameLower) clean.usernameLower = cleanUsernameLower;
+  if (cleanUsername) {
+    clean.username = cleanUsername;
+    clean.usernameLower = cleanUsernameLower;
+  }
   clean.avatar = (updates.avatar || current?.avatar || '').trim();
   clean.bio = (updates.bio || current?.bio || '').trim().substring(0, 500);
   clean.background = (updates.background || current?.background || '').trim();

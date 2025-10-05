@@ -1,8 +1,6 @@
-// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
 interface Link {
   id: string;
   url: string;
@@ -10,7 +8,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -19,7 +16,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -31,7 +27,6 @@ interface User {
   plan?: string;
   email?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -39,7 +34,6 @@ interface LayoutSection {
   height?: number;
   content?: string;
 }
-
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -52,29 +46,25 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
-
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
-
-const DraggableItem = ({ 
+const DraggableItem = ({
   children,
   index,
   onMove,
   itemType = 'item'
-}: { 
+}: {
   children: React.ReactNode;
   index: number;
   onMove: (from: number, to: number) => void;
@@ -97,7 +87,7 @@ const DraggableItem = ({
     }
   };
   return (
-    <div 
+    <div
       draggable
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -108,13 +98,12 @@ const DraggableItem = ({
     </div>
   );
 };
-
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
     ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
   );
-  const planDisplay = user.plan 
+  const planDisplay = user.plan
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1).toLowerCase()
     : 'Free';
   return (
@@ -146,7 +135,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -234,7 +222,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -244,9 +231,9 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
   };
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
-    setLinks(links.map((link, i) => 
-      i === index 
-        ? { ...link, [field]: field === 'url' && value && !/^https?:\/\//i.test(value) ? 'https://' + value : value } 
+    setLinks(links.map((link, i) =>
+      i === index
+        ? { ...link, [field]: field === 'url' && value && !/^https?:\/\//i.test(value) ? 'https://' + value : value }
         : link
     ));
   };
@@ -346,9 +333,9 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
             <div className="flex items-center">
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
-                alt="Discord" 
+              <img
+                src="https://cdn-icons-png.flaticon.com/512/946/946822.png"
+                alt="Discord"
                 className="w-8 h-8 mr-3"
               />
               <span className="text-white font-medium">Discord</span>
@@ -360,7 +347,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
-
 const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -453,18 +439,17 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     </div>
   );
 };
-
-const ProfileBuilderTab = ({ 
-  user, 
-  setUser, 
-  links, 
-  setLinks, 
-  widgets, 
+const ProfileBuilderTab = ({
+  user,
+  setUser,
+  links,
+  setLinks,
+  widgets,
   setWidgets,
   layoutStructure,
   setLayoutStructure
-}: { 
-  user: User; 
+}: {
+  user: User;
   setUser: (user: User) => void;
   links: Link[];
   setLinks: (links: Link[]) => void;
@@ -482,7 +467,7 @@ const ProfileBuilderTab = ({
     setLayoutStructure([...layoutStructure, newSection]);
   };
   const updateSection = (id: string, updates: Partial<LayoutSection>) => {
-    setLayoutStructure(layoutStructure.map(s => 
+    setLayoutStructure(layoutStructure.map(s =>
       s.id === id ? { ...s, ...updates } : s
     ));
   };
@@ -501,7 +486,7 @@ const ProfileBuilderTab = ({
         <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Spacer</span>
-            <button 
+            <button
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -525,7 +510,7 @@ const ProfileBuilderTab = ({
         <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Custom HTML</span>
-            <button 
+            <button
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -550,7 +535,7 @@ const ProfileBuilderTab = ({
             <span className="text-white text-sm">
               Widget: {widget?.title || 'Unknown'}
             </span>
-            <button 
+            <button
               onClick={() => removeSection(section.id)}
               className="text-red-400 hover:text-red-300 text-xs"
             >
@@ -576,7 +561,7 @@ const ProfileBuilderTab = ({
       <div className="p-3 bg-gray-700/50 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-white capitalize text-sm">{section.type}</span>
-          <button 
+          <button
             onClick={() => removeSection(section.id)}
             className="text-red-400 hover:text-red-300 text-xs"
           >
@@ -637,10 +622,10 @@ const ProfileBuilderTab = ({
           <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
           <div className="space-y-3">
             {layoutStructure.map((section, index) => (
-              <DraggableItem 
-                key={section.id} 
-                index={index} 
-                onMove={moveSection} 
+              <DraggableItem
+                key={section.id}
+                index={index}
+                onMove={moveSection}
                 itemType="section"
               >
                 {renderSectionEditor(section, index)}
@@ -759,8 +744,8 @@ const ProfileBuilderTab = ({
               }
               if (section.type === 'custom' && section.content) {
                 return (
-                  <div 
-                    key={section.id} 
+                  <div
+                    key={section.id}
                     className="bg-white/5 p-4 rounded-lg"
                     dangerouslySetInnerHTML={{ __html: section.content }}
                   />
@@ -774,7 +759,6 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
-
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState(user.email || '');
   const [password, setPassword] = useState('');
@@ -782,9 +766,8 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [badgeMessage, setBadgeMessage] = useState('');
-  
-  // ✅ FIXED: Added missing `data` parameter name
-  const handleUpdate = async (action: string,  any = {}) => {
+ 
+  const handleUpdate = async (action: string, data: any = {}) => {
     setIsSaving(true);
     setMessage(null);
     try {
@@ -811,7 +794,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setIsSaving(false);
     }
   };
-  
+ 
   const handleClaimBadge = async () => {
     try {
       const response = await fetch('/api/settings', {
@@ -825,7 +808,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       setBadgeMessage('Failed to claim badge');
     }
   };
-  
+ 
   const normalizedPlan = (user.plan || 'free').toLowerCase();
   const isFreePlan = normalizedPlan === 'free';
   return (
@@ -891,7 +874,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           <p className="mb-3">
             Current Plan:{' '}
             <span className="text-purple-400">
-              {user.plan 
+              {user.plan
                 ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1).toLowerCase()
                 : 'Free'}
             </span>
@@ -930,8 +913,8 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       </div>
       {message && (
         <div className={`p-3 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-900/30 text-green-200 border border-green-800' 
+          message.type === 'success'
+            ? 'bg-green-900/30 text-green-200 border border-green-800'
             : 'bg-red-900/30 text-red-200 border border-red-800'
         }`}>
           {message.text}
@@ -940,7 +923,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
-
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
@@ -950,17 +932,14 @@ const ComingSoonTab = ({ title }: { title: string }) => (
     </div>
   </div>
 );
-
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
-
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 };
-
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -971,7 +950,7 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
-    email: '', 
+    email: '',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -986,7 +965,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1049,7 +1027,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1059,11 +1036,9 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
-
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1094,11 +1069,10 @@ export default function Dashboard() {
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        // ✅ FIXED: removed .toLowerCase() — backend handles it
         body: JSON.stringify({
           profile: {
             name: user.name.trim().substring(0, 100),
-            username: user.username.trim(), // ← no .toLowerCase()
+            username: user.username.trim(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
@@ -1122,7 +1096,6 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1133,7 +1106,6 @@ export default function Dashboard() {
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1141,7 +1113,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1200,12 +1171,12 @@ export default function Dashboard() {
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
             {activeTab === 'builder' && (
-              <ProfileBuilderTab 
-                user={user} 
-                setUser={setUser} 
-                links={links} 
-                setLinks={setLinks} 
-                widgets={widgets} 
+              <ProfileBuilderTab
+                user={user}
+                setUser={setUser}
+                links={links}
+                setLinks={setLinks}
+                widgets={widgets}
                 setWidgets={setWidgets}
                 layoutStructure={layoutStructure}
                 setLayoutStructure={setLayoutStructure}
@@ -1289,8 +1260,8 @@ export default function Dashboard() {
                       }
                       if (section.type === 'custom' && section.content) {
                         return (
-                          <div 
-                            key={section.id} 
+                          <div
+                            key={section.id}
                             className="bg-white/5 p-4 rounded-lg"
                             dangerouslySetInnerHTML={{ __html: section.content }}
                           />

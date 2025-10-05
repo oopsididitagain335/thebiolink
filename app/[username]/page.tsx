@@ -1,9 +1,9 @@
+// app/[username]/page.tsx
 import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
 
-// --- Interfaces (keep as-is) ---
 interface Badge {
   id: string;
   name: string;
@@ -37,6 +37,8 @@ interface LayoutSection {
 }
 
 interface UserData {
+  _id: string;
+  username: string;
   name: string;
   avatar?: string;
   bio?: string;
@@ -45,18 +47,10 @@ interface UserData {
   backgroundAudio?: string;
   badges: Badge[];
   links: Link[];
-  widgets?: Widget[];
-  layoutStructure?: LayoutSection[];
+  widgets: Widget[];
+  layoutStructure: LayoutSection[];
   isBanned: boolean;
   profileViews: number;
-}
-
-interface MetadataUser {
-  name: string;
-  avatar?: string;
-  bio?: string;
-  isBanned: boolean;
-  links: { url: string; title: string }[];
 }
 
 interface PageProps {
@@ -79,10 +73,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   const { clientId = '' } = await searchParams;
 
   try {
-    // ✅ FIXED: Only pass `username` — `clientId` is not used in data fetching
     const userData = await getUserByUsername(username);
 
-    // ✅ NOT FOUND — Encourage claiming the username
     if (!userData) {
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
@@ -113,8 +105,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    // ✅ BANNED — Clear, calm, with appeal path
-    if (userData.isBanned) {
+    if ('isBanned' in userData && userData.isBanned) {
       return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center">
@@ -143,24 +134,21 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    // ✅ VALID PROFILE — Clean, proud, identity-first
+    const user = userData as UserData;
+
     const {
-      name = '',
-      avatar = '',
-      bio = '',
-      background = '',
-      backgroundVideo = '',
-      backgroundAudio = '',
-      badges = [],
-      links = [],
-      widgets = [],
-      layoutStructure = [
-        { id: 'bio', type: 'bio' },
-        { id: 'spacer-1', type: 'spacer', height: 24 },
-        { id: 'links', type: 'links' },
-      ],
-      profileViews = 0,
-    } = userData;
+      name,
+      avatar,
+      bio,
+      background,
+      backgroundVideo,
+      backgroundAudio,
+      badges,
+      links,
+      widgets,
+      layoutStructure,
+      profileViews,
+    } = user;
 
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
@@ -170,7 +158,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     return (
       <div className="min-h-screen relative">
-        {/* Client ID script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -209,17 +196,14 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 to-black" />
         )}
 
-        {/* Background audio */}
         {backgroundAudio && (
           <audio autoPlay loop>
             <source src={backgroundAudio} type="audio/mpeg" />
           </audio>
         )}
 
-        {/* Overlay */}
         <div className="absolute inset-0 bg-black/50 z-10"></div>
 
-        {/* Content */}
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {layoutStructure.map((section) => {
@@ -378,7 +362,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
   try {
-    const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
+    const userData = await getUserByUsernameForMetadata(username);
     if (!userData || userData.isBanned) {
       return { title: 'User Not Found | thebiolink.lol' };
     }

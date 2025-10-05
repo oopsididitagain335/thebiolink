@@ -2,7 +2,7 @@
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
-import { getUserByEmail } from './storage'; // ← make sure this exists
+import { getUserByEmail } from './storage'; // Make sure this exists and returns passwordHash
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -13,15 +13,13 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await getUserByEmail(credentials.email);
         if (!user || !user.passwordHash) return null;
 
-        const isPasswordValid = await compare(credentials.password, user.passwordHash);
-        if (!isPasswordValid) return null;
+        const isValid = await compare(credentials.password, user.passwordHash);
+        if (!isValid) return null;
 
         return {
           id: user._id.toString(),
@@ -32,12 +30,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: 'jwt',
-  },
-  pages: {
-    signIn: '/auth/login',
-  },
+  session: { strategy: 'jwt' },
+  pages: { signIn: '/auth/login' },
   callbacks: {
     jwt({ token, user }) {
       if (user) {
@@ -56,5 +50,6 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
+// ✅ Export getServerSession properly
 import { getServerSession } from 'next-auth/next';
-export { getServerSession };
+export { getServerSession, authOptions };

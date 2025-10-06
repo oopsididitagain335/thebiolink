@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { getUserByEmail } from './storage'; // Make sure this exists and returns passwordHash
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -14,13 +14,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
         const user = await getUserByEmail(credentials.email);
         if (!user || !user.passwordHash) return null;
-
         const isValid = await compare(credentials.password, user.passwordHash);
         if (!isValid) return null;
-
         return {
           id: user._id.toString(),
           email: user.email,
@@ -52,4 +49,5 @@ export const authOptions: NextAuthOptions = {
 
 // ✅ Export getServerSession properly
 import { getServerSession } from 'next-auth/next';
+
 export { getServerSession, authOptions };

@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -21,7 +20,6 @@ export default function HomePage() {
     }
   };
 
-  // Optional: Auto-focus on large screens
   useEffect(() => {
     if (window.innerWidth >= 768) {
       inputRef.current?.focus();
@@ -46,13 +44,12 @@ export default function HomePage() {
               </span>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-4">
-              {['/discovery', '/pricing', '/auth/login', '/auth/signup'].map((href) => (
+              {['/pricing', '/auth/login', '/auth/signup'].map((href) => (
                 <Link
                   key={href}
                   href={href}
                   className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 transition-all duration-200"
                 >
-                  {href === '/discovery' && 'Discovery'}
                   {href === '/pricing' && 'Pricing'}
                   {href === '/auth/login' && 'Login'}
                   {href === '/auth/signup' && 'Signup'}
@@ -94,7 +91,7 @@ export default function HomePage() {
             Create a stunning, lightning-fast link-in-bio page. Free forever. No tracking. Just you.
           </p>
 
-          {/* 🔥 Cool Username Input */}
+          {/* Username Input */}
           <div className="relative max-w-xl mx-auto mb-12">
             <form onSubmit={handleGo} className="relative">
               <div
@@ -154,58 +151,6 @@ export default function HomePage() {
               Sign In
             </Link>
           </div>
-        </div>
-
-        {/* Feature Grid */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 px-2">
-          {[
-            {
-              icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              ),
-              title: 'Blazing Fast',
-              desc: 'Built with Next.js & edge caching',
-            },
-            {
-              icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              ),
-              title: 'Private by Default',
-              desc: 'No tracking, no ads, just your link',
-            },
-            {
-              icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              ),
-              title: 'Free Forever',
-              desc: 'Open-source & community-driven',
-            },
-          ].map((feature, i) => (
-            <div
-              key={i}
-              className="group bg-gray-800/30 hover:bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-4 text-indigo-300 group-hover:text-white transition-colors">
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-gray-400">{feature.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer hint */}
-        <div className="text-center mt-16 text-gray-600">
-          <p className="text-sm">
-            Already have a BioLink? Visit{' '}
-            <span className="font-mono text-indigo-400/80">thebiolink.lol/yourname</span>
-          </p>
         </div>
       </div>
     </div>

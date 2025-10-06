@@ -19,48 +19,53 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
+
         const db = await connectDB();
         const user = await db.collection('users').findOne({ email: credentials.email });
-        if (!user || !user.password) {
-          return null;
-        }
+
+        if (!user || !user.password) return null;
+
         const isValid = await compare(credentials.password, user.password);
-        if (!isValid) {
-          return null;
-        }
+        if (!isValid) return null;
+
         return {
           id: user._id.toString(),
           email: user.email,
           username: user.username,
-          name: user.name || '',
+          name: user.name ?? null, // ensure consistent typing
         };
       },
     }),
   ],
-  session: {
-    strategy: 'jwt',
-  },
+
+  session: { strategy: 'jwt' },
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.username = user.username;
-        token.name = user.name;
+        token.name = user.name ?? null;
+        token.email = user.email ?? null;
       }
       return token;
     },
+
     async session({ session, token }) {
-      if (token) {
+      if (session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
-        session.user.name = token.name;
+        session.user.name = token.name ?? null; // ✅ FIXED
+        session.user.email = token.email ?? null;
       }
       return session;
     },
   },
+
   secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
-    signIn: '/auth/signin', // Customize if needed
+    signIn: '/auth/signin', // your custom sign-in page
   },
 };
 
@@ -68,24 +73,28 @@ export async function getServerSession() {
   return await getNextAuthServerSession(authOptions);
 }
 
-// Optional: Keep custom getCurrentUser if used elsewhere (e.g., for non-NextAuth paths)
+// Optional utility for reading user from custom cookie
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('biolink_session')?.value;
+
   if (!sessionCookie || !ObjectId.isValid(sessionCookie)) {
     return null;
   }
+
   try {
     const db = await connectDB();
     const user = await db.collection('users').findOne({
-      _id: new ObjectId(sessionCookie)
+      _id: new ObjectId(sessionCookie),
     });
+
     if (!user) return null;
+
     return {
       _id: user._id.toString(),
       email: user.email,
       username: user.username,
-      name: user.name || '',
+      name: user.name ?? null,
     };
   } catch (error) {
     console.error('Auth error:', error);

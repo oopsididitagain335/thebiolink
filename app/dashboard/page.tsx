@@ -10,7 +10,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -19,7 +18,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -30,7 +28,6 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -816,6 +813,7 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  const [showWidgetsNotice, setShowWidgetsNotice] = useState(false); // ✅ NEW STATE
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
@@ -839,7 +837,7 @@ export default function Dashboard() {
           bio: (data.user.bio || '').substring(0, 500),
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: data.user.plan || 'free', // ✅ FIXED: use real plan from API
+          plan: data.user.plan || 'free',
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -932,7 +930,7 @@ export default function Dashboard() {
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
-            plan: user.plan || 'free', // ✅ SAVE PLAN
+            plan: user.plan || 'free',
             layoutStructure,
           },
           links: linksToSend,
@@ -1009,12 +1007,18 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (tab.id === 'widgets') {
+                    setShowWidgetsNotice(true);
+                  }
+                  setActiveTab(tab.id);
+                }}
                 className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-white'
@@ -1026,6 +1030,7 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
@@ -1134,6 +1139,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1145,6 +1151,7 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
+
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
@@ -1177,6 +1184,29 @@ export default function Dashboard() {
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
                 >
                   {isSaving ? 'Saving...' : 'I Comply – Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ WIDGETS NOTICE MODAL */}
+        {showWidgetsNotice && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold text-white mb-3">Widget Saving Notice</h3>
+              <p className="text-gray-300 mb-4">
+                You can create and customize widgets here — but please note: <strong>widgets cannot yet be saved to your profile</strong>.
+              </p>
+              <p className="text-yellow-400 text-sm mb-4">
+                ⚠️ We're actively working on fixing this. Sorry for any inconvenience!
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowWidgetsNotice(false)}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90"
+                >
+                  Got it
                 </button>
               </div>
             </div>

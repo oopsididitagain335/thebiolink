@@ -82,32 +82,25 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
   try {
     const userData = await getUserByUsername(username, clientId);
+
+    // --- NOT FOUND PAGE ---
     if (!userData) {
       return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-xl p-8 text-center border border-gray-700">
-            <h1 className="text-2xl font-bold text-white mb-2">Not Found</h1>
-            <p className="text-gray-400 mb-6">This BioLink doesn’t exist.</p>
-            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors">
-              Create Yours
-            </a>
-          </div>
-        </div>
-      );
-    }
-
-    if (userData.isBanned) {
-      return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-xl p-8 text-center border border-gray-700">
-            <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
+          <div className="max-w-md w-full bg-gray-800/70 backdrop-blur-lg rounded-3xl shadow-xl p-8 text-center border border-gray-700">
+            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-indigo-700/20 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m2 0a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4v4m0 0v4m0-4h4m-4 0H7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Suspended</h1>
-            <p className="text-gray-400 mb-6">This account violates our terms.</p>
-            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors">
+            <h1 className="text-3xl font-bold text-white mb-3">BioLink Not Found</h1>
+            <p className="text-gray-300 mb-6">
+              We couldn’t find a profile for <span className="font-medium">{username}</span>. Maybe it’s time to create your own BioLink!
+            </p>
+            <a
+              href="/"
+              className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md"
+            >
               Create Yours
             </a>
           </div>
@@ -115,6 +108,33 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
+    // --- BANNED PAGE ---
+    if (userData.isBanned) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
+          <div className="max-w-md w-full bg-gray-800/70 backdrop-blur-lg rounded-3xl shadow-xl p-8 text-center border border-gray-700">
+            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-red-700/20 rounded-full animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-3">Account Suspended</h1>
+            <p className="text-gray-300 mb-6">
+              This BioLink has been suspended for violating our terms of service. 
+              If you believe this is a mistake, please <a href="/support" className="text-red-400 hover:underline">contact support</a>.
+            </p>
+            <a
+              href="/"
+              className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md"
+            >
+              Explore Other BioLinks
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    // --- USER PROFILE PAGE ---
     const {
       name = '',
       avatar = '',

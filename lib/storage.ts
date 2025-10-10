@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -61,16 +62,24 @@ interface LinkDoc {
   position: number;
 }
 
-// ✅ Updated: added widgetId field
 interface WidgetDoc {
   _id: ObjectId;
   userId: ObjectId;
-  widgetId: string; // ← preserves frontend-generated ID
+  widgetId: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
   url?: string;
   position: number;
+}
+
+interface NewsPost {
+  _id: ObjectId;
+  title: string;
+  content: string;
+  authorId: ObjectId;
+  authorName: string;
+  publishedAt: Date;
 }
 
 interface ProfileVisitDoc {
@@ -80,12 +89,11 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// ✅ Updated: returns widgetId as id
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
   return widgets.map(w => ({
-    id: w.widgetId, // ← critical fix
+    id: w.widgetId,
     type: w.type,
     title: w.title || '',
     content: w.content || '',
@@ -282,7 +290,6 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ Updated: preserves frontend widget.id as widgetId
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
@@ -293,7 +300,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
       .map((w, i) => ({
         _id: new ObjectId(),
         userId: uid,
-        widgetId: w.id, // ← preserve frontend ID
+        widgetId: w.id,
         type: w.type,
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
@@ -334,6 +341,43 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
+}
+
+// --- NEWS FUNCTIONS ---
+export async function createNewsPost(title: string, content: string, authorId: string, authorName: string) {
+  const db = await connectDB();
+  const post = {
+    _id: new ObjectId(),
+    title: title.trim(),
+    content: content.trim(),
+    authorId: new ObjectId(authorId),
+    authorName: authorName.trim(),
+    publishedAt: new Date(),
+  };
+  await db.collection<NewsPost>('news').insertOne(post);
+  return {
+    id: post._id.toString(),
+    title: post.title,
+    content: post.content,
+    authorName: post.authorName,
+    publishedAt: post.publishedAt.toISOString(),
+  };
+}
+
+export async function getAllNewsPosts() {
+  const db = await connectDB();
+  const posts = await db
+    .collection<NewsPost>('news')
+    .find({})
+    .sort({ publishedAt: -1 })
+    .toArray();
+  return posts.map(post => ({
+    id: post._id.toString(),
+    title: post.title,
+    content: post.content,
+    authorName: post.authorName,
+    publishedAt: post.publishedAt.toISOString(),
+  }));
 }
 
 // --- ADMIN PANEL FUNCTIONS ---

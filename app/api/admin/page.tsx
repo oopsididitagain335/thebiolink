@@ -17,6 +17,7 @@ interface User {
   }>;
   isBanned: boolean;
   bannedAt?: string;
+  plan?: string;
 }
 
 interface Badge {
@@ -25,12 +26,22 @@ interface Badge {
   icon: string;
 }
 
+interface NewsPost {
+  id: string;
+  title: string;
+  content: string;
+  authorName: string;
+  publishedAt: string;
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [newsPosts, setNewsPosts] = useState<NewsPost[]>([]);
   const [newBadge, setNewBadge] = useState({ name: '', icon: '' });
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedBadge, setSelectedBadge] = useState<string>('');
+  const [newsForm, setNewsForm] = useState({ title: '', content: '' });
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -40,12 +51,12 @@ export default function AdminPanel() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usersRes, badgesRes] = await Promise.all([
+        const [usersRes, badgesRes, newsRes] = await Promise.all([
           fetch('/api/admin/users'),
-          fetch('/api/admin/badges')
+          fetch('/api/admin/badges'),
+          fetch('/api/news')
         ]);
 
-        // 🔒 Redirect if unauthorized or server error
         if (!usersRes.ok || !badgesRes.ok) {
           router.push('/dashboard');
           return;
@@ -53,16 +64,16 @@ export default function AdminPanel() {
 
         const usersData = await usersRes.json();
         const badgesData = await badgesRes.json();
+        const newsData = await newsRes.json();
 
-        // ✅ CRITICAL: Only accept arrays
         if (!Array.isArray(usersData) || !Array.isArray(badgesData)) {
-          console.error('Invalid API response shape:', { usersData, badgesData });
           router.push('/dashboard');
           return;
         }
 
         setUsers(usersData);
         setBadges(badgesData);
+        setNewsPosts(Array.isArray(newsData) ? newsData : []);
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/dashboard');
@@ -200,6 +211,33 @@ export default function AdminPanel() {
     }
   };
 
+  const handlePostNews = async () => {
+    if (!newsForm.title.trim() || !newsForm.content.trim()) {
+      setMessage({ type: 'error', text: 'Title and content are required' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newsForm)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setNewsPosts([data, ...newsPosts]);
+        setNewsForm({ title: '', content: '' });
+        setMessage({ type: 'success', text: 'News post published!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to publish news' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -207,7 +245,7 @@ export default function AdminPanel() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <p className="text-gray-400 mt-2">Manage users and badges</p>
+              <p className="text-gray-400 mt-2">Manage users, badges, and news</p>
             </div>
             <button
               onClick={() => router.push('/dashboard')}
@@ -224,6 +262,34 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* Post News Section */}
+        <div className="mb-8 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Post News</h2>
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={newsForm.title}
+              onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+              placeholder="News Title"
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <textarea
+              value={newsForm.content}
+              onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+              placeholder="News Content"
+              rows={4}
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <button
+              onClick={handlePostNews}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+            >
+              Publish News
+            </button>
+          </div>
+        </div>
+
+        {/* Rest of admin panel (users, badges) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Create Badge */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

@@ -1,6 +1,6 @@
 // app/api/news/route.ts
 import { NextRequest } from 'next/server';
-import { createNewsPost, getAllNewsPosts } from '@/lib/storage';
+import { createNewsPost, getAllNewsPosts, getUserById } from '@/lib/storage';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function GET() {
@@ -13,8 +13,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user || user.plan !== 'admin') {
+  const authUser = await getCurrentUser();
+  if (!authUser) {
+    return Response.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  // Fetch full user including `plan`
+  const fullUser = await getUserById(authUser._id);
+  if (!fullUser || fullUser.plan !== 'admin') {
     return Response.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -24,7 +30,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Title and content are required' }, { status: 400 });
     }
 
-    const post = await createNewsPost(title, content, user._id, user.name);
+    const post = await createNewsPost(title, content, fullUser._id, fullUser.name);
     return Response.json(post);
   } catch (error: any) {
     return Response.json({ error: 'Failed to create news post' }, { status: 500 });

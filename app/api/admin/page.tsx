@@ -1,4 +1,4 @@
-// app/admin/page.tsx
+// app/api/admin/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -41,7 +41,7 @@ export default function AdminPanel() {
   const [newBadge, setNewBadge] = useState({ name: '', icon: '' });
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedBadge, setSelectedBadge] = useState<string>('');
-  const [newsForm, setNewsForm] = useState({ title: '', content: '' });
+  const [newsForm, setNewsForm] = useState({ title: '', content: '', imageUrl: '' });
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -228,7 +228,7 @@ export default function AdminPanel() {
 
       if (res.ok) {
         setNewsPosts([data, ...newsPosts]);
-        setNewsForm({ title: '', content: '' });
+        setNewsForm({ title: '', content: '', imageUrl: '' });
         setMessage({ type: 'success', text: 'News post published!' });
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to publish news' });
@@ -273,12 +273,19 @@ export default function AdminPanel() {
               placeholder="News Title"
               className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            <input
+              type="url"
+              value={newsForm.imageUrl}
+              onChange={(e) => setNewsForm({ ...newsForm, imageUrl: e.target.value })}
+              placeholder="Image URL (optional)"
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
             <textarea
               value={newsForm.content}
               onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
               placeholder="News Content"
-              rows={4}
-              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              rows={6}
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
             />
             <button
               onClick={handlePostNews}
@@ -289,9 +296,8 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Rest of admin panel (users, badges) */}
+        {/* Rest of admin panel */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Create Badge */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
             <h2 className="text-xl font-semibold mb-4 text-white">Create New Badge</h2>
             <div className="space-y-4">
@@ -324,7 +330,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Add Badge to User */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
             <h2 className="text-xl font-semibold mb-4 text-white">Add Badge to User</h2>
             <div className="space-y-4">
@@ -368,7 +373,6 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* All Users */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-white mb-4">All Users</h2>
           {Array.isArray(users) && users.length > 0 ? (
@@ -432,7 +436,6 @@ export default function AdminPanel() {
           )}
         </div>
 
-        {/* All Badges */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-white mb-4">All Badges</h2>
           {Array.isArray(badges) && badges.length > 0 ? (

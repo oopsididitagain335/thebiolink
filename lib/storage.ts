@@ -77,9 +77,20 @@ interface NewsPost {
   _id: ObjectId;
   title: string;
   content: string;
+  imageUrl?: string;
   authorId: ObjectId;
   authorName: string;
   publishedAt: Date;
+  likes: number;
+}
+
+interface NewsInteraction {
+  _id: ObjectId;
+  postId: ObjectId;
+  userId: ObjectId;
+  type: 'like' | 'comment';
+  content?: string;
+  createdAt: Date;
 }
 
 interface ProfileVisitDoc {
@@ -344,23 +355,33 @@ export async function updateUserProfile(userId: string, updates: any) {
 }
 
 // --- NEWS FUNCTIONS ---
-export async function createNewsPost(title: string, content: string, authorId: string, authorName: string) {
+export async function createNewsPost(
+  title: string,
+  content: string,
+  imageUrl: string,
+  authorId: string,
+  authorName: string
+) {
   const db = await connectDB();
   const post = {
     _id: new ObjectId(),
     title: title.trim(),
     content: content.trim(),
+    imageUrl: imageUrl?.trim() || undefined,
     authorId: new ObjectId(authorId),
     authorName: authorName.trim(),
     publishedAt: new Date(),
+    likes: 0,
   };
   await db.collection<NewsPost>('news').insertOne(post);
   return {
     id: post._id.toString(),
     title: post.title,
     content: post.content,
+    imageUrl: post.imageUrl,
     authorName: post.authorName,
     publishedAt: post.publishedAt.toISOString(),
+    likes: post.likes,
   };
 }
 
@@ -371,13 +392,78 @@ export async function getAllNewsPosts() {
     .find({})
     .sort({ publishedAt: -1 })
     .toArray();
-  return posts.map(post => ({
-    id: post._id.toString(),
-    title: post.title,
-    content: post.content,
-    authorName: post.authorName,
-    publishedAt: post.publishedAt.toISOString(),
+
+  const enriched = await Promise.all(posts.map(async (post) => {
+    const likes = await db.collection<NewsInteraction>('news_interactions')
+      .countDocuments({ postId: post._id, type: 'like' });
+
+    const comments = await db.collection<NewsInteraction>('news_interactions')
+      .find({ postId: post._id, type: 'comment' })
+      .sort({ createdAt: 1 })
+      .toArray();
+
+    const commentAuthors = await Promise.all(
+      comments.map(async (c) => {
+        const user = await db.collection<UserDoc>('users').findOne({ _id: c.userId });
+        return {
+          id: c._id.toString(),
+          content: c.content || '',
+          author: user ? user.username : 'Unknown',
+          authorName: user ? user.name : 'Anonymous',
+          createdAt: c.createdAt.toISOString(),
+        };
+      })
+    );
+
+    return {
+      id: post._id.toString(),
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      authorName: post.authorName,
+      publishedAt: post.publishedAt.toISOString(),
+      likes,
+      comments: commentAuthors,
+    };
   }));
+
+  return enriched;
+}
+
+export async function addNewsInteraction(
+  postId: string,
+  email: string,
+  type: 'like' | 'comment',
+  content?: string
+) {
+  const db = await connectDB();
+  const user = await db.collection<UserDoc>('users').findOne({ email, isEmailVerified: true });
+  if (!user) throw new Error('Only verified users can interact');
+
+  const postObjectId = new ObjectId(postId);
+  const post = await db.collection<NewsPost>('news').findOne({ _id: postObjectId });
+  if (!post) throw new Error('Post not found');
+
+  if (type === 'like') {
+    const existing = await db.collection<NewsInteraction>('news_interactions').findOne({
+      postId: postObjectId,
+      userId: user._id,
+      type: 'like'
+    });
+    if (existing) throw new Error('Already liked');
+  }
+
+  const interaction = {
+    _id: new ObjectId(),
+    postId: postObjectId,
+    userId: user._id,
+    type,
+    content: type === 'comment' ? content?.trim() : undefined,
+    createdAt: new Date(),
+  };
+
+  await db.collection<NewsInteraction>('news_interactions').insertOne(interaction);
+  return getAllNewsPosts().then(posts => posts.find(p => p.id === postId));
 }
 
 // --- ADMIN PANEL FUNCTIONS ---

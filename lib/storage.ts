@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -62,9 +61,11 @@ interface LinkDoc {
   position: number;
 }
 
+// ✅ Updated: added widgetId field
 interface WidgetDoc {
   _id: ObjectId;
   userId: ObjectId;
+  widgetId: string; // ← preserves frontend-generated ID
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
   title?: string;
   content?: string;
@@ -79,11 +80,12 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
+// ✅ Updated: returns widgetId as id
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
   return widgets.map(w => ({
-    id: w._id.toString(),
+    id: w.widgetId, // ← critical fix
     type: w.type,
     title: w.title || '',
     content: w.content || '',
@@ -280,23 +282,28 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
+// ✅ Updated: preserves frontend widget.id as widgetId
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
   await db.collection('widgets').deleteMany({ userId: uid });
   if (widgets.length > 0) {
     const valid = widgets
-      .filter(w => ['spotify','youtube','twitter','custom'].includes(w.type))
+      .filter(w => w.id && ['spotify','youtube','twitter','custom'].includes(w.type))
       .map((w, i) => ({
         _id: new ObjectId(),
         userId: uid,
+        widgetId: w.id, // ← preserve frontend ID
         type: w.type,
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
         url: (w.url || '').trim(),
         position: i,
       }));
-    if (valid.length > 0) await db.collection('widgets').insertMany(valid);
+
+    if (valid.length > 0) {
+      await db.collection('widgets').insertMany(valid);
+    }
   }
 }
 

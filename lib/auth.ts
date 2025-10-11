@@ -1,17 +1,20 @@
 // lib/auth.ts
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import DiscordProvider, { DiscordProfile } from 'next-auth/providers/discord';
+import DiscordProvider from 'next-auth/providers/discord';
 import { connectDB } from './storage';
 import { ObjectId } from 'mongodb';
 import { compare, hash } from 'bcryptjs';
 import { getServerSession as getNextAuthServerSession } from 'next-auth';
 import { cookies } from 'next/headers';
 
-// Extend DiscordProfile to ensure global_name is available
-interface ExtendedDiscordProfile extends DiscordProfile {
+// Extend Discord profile type (since global_name isn't in default types)
+interface DiscordProfileExtended {
+  id: string;
+  username: string;
   global_name?: string | null;
-  image?: string;
+  email?: string | null;
+  image?: string | null;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -59,22 +62,30 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account, profile }) {
+      // Initial sign-in: user and account are available
       if (account && user) {
+        // Set base user info
         token.id = user.id;
         token.username = user.username;
-        token.name = user.name;
-        token.email = user.email;
-        token.picture = user.image;
+        token.name = user.name ?? null;
+        token.email = user.email ?? null;
+        token.picture = user.image ?? null;
 
+        // Handle Discord login
         if (account.provider === 'discord' && profile) {
           const db = await connectDB();
-          const email = (profile as ExtendedDiscordProfile).email;
+          const discordProfile = profile as DiscordProfileExtended;
+          const email = discordProfile.email;
 
-          if (!email) return token;
+          if (!email) {
+            // Should not happen with 'email' scope, but be safe
+            return token;
+          }
 
           let dbUser = await db.collection('users').findOne({ email });
 
           if (!dbUser) {
+            // Generate a strong random password so user can log in via email later
             const randomPassword = Array.from({ length: 32 }, () =>
               'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'.charAt(
                 Math.floor(Math.random() * 70)
@@ -82,22 +93,26 @@ export const authOptions: NextAuthOptions = {
             ).join('');
             const passwordHash = await hash(randomPassword, 12);
 
-            // Safely access Discord fields
-            const discordProfile = profile as ExtendedDiscordProfile;
+            // Determine display name: global_name (e.g., "John Doe") > username (e.g., "john_doe123")
             const displayName = discordProfile.global_name || discordProfile.username || 'User';
 
+            // Create sanitized username
             let username = displayName
               .toLowerCase()
               .replace(/\s+/g, '_')
               .replace(/[^a-z0-9_]/g, '');
-            if (username.length < 3) username = `user_${Date.now().toString(36).slice(-6)}`;
+            if (username.length < 3) {
+              username = `user_${Date.now().toString(36).slice(-6)}`;
+            }
 
+            // Ensure username is unique
             let base = username;
             let counter = 1;
             while (await db.collection('users').findOne({ username })) {
               username = `${base}_${counter++}`;
             }
 
+            // Build new user document
             const newUser = {
               _id: new ObjectId(),
               email,
@@ -120,12 +135,15 @@ export const authOptions: NextAuthOptions = {
             };
 
             await db.collection('users').insertOne(newUser);
+
+            // Update token with final DB values
             token.id = newUser._id.toString();
             token.username = newUser.username;
             token.name = newUser.name;
             token.email = newUser.email;
             token.picture = newUser.avatar;
           } else {
+            // Update token with existing DB user (in case avatar/name changed)
             token.id = dbUser._id.toString();
             token.username = dbUser.username;
             token.name = dbUser.name;
@@ -140,11 +158,11 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.username = token.username as string;
-        session.user.name = token.name as string;
-        session.user.email = token.email as string;
-        session.user.image = token.picture as string;
+        session.user.id = token.id;
+        session.user.username = token.username;
+        session.user.name = token.name ?? null;
+        session.user.email = token.email ?? null;
+        session.user.image = token.picture ?? null; // ✅ Now type-safe thanks to next-auth.d.ts
       }
       return session;
     },
@@ -153,7 +171,7 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
-    signIn: '/auth/login',
+    signIn: '/auth/login', // matches your route
   },
 };
 
@@ -161,6 +179,7 @@ export async function getServerSession() {
   return await getNextAuthServerSession(authOptions);
 }
 
+// Optional: Keep your custom cookie-based session utility
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('biolink_session')?.value;

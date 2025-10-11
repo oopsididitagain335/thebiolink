@@ -1,9 +1,10 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const PLANS = [
   { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
@@ -12,15 +13,13 @@ const PLANS = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default function PricingPage() {
+function PricingContent() {
   const searchParams = useSearchParams();
   const errorParam = searchParams?.get('error');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (errorParam) {
-      setError(decodeURIComponent(errorParam));
-    }
+    if (errorParam) setError(decodeURIComponent(errorParam));
   }, [errorParam]);
 
   return (
@@ -146,5 +145,13 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-white mt-20">Loading...</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }

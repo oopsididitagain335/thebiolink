@@ -64,9 +64,8 @@ interface MetadataUser {
   links: { url: string; title: string }[];
 }
 
-interface PageProps {
-  params: { username: string }; // No Promise<> in App Router for static params
-}
+// ✅ DO NOT define PageProps manually — use inline type or omit
+// Next.js infers params as { username: string }
 
 // Helper: Extract YouTube video ID
 function getYouTubeId(url: string): string {
@@ -80,17 +79,31 @@ function getSpotifyId(url: string): string {
   return match ? `${match[1]}/${match[2]}` : '';
 }
 
-export default async function UserPage({ params }: PageProps) {
+// ✅ Special profile tags
+function getSpecialProfileTag(username: string): string | null {
+  switch (username.toLowerCase()) {
+    case 'xsetnews':
+      return 'Biggest Sponsored Member';
+    case 'ceosolace':
+      return 'Founder of BioLinkHQ';
+    default:
+      return null;
+  }
+}
+
+export default async function UserPage({
+  params,
+}: {
+  params: { username: string };
+}) {
   const { username } = params;
 
-  // Get IP address from headers (Vercel/Next.js compatible)
   const headersList = headers();
-  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-             headersList.get('x-real-ip') || 
-             '0.0.0.0'; // fallback
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+             headersList.get('x-real-ip') ||
+             '0.0.0.0';
 
   try {
-    // Pass IP to your storage layer for deduplication
     const userData = await getUserByUsername(username, ip);
 
     if (!userData) {
@@ -168,8 +181,6 @@ export default async function UserPage({ params }: PageProps) {
 
     return (
       <div className="min-h-screen relative">
-        {/* ✅ REMOVED client-side clientId script */}
-
         {backgroundVideo && isValidBackgroundVideo ? (
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
@@ -229,6 +240,21 @@ export default async function UserPage({ params }: PageProps) {
                         <Badges badges={badges} />
                       </div>
                     )}
+
+                    {/* ✅ SPECIAL PROFILE TAG */}
+                    {(() => {
+                      const specialTag = getSpecialProfileTag(username);
+                      if (specialTag) {
+                        return (
+                          <div className="mt-4 pt-4 border-t border-white/20 animate-pulse">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg">
+                              🏆 {specialTag}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 );
               }
@@ -280,7 +306,7 @@ export default async function UserPage({ params }: PageProps) {
                       />
                     ) : (
                       <div className="text-gray-400 text-sm italic">
-                        Spotify embed
+                        Widget content not available
                       </div>
                     )}
                   </div>
@@ -333,7 +359,8 @@ export default async function UserPage({ params }: PageProps) {
   }
 }
 
-export async function generateMetadata({ params }: PageProps) {
+// Metadata function — also fix params typing
+export async function generateMetadata({ params }: { params: { username: string } }) {
   const { username } = params;
   try {
     const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;

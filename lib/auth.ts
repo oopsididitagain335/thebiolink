@@ -57,34 +57,32 @@ export const authOptions: NextAuthOptions = {
         const db = await connectDB();
         const email = profile.email as string;
 
-        if (!email) {
-          // Discord didn't return email (shouldn't happen with 'email' scope)
-          return null;
-        }
+        if (!email) return null; // Should not happen with 'email' scope
 
         let dbUser = await db.collection('users').findOne({ email });
 
         if (!dbUser) {
-          // Generate a strong random password (for future email login)
-          const tempPassword = Array.from({ length: 32 }, () =>
+          // Generate random password so user can log in via email later
+          const randomPassword = Array.from({ length: 32 }, () =>
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'.charAt(
               Math.floor(Math.random() * 70)
             )
           ).join('');
+          const passwordHash = await hash(randomPassword, 12);
 
-          const passwordHash = await hash(tempPassword, 12);
-
-          // Sanitize username: use global_name if available, else discord username
+          // Create username from Discord name
           const displayName = profile.global_name || profile.username || 'User';
-          let username = displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-          if (username.length < 3) username = `user_${Date.now().toString(36)}`;
+          let username = displayName
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]/g, '');
+          if (username.length < 3) username = `user_${Date.now().toString(36).slice(-6)}`;
 
-          // Ensure username is unique
-          let baseUsername = username;
+          // Ensure unique username
+          let base = username;
           let counter = 1;
           while (await db.collection('users').findOne({ username })) {
-            username = `${baseUsername}_${counter}`;
-            counter++;
+            username = `${base}_${counter++}`;
           }
 
           const newUser = {
@@ -112,21 +110,25 @@ export const authOptions: NextAuthOptions = {
           dbUser = newUser;
         }
 
-        token.id = dbUser._id.toString();
-        token.username = dbUser.username;
-        token.name = dbUser.name;
-        token.email = dbUser.email;
-        token.picture = dbUser.avatar;
-        token.provider = 'discord';
-      } else if (user) {
-        // Credentials login
-        token.id = user.id;
-        token.username = user.username;
-        token.name = user.name ?? null;
-        token.email = user.email ?? null;
-        token.picture = user.image ?? null;
-        token.provider = 'credentials';
+        return {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          name: dbUser.name,
+          email: dbUser.email,
+          picture: dbUser.avatar,
+        };
       }
+
+      if (user) {
+        return {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          picture: user.image,
+        };
+      }
+
       return token;
     },
 
@@ -134,9 +136,9 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
-        session.user.name = token.name ?? null;
-        session.user.email = token.email ?? null;
-        session.user.image = token.picture ?? null;
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
+        session.user.image = token.picture as string;
       }
       return session;
     },
@@ -153,7 +155,7 @@ export async function getServerSession() {
   return await getNextAuthServerSession(authOptions);
 }
 
-// Optional: Keep your custom cookie-based session if needed elsewhere
+// Keep your custom cookie utility (optional)
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('biolink_session')?.value;

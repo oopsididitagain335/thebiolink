@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { use } from 'react'; // Import use from react to resolve Promise params
 import Link from 'next/link';
 
 interface NewsPost {
@@ -20,9 +21,8 @@ interface NewsPost {
   }>;
 }
 
-// ✅ Explicit type annotation on props — this fixes the build error
-export default function NewsPostPage({ params }: { params: { id: string } }) {
-  const id = params.id;
+export default function NewsPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params); // Resolve the Promise using React's use hook
 
   const [post, setPost] = useState<NewsPost | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,8 +105,8 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
   if (!post) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white text-xl">Post not found.</div>
-    </div>
+        <div className="text-white text-xl">Post not found.</div>
+      </div>
     );
   }
 
@@ -131,10 +131,7 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
                   href={href}
                   className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 transition-all duration-200"
                 >
-                  {href === '/' && 'Home'}
-                  {href === '/pricing' && 'Pricing'}
-                  {href === '/auth/login' && 'Login'}
-                  {href === '/auth/signup' && 'Signup'}
+                  {href === '/' ? 'Home' : href === '/news' ? 'News' : href === '/pricing' ? 'Pricing' : href === '/auth/login' ? 'Login' : 'Signup'}
                 </Link>
               ))}
               <Link

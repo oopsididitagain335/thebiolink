@@ -8,6 +8,7 @@ declare module 'next-auth' {
     username: string;
     name?: string | null;
     email?: string | null;
+    image?: string | null; // ✅ Add this
   }
 
   interface Session {
@@ -16,6 +17,7 @@ declare module 'next-auth' {
       username: string;
       name?: string | null;
       email?: string | null;
+      image?: string | null; // ✅ Add this
     };
   }
 }
@@ -26,5 +28,6 @@ declare module 'next-auth/jwt' {
     username: string;
     name?: string | null;
     email?: string | null;
+    picture?: string | null; // ✅ Add this (NextAuth uses 'picture' in token)
   }
 }

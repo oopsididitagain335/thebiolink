@@ -20,8 +20,8 @@ interface NewsPost {
   }>;
 }
 
-// ✅ NO explicit type annotation on props — this fixes the build error
-export default function NewsPostPage({ params }) {
+// ✅ Explicit type annotation on props — this fixes the build error
+export default function NewsPostPage({ params }: { params: { id: string } }) {
   const id = params.id;
 
   const [post, setPost] = useState<NewsPost | null>(null);

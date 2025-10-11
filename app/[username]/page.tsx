@@ -88,7 +88,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   const resolvedParams = await params;
   const { username } = resolvedParams;
 
-  const headersList = headers();
+  const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
              headersList.get('x-real-ip') ||
              '0.0.0.0';

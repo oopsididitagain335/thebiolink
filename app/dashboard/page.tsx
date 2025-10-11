@@ -10,7 +10,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -19,7 +18,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -30,7 +28,6 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -340,22 +337,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
           )}
         </div>
       </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-            <div className="flex items-center">
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
-                alt="Discord" 
-                className="w-8 h-8 mr-3"
-              />
-              <span className="text-white font-medium">Discord</span>
-            </div>
-            <p className="text-gray-400 text-sm mt-2">Coming Soon</p>
-          </div>
-        </div>
-      </div>
+      {/* ✅ REMOVED "Connect Services" section */}
     </div>
   );
 };
@@ -449,6 +431,86 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const MessagesTab = () => {
+  const [username, setUsername] = useState('');
+  const [message, setMessageText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !message.trim()) return;
+
+    setIsSending(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: username.trim(), content: message.trim() }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFeedback({ type: 'success', text: 'Message sent!' });
+        setUsername('');
+        setMessageText('');
+      } else {
+        setFeedback({ type: 'error', text: data.error || 'Failed to send message.' });
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', text: 'Network error. Try again.' });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Send a Message</h2>
+      <p className="text-gray-400 mb-6">Message any user by their username.</p>
+
+      <form onSubmit={sendMessage} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">To (Username)</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. johndoe"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessageText(e.target.value)}
+            rows={4}
+            maxLength={500}
+            placeholder="Write your message (max 500 chars)"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={isSending}
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 disabled:opacity-70"
+        >
+          {isSending ? 'Sending...' : 'Send Message'}
+        </button>
+      </form>
+
+      {feedback && (
+        <div className={`mt-4 p-3 rounded-lg ${feedback.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+          {feedback.text}
+        </div>
+      )}
     </div>
   );
 };
@@ -788,7 +850,6 @@ const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
-
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -816,7 +877,6 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
-  // ✅ REMOVED: showWidgetsNotice state
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
@@ -956,14 +1016,15 @@ export default function Dashboard() {
   };
 
   const tabs = [
-    { id: 'overview', name: 'Overview' },
-    { id: 'customize', name: 'Customize' },
-    { id: 'builder', name: 'Profile Builder' },
-    { id: 'links', name: 'Links' },
-    { id: 'widgets', name: 'Widgets' },
-    { id: 'badges', name: 'Badges' },
-    { id: 'manage', name: 'Manage' },
-    { id: 'settings', name: 'Settings' },
+    { id: 'overview', name: 'Overview', icon: '📊' },
+    { id: 'customize', name: 'Customize', icon: '🎨' },
+    { id: 'builder', name: 'Profile Builder', icon: '🧱' },
+    { id: 'links', name: 'Links', icon: '🔗' },
+    { id: 'widgets', name: 'Widgets', icon: '📱' },
+    { id: 'messages', name: 'Messages', icon: '✉️' },
+    { id: 'badges', name: 'Badges', icon: '🏆' },
+    { id: 'manage', name: 'Manage', icon: '⚙️' },
+    { id: 'settings', name: 'Settings', icon: '🔧' },
   ];
 
   if (loading) {
@@ -1011,21 +1072,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
-          <nav className="flex space-x-6 pb-4">
+          <nav className="flex space-x-4 pb-4 whitespace-nowrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => {
-                  // ✅ REMOVED: setShowWidgetsNotice(true)
-                  setActiveTab(tab.id);
-                }}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center py-2 px-3 rounded-t-lg font-medium text-sm ${
                   activeTab === tab.id
-                    ? 'border-indigo-500 text-white'
-                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                    ? 'bg-gray-800 text-white border-b-2 border-indigo-500'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/30'
                 }`}
               >
-                {tab.name}
+                <span className="mr-2">{tab.icon}</span> {tab.name}
               </button>
             ))}
           </nav>
@@ -1048,6 +1106,7 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+            {activeTab === 'messages' && <MessagesTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
@@ -1186,7 +1245,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        {/* ✅ WIDGETS NOTICE MODAL REMOVED */}
       </div>
     </div>
   );

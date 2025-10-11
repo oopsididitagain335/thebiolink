@@ -10,6 +10,7 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -18,6 +19,7 @@ interface Widget {
   url?: string;
   position: number;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -28,6 +30,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -50,10 +53,10 @@ const FAMOUS_LINKS = [
 ];
 
 const WIDGET_TYPES = [
-  { id: 'youtube', name: 'YouTube Video' },
-  { id: 'spotify', name: 'Spotify Embed' },
-  { id: 'twitter', name: 'Twitter Feed' },
-  { id: 'custom', name: 'Custom HTML' },
+  { id: 'youtube', name: 'YouTube Video', icon: '📺' },
+  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
+  { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
+  { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -337,6 +340,22 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
           )}
         </div>
       </div>
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h3 className="text-lg font-semibold mb-4 text-white">Connect Services</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+            <div className="flex items-center">
+              <img 
+                src="https://cdn-icons-png.flaticon.com/512/946/946822.png" 
+                alt="Discord" 
+                className="w-8 h-8 mr-3"
+              />
+              <span className="text-white font-medium">Discord</span>
+            </div>
+            <p className="text-gray-400 text-sm mt-2">Coming Soon</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -379,7 +398,8 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
               onClick={() => addWidget(w.id as Widget['type'])}
               className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
             >
-              <div className="text-xs font-medium">{w.name}</div>
+              <div className="text-2xl mb-1">{w.icon}</div>
+              <div className="text-xs">{w.name}</div>
             </button>
           ))}
         </div>
@@ -575,25 +595,25 @@ const ProfileBuilderTab = ({
             onClick={() => addSection('bio')}
             className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            Bio
+            📝 Bio
           </button>
           <button
             onClick={() => addSection('links')}
             className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            Links
+            🔗 Links
           </button>
           <button
             onClick={() => addSection('spacer', { height: 20 })}
             className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            Spacer
+            ⬇️ Spacer
           </button>
           <button
             onClick={() => addSection('custom', { content: '' })}
             className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            Custom
+            ✏️ Custom
           </button>
         </div>
         {widgets.length > 0 && (
@@ -691,9 +711,45 @@ const ProfileBuilderTab = ({
                 return (
                   <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                     {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                    <div className="text-gray-400 text-sm italic">
-                      Spotify embed
-                    </div>
+                    {widget.type === 'youtube' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'spotify' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          frameBorder="0"
+                          allowTransparency={true}
+                          allow="encrypted-media"
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'twitter' && widget.url ? (
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                          🐦 View Twitter Feed
+                        </a>
+                      </div>
+                    ) : widget.type === 'custom' && widget.content ? (
+                      <div
+                        className="text-gray-300 text-sm"
+                        dangerouslySetInnerHTML={{ __html: widget.content }}
+                      />
+                    ) : (
+                      <div className="text-gray-400 text-sm italic">
+                        {widget.type === 'spotify' && '🎵 Spotify embed'}
+                        {widget.type === 'youtube' && '📺 YouTube video'}
+                        {widget.type === 'twitter' && '🐦 Twitter feed'}
+                        {!widget.type && 'Widget content'}
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -721,6 +777,7 @@ const ProfileBuilderTab = ({
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
+      <div className="text-6xl mb-4">🚧</div>
       <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
       <p className="text-gray-400">This feature is under development.</p>
     </div>
@@ -731,6 +788,7 @@ const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
+
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -758,6 +816,7 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  // ✅ REMOVED: showWidgetsNotice state
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
@@ -952,15 +1011,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
-          <nav className="flex space-x-6 pb-4 whitespace-nowrap">
+          <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-3 rounded-t-lg font-medium text-sm ${
+                onClick={() => {
+                  // ✅ REMOVED: setShowWidgetsNotice(true)
+                  setActiveTab(tab.id);
+                }}
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
-                    ? 'bg-gray-800 text-white border-b-2 border-indigo-500'
-                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/30'
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-gray-400 hover:text-gray-300'
                 }`}
               >
                 {tab.name}
@@ -1048,7 +1110,10 @@ export default function Dashboard() {
                           <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                             <div className="text-gray-400 text-sm italic">
-                              Spotify embed
+                              {widget.type === 'spotify' && '🎵 Spotify embed'}
+                              {widget.type === 'youtube' && '📺 YouTube video'}
+                              {widget.type === 'twitter' && '🐦 Twitter feed'}
+                              {widget.type === 'custom' && 'Custom content'}
                             </div>
                           </div>
                         );
@@ -1121,6 +1186,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {/* ✅ WIDGETS NOTICE MODAL REMOVED */}
       </div>
     </div>
   );

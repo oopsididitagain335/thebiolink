@@ -20,8 +20,8 @@ interface NewsPost {
   }>;
 }
 
-// ✅ No explicit props typing — Next.js handles it automatically
-export default function NewsPostPage({ params }: { params: { id: string } }) {
+// ✅ NO explicit type annotation on props — this fixes the build error
+export default function NewsPostPage({ params }) {
   const id = params.id;
 
   const [post, setPost] = useState<NewsPost | null>(null);
@@ -105,8 +105,8 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
   if (!post) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Post not found.</div>
-      </div>
+      <div className="text-white text-xl">Post not found.</div>
+    </div>
     );
   }
 

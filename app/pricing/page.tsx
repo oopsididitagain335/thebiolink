@@ -1,3 +1,4 @@
+// app/pricing/page.tsx
 import Link from 'next/link';
 
 const PLANS = [
@@ -7,7 +8,11 @@ const PLANS = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default async function PricingPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
   const sp = (await searchParams) || {};
 
   return (
@@ -25,6 +30,12 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Home
+              </Link>
+              <Link
+                href="/discovery"
+                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Discovery
               </Link>
               <Link
                 href="/auth/login"
@@ -54,6 +65,7 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
       {/* Main Content */}
       <div className="pt-20 p-4">
         <div className="max-w-6xl mx-auto">
+          {/* Error Banner */}
           {sp.error && (
             <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
               ❌ {sp.error}
@@ -78,7 +90,9 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                     method="POST"
                   >
                     <input type="hidden" name="plan" value={plan.id} />
-                    {plan.id !== 'free' && <input type="hidden" name="price" value={plan.price} />}
+                    {plan.id !== 'free' && (
+                      <input type="hidden" name="price" value={plan.price} />
+                    )}
                     <div className="mb-3">
                       <input
                         type="email"
@@ -96,7 +110,9 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                           : 'bg-purple-600 hover:bg-purple-500 text-white'
                       }`}
                     >
-                      {plan.id === 'free' ? 'Use Free Plan' : `Subscribe for £${plan.price}/mo`}
+                      {plan.id === 'free'
+                        ? 'Use Free Plan'
+                        : `Subscribe for £${plan.price}/mo`}
                     </button>
                   </form>
                 </div>

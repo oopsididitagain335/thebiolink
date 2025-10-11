@@ -5,7 +5,6 @@ import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
 
-// Force dynamic rendering — critical for real-time view counts
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -64,22 +63,17 @@ interface MetadataUser {
   links: { url: string; title: string }[];
 }
 
-// ✅ DO NOT define PageProps manually — use inline type or omit
-// Next.js infers params as { username: string }
-
-// Helper: Extract YouTube video ID
+// Helpers
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 }
 
-// Helper: Extract Spotify embed path
 function getSpotifyId(url: string): string {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 }
 
-// ✅ Special profile tags
 function getSpecialProfileTag(username: string): string | null {
   switch (username.toLowerCase()) {
     case 'xsetnews':
@@ -91,11 +85,8 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
-export default async function UserPage({
-  params,
-}: {
-  params: { username: string };
-}) {
+// ✅ Page component — NO custom interface, inline type
+export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
 
   const headersList = headers();
@@ -241,7 +232,6 @@ export default async function UserPage({
                       </div>
                     )}
 
-                    {/* ✅ SPECIAL PROFILE TAG */}
                     {(() => {
                       const specialTag = getSpecialProfileTag(username);
                       if (specialTag) {
@@ -288,7 +278,7 @@ export default async function UserPage({
                         <iframe
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           frameBorder="0"
-                          allowTransparency={true}
+                          allowTransparency
                           allow="encrypted-media"
                           className="w-full h-full"
                         ></iframe>
@@ -314,7 +304,7 @@ export default async function UserPage({
               }
 
               if (section.type === 'spacer') {
-                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
+                return <div key={section.id} style={{ height: `${section.height}px` }} />;
               }
 
               if (section.type === 'custom' && section.content) {
@@ -359,7 +349,7 @@ export default async function UserPage({
   }
 }
 
-// Metadata function — also fix params typing
+// ✅ generateMetadata — use same inline typing
 export async function generateMetadata({ params }: { params: { username: string } }) {
   const { username } = params;
   try {

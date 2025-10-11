@@ -23,8 +23,9 @@ interface NewsPost {
 export default function NewsPage() {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [interactingPostId, setInteractingPostId] = useState<string | null>(null);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
+  const [copyStatus, setCopyStatus] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -48,7 +49,6 @@ export default function NewsPage() {
       return;
     }
 
-    setInteractingPostId(postId);
     try {
       const res = await fetch('/api/news/interact', {
         method: 'POST',
@@ -65,9 +65,41 @@ export default function NewsPage() {
       }
     } catch (error) {
       alert('Network error');
-    } finally {
-      setInteractingPostId(null);
     }
+  };
+
+  const handleShare = async (postId: string) => {
+    const url = `${window.location.origin}/news/${postId}`; // or /news?id=${postId} if using query params
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyStatus(prev => ({ ...prev, [postId]: 'Copied!' }));
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, [postId]: '' }));
+      }, 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopyStatus(prev => ({ ...prev, [postId]: 'Copied!' }));
+        setTimeout(() => {
+          setCopyStatus(prev => ({ ...prev, [postId]: '' }));
+        }, 2000);
+      } catch (e) {
+        alert('Failed to copy link. Please copy manually: ' + url);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  const truncateContent = (content: string, limit = 120) => {
+    const plainText = content.replace(/<[^>]*>/g, '');
+    return plainText.length > limit ? `${plainText.substring(0, limit)}...` : plainText;
   };
 
   return (
@@ -95,7 +127,6 @@ export default function NewsPage() {
                   {href === '/pricing' && 'Pricing'}
                   {href === '/auth/login' && 'Login'}
                   {href === '/auth/signup' && 'Signup'}
-                  {href === 'https://discord.gg/29yDsapcXh' && 'Discord'}
                 </Link>
               ))}
               <Link
@@ -124,91 +155,148 @@ export default function NewsPage() {
           ) : posts.length === 0 ? (
             <p className="text-gray-400 text-center">No news posts yet.</p>
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-6">
               {posts.map((post) => (
-                <article key={post.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden">
-                  {post.imageUrl && (
-                    <div className="w-full h-64 md:h-96 overflow-hidden">
-                      <img
-                        src={post.imageUrl}
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
+                <div
+                  key={post.id}
+                  className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden"
+                >
+                  {/* Summary View */}
+                  <div className="p-5">
+                    <h2 className="text-xl font-bold text-white">{post.title}</h2>
+                    <div className="text-sm text-gray-400 mt-1">
+                      By {post.authorName} • {new Date(post.publishedAt).toLocaleDateString()}
                     </div>
-                  )}
-                  <div className="p-6">
-                    <header className="mb-4">
-                      <h2 className="text-2xl font-bold text-white">{post.title}</h2>
-                      <div className="text-sm text-gray-400 mt-2">
-                        By {post.authorName} • {new Date(post.publishedAt).toLocaleDateString()}
-                      </div>
-                    </header>
-                    <div
-                      className="text-gray-300 leading-relaxed mb-6"
-                      dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
-                    />
-                    
-                    {/* Like Button */}
-                    <div className="flex items-center mb-6">
-                      <button
-                        onClick={() => handleInteraction(post.id, 'like')}
-                        disabled={interactingPostId === post.id}
-                        className="flex items-center text-gray-300 hover:text-red-400 transition-colors"
-                      >
-                        <svg className="w-5 h-5 mr-1" fill={post.likes > 0 ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        {post.likes} {post.likes === 1 ? 'Like' : 'Likes'}
-                      </button>
-                    </div>
+                    <p className="text-gray-300 mt-3 line-clamp-2">
+                      {truncateContent(post.content)}
+                    </p>
+                    <button
+                      onClick={() =>
+                        setExpandedPostId(expandedPostId === post.id ? null : post.id)
+                      }
+                      className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                    >
+                      {expandedPostId === post.id ? 'Show Less' : 'View Details'}
+                    </button>
+                  </div>
 
-                    {/* Comment Input */}
-                    <div className="mb-6">
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="email"
-                          value={emailMap[post.id] || ''}
-                          onChange={(e) => setEmailMap(prev => ({ ...prev, [post.id]: e.target.value }))}
-                          placeholder="Your email (verified account required)"
-                          className="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400"
-                        />
+                  {/* Expanded View */}
+                  {expandedPostId === post.id && (
+                    <div className="border-t border-gray-700 p-5 bg-gray-900/20">
+                      {post.imageUrl && (
+                        <div className="w-full h-48 md:h-64 mb-4 overflow-hidden rounded-lg">
+                          <img
+                            src={post.imageUrl}
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div
+                        className="text-gray-300 leading-relaxed mb-6"
+                        dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
+                      />
+
+                      {/* Action Buttons: Like, Share */}
+                      <div className="flex flex-wrap gap-4 mb-6">
+                        {/* Like */}
                         <button
-                          onClick={() => {
-                            const email = emailMap[post.id];
-                            if (email) {
-                              const comment = prompt('Enter your comment:');
-                              if (comment) handleInteraction(post.id, 'comment', comment);
-                            }
-                          }}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg"
+                          onClick={() => handleInteraction(post.id, 'like')}
+                          className="flex items-center text-gray-300 hover:text-red-400 transition-colors"
                         >
-                          Comment
+                          <svg
+                            className="w-5 h-5 mr-1"
+                            fill={post.likes > 0 ? 'currentColor' : 'none'}
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                          {post.likes} {post.likes === 1 ? 'Like' : 'Likes'}
+                        </button>
+
+                        {/* Share */}
+                        <button
+                          onClick={() => handleShare(post.id)}
+                          className="flex items-center text-gray-300 hover:text-indigo-400 transition-colors"
+                        >
+                          <svg
+                            className="w-5 h-5 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                            />
+                          </svg>
+                          Share
+                          {copyStatus[post.id] && (
+                            <span className="ml-2 text-green-400 text-sm">{copyStatus[post.id]}</span>
+                          )}
                         </button>
                       </div>
-                    </div>
 
-                    {/* Comments */}
-                    {post.comments.length > 0 && (
-                      <div className="border-t border-gray-700 pt-4">
-                        <h3 className="text-gray-300 font-medium mb-3">Comments ({post.comments.length})</h3>
-                        <div className="space-y-3">
-                          {post.comments.map((comment) => (
-                            <div key={comment.id} className="bg-gray-700/30 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-white font-medium">{comment.authorName}</span>
-                                <span className="text-gray-400 text-sm">@{comment.author}</span>
-                                <span className="text-gray-500 text-xs">
-                                  {new Date(comment.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-gray-300">{comment.content}</p>
-                            </div>
-                          ))}
+                      {/* Comment Input */}
+                      <div className="mb-6">
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="email"
+                            value={emailMap[post.id] || ''}
+                            onChange={(e) =>
+                              setEmailMap((prev) => ({ ...prev, [post.id]: e.target.value }))
+                            }
+                            placeholder="Your email"
+                            className="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400"
+                          />
+                          <button
+                            onClick={() => {
+                              const email = emailMap[post.id];
+                              if (email) {
+                                const comment = prompt('Enter your comment:');
+                                if (comment) handleInteraction(post.id, 'comment', comment);
+                              }
+                            }}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg whitespace-nowrap"
+                          >
+                            Comment
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </article>
+
+                      {/* Comments */}
+                      {post.comments.length > 0 && (
+                        <div className="border-t border-gray-700 pt-4">
+                          <h3 className="text-gray-300 font-medium mb-3">
+                            Comments ({post.comments.length})
+                          </h3>
+                          <div className="space-y-3">
+                            {post.comments.map((comment) => (
+                              <div key={comment.id} className="bg-gray-700/30 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-white font-medium">{comment.authorName}</span>
+                                  <span className="text-gray-400 text-sm">@{comment.author}</span>
+                                  <span className="text-gray-500 text-xs">
+                                    {new Date(comment.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-gray-300">{comment.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}

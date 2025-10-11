@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import Script from 'next/script';
 
 interface NewsPost {
   id: string;
@@ -69,7 +70,7 @@ export default function NewsPage() {
   };
 
   const handleShare = async (postId: string) => {
-    const url = `${window.location.origin}/news/${postId}`; // or /news?id=${postId} if using query params
+    const url = `${window.location.origin}/news/${postId}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopyStatus(prev => ({ ...prev, [postId]: 'Copied!' }));
@@ -104,6 +105,14 @@ export default function NewsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-indigo-900/20">
+      {/* Google AdSense Script */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8336311096274398"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
+
       {/* Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 bg-gray-900/70 backdrop-blur-xl z-50 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,6 +133,7 @@ export default function NewsPage() {
                   className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 transition-all duration-200"
                 >
                   {href === '/' && 'Home'}
+                  {href === '/news' && 'News'}
                   {href === '/pricing' && 'Pricing'}
                   {href === '/auth/login' && 'Login'}
                   {href === '/auth/signup' && 'Signup'}

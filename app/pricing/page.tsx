@@ -1,3 +1,4 @@
+// app/pricing/page.tsx
 import Link from 'next/link';
 
 const PLANS = [
@@ -7,7 +8,11 @@ const PLANS = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default async function PricingPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
   const sp = (await searchParams) || {};
 
   return (
@@ -60,7 +65,9 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
             </div>
           )}
 
-          <h1 className="text-4xl font-bold text-white text-center mb-12">Choose Your Plan</h1>
+          <h1 className="text-4xl font-bold text-white text-center mb-12">
+            Choose Your Plan
+          </h1>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {PLANS.map((plan) => (
               <div
@@ -73,32 +80,54 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                   {plan.price === 0 ? 'Free' : `£${plan.price}/mo`}
                 </div>
                 <div className="mt-6">
-                  <form
-                    action={plan.id === 'free' ? '/api/subscribe' : '/api/checkout'}
-                    method="POST"
-                  >
-                    <input type="hidden" name="plan" value={plan.id} />
-                    {plan.id !== 'free' && <input type="hidden" name="price" value={plan.price} />}
-                    <div className="mb-3">
+                  {plan.id === 'free' ? (
+                    <form action="/api/subscribe" method="POST">
+                      <input
+                        type="hidden"
+                        name="plan"
+                        value={plan.id}
+                      />
                       <input
                         type="email"
                         name="email"
                         placeholder="Your BioLink email"
                         required
-                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
                       />
-                    </div>
-                    <button
-                      type="submit"
-                      className={`w-full py-2.5 rounded-lg font-medium transition ${
-                        plan.id === 'free'
-                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                          : 'bg-purple-600 hover:bg-purple-500 text-white'
-                      }`}
-                    >
-                      {plan.id === 'free' ? 'Use Free Plan' : `Subscribe for £${plan.price}/mo`}
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition"
+                      >
+                        Use Free Plan
+                      </button>
+                    </form>
+                  ) : (
+                    <form action="/api/checkout" method="POST">
+                      <input
+                        type="hidden"
+                        name="plan"
+                        value={plan.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="price"
+                        value={plan.price}
+                      />
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Your BioLink email"
+                        required
+                        className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"
+                      />
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition"
+                      >
+                        Subscribe for £{plan.price}/mo
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
             ))}
@@ -107,7 +136,9 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
           <div className="text-center mt-12 text-gray-500 text-sm">
             <p>
               Already have a BioLink? Visit{' '}
-              <span className="font-mono text-indigo-400">thebiolink.lol/youruser</span>
+              <span className="font-mono text-indigo-400">
+                thebiolink.lol/youruser
+              </span>
             </p>
           </div>
         </div>

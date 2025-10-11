@@ -4,6 +4,37 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
 
+// Escape HTML to prevent XSS
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Convert newlines to <br> safely after escaping
+function nl2br(str: string): React.ReactNode {
+  const escaped = escapeHtml(str);
+  const parts = escaped.split(/\n/g);
+  return parts.map((part, i) => (
+    <span key={i}>
+      {part}
+      {i < parts.length - 1 && <br />}
+    </span>
+  ));
+}
+
+// Truncate plain text safely (no HTML tags)
+function truncateContent(content: string, limit = 120): string {
+  // First, remove any HTML-like tags (defense in depth)
+  const noTags = content.replace(/<[^>]*>/g, '');
+  // Then escape just in case, though we only use this in text context
+  const plain = noTags; // already plain
+  return plain.length > limit ? `${plain.substring(0, limit)}...` : plain;
+}
+
 interface NewsPost {
   id: string;
   title: string;
@@ -96,11 +127,6 @@ export default function NewsPage() {
       }
       document.body.removeChild(textArea);
     }
-  };
-
-  const truncateContent = (content: string, limit = 120) => {
-    const plainText = content.replace(/<[^>]*>/g, '');
-    return plainText.length > limit ? `${plainText.substring(0, limit)}...` : plainText;
   };
 
   return (
@@ -202,14 +228,13 @@ export default function NewsPage() {
                           />
                         </div>
                       )}
-                      <div
-                        className="text-gray-300 leading-relaxed mb-6"
-                        dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
-                      />
+                      {/* ✅ SAFE: Render content as text with <br> for newlines */}
+                      <div className="text-gray-300 leading-relaxed mb-6">
+                        {nl2br(post.content)}
+                      </div>
 
                       {/* Action Buttons: Like, Share */}
                       <div className="flex flex-wrap gap-4 mb-6">
-                        {/* Like */}
                         <button
                           onClick={() => handleInteraction(post.id, 'like')}
                           className="flex items-center text-gray-300 hover:text-red-400 transition-colors"
@@ -230,7 +255,6 @@ export default function NewsPage() {
                           {post.likes} {post.likes === 1 ? 'Like' : 'Likes'}
                         </button>
 
-                        {/* Share */}
                         <button
                           onClick={() => handleShare(post.id)}
                           className="flex items-center text-gray-300 hover:text-indigo-400 transition-colors"

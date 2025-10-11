@@ -33,12 +33,6 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                 News
               </Link>
               <Link
-                href="/pricing"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Pricing
-              </Link>
-              <Link
                 href="/auth/login"
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >

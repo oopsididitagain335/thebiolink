@@ -53,83 +53,91 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account, profile }) {
-      if (account?.provider === 'discord' && profile) {
-        const db = await connectDB();
-        const email = profile.email as string;
+      // Initial sign-in: user and account are available
+      if (account && user) {
+        // Set base user info from either Credentials or Discord
+        token.id = user.id;
+        token.username = user.username;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
 
-        if (!email) return null; // Should not happen with 'email' scope
+        // If logging in via Discord, ensure user exists in DB
+        if (account.provider === 'discord' && profile) {
+          const db = await connectDB();
+          const email = profile.email as string;
 
-        let dbUser = await db.collection('users').findOne({ email });
-
-        if (!dbUser) {
-          // Generate random password so user can log in via email later
-          const randomPassword = Array.from({ length: 32 }, () =>
-            'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'.charAt(
-              Math.floor(Math.random() * 70)
-            )
-          ).join('');
-          const passwordHash = await hash(randomPassword, 12);
-
-          // Create username from Discord name
-          const displayName = profile.global_name || profile.username || 'User';
-          let username = displayName
-            .toLowerCase()
-            .replace(/\s+/g, '_')
-            .replace(/[^a-z0-9_]/g, '');
-          if (username.length < 3) username = `user_${Date.now().toString(36).slice(-6)}`;
-
-          // Ensure unique username
-          let base = username;
-          let counter = 1;
-          while (await db.collection('users').findOne({ username })) {
-            username = `${base}_${counter++}`;
+          if (!email) {
+            // Should not happen with 'email' scope, but be safe
+            return token;
           }
 
-          const newUser = {
-            _id: new ObjectId(),
-            email,
-            username,
-            name: displayName,
-            avatar: profile.image || '',
-            bio: '',
-            passwordHash,
-            badges: [],
-            isEmailVerified: true,
-            isBanned: false,
-            createdAt: new Date(),
-            profileViews: 0,
-            plan: 'free',
-            layoutStructure: [
-              { id: 'bio', type: 'bio' },
-              { id: 'spacer-1', type: 'spacer', height: 20 },
-              { id: 'links', type: 'links' }
-            ],
-          };
+          let dbUser = await db.collection('users').findOne({ email });
 
-          await db.collection('users').insertOne(newUser);
-          dbUser = newUser;
+          if (!dbUser) {
+            // Generate random password for future email login
+            const randomPassword = Array.from({ length: 32 }, () =>
+              'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'.charAt(
+                Math.floor(Math.random() * 70)
+              )
+            ).join('');
+            const passwordHash = await hash(randomPassword, 12);
+
+            // Create username from Discord name
+            const displayName = profile.global_name || profile.username || 'User';
+            let username = displayName
+              .toLowerCase()
+              .replace(/\s+/g, '_')
+              .replace(/[^a-z0-9_]/g, '');
+            if (username.length < 3) username = `user_${Date.now().toString(36).slice(-6)}`;
+
+            // Ensure unique username
+            let base = username;
+            let counter = 1;
+            while (await db.collection('users').findOne({ username })) {
+              username = `${base}_${counter++}`;
+            }
+
+            const newUser = {
+              _id: new ObjectId(),
+              email,
+              username,
+              name: displayName,
+              avatar: profile.image || '',
+              bio: '',
+              passwordHash,
+              badges: [],
+              isEmailVerified: true,
+              isBanned: false,
+              createdAt: new Date(),
+              profileViews: 0,
+              plan: 'free',
+              layoutStructure: [
+                { id: 'bio', type: 'bio' },
+                { id: 'spacer-1', type: 'spacer', height: 20 },
+                { id: 'links', type: 'links' }
+              ],
+            };
+
+            await db.collection('users').insertOne(newUser);
+            // Update token with final DB values
+            token.id = newUser._id.toString();
+            token.username = newUser.username;
+            token.name = newUser.name;
+            token.email = newUser.email;
+            token.picture = newUser.avatar;
+          } else {
+            // Update token with existing DB user (in case profile changed)
+            token.id = dbUser._id.toString();
+            token.username = dbUser.username;
+            token.name = dbUser.name;
+            token.email = dbUser.email;
+            token.picture = dbUser.avatar;
+          }
         }
-
-        return {
-          id: dbUser._id.toString(),
-          username: dbUser.username,
-          name: dbUser.name,
-          email: dbUser.email,
-          picture: dbUser.avatar,
-        };
       }
 
-      if (user) {
-        return {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          email: user.email,
-          picture: user.image,
-        };
-      }
-
-      return token;
+      return token; // ✅ Always return the token object
     },
 
     async session({ session, token }) {
@@ -147,7 +155,7 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/login', // ✅ matches your route
   },
 };
 
@@ -155,7 +163,7 @@ export async function getServerSession() {
   return await getNextAuthServerSession(authOptions);
 }
 
-// Keep your custom cookie utility (optional)
+// Optional: Keep your custom cookie utility
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('biolink_session')?.value;

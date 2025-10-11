@@ -39,7 +39,7 @@ export default function PermissionsPage() {
                 </svg>
               </div>
 
-              <h2 className="text-2xl font-bold text-white mb-4">Discord Permissions</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Epic Games Permissions</h2>
 
               <p className="text-gray-300 mb-5">
                 To personalize your BioLink profile, this app requests:
@@ -73,8 +73,8 @@ export default function PermissionsPage() {
               </div>
 
               <p className="text-gray-500 text-xs mb-6">
-                🔒 We never post messages, access DMs, or view your servers.  
-                You can revoke access anytime in Discord settings.
+                🔒 We never share account info, access Account, or view your friends list.  
+                You can revoke access anytime in Epic Games settings.
               </p>
 
               <button

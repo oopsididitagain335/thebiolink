@@ -1,12 +1,18 @@
 // lib/auth.ts
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import DiscordProvider from 'next-auth/providers/discord';
+import DiscordProvider, { DiscordProfile } from 'next-auth/providers/discord';
 import { connectDB } from './storage';
 import { ObjectId } from 'mongodb';
 import { compare, hash } from 'bcryptjs';
 import { getServerSession as getNextAuthServerSession } from 'next-auth';
 import { cookies } from 'next/headers';
+
+// Extend DiscordProfile to ensure global_name is available
+interface ExtendedDiscordProfile extends DiscordProfile {
+  global_name?: string | null;
+  image?: string;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -53,29 +59,22 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account, profile }) {
-      // Initial sign-in: user and account are available
       if (account && user) {
-        // Set base user info from either Credentials or Discord
         token.id = user.id;
         token.username = user.username;
         token.name = user.name;
         token.email = user.email;
         token.picture = user.image;
 
-        // If logging in via Discord, ensure user exists in DB
         if (account.provider === 'discord' && profile) {
           const db = await connectDB();
-          const email = profile.email as string;
+          const email = (profile as ExtendedDiscordProfile).email;
 
-          if (!email) {
-            // Should not happen with 'email' scope, but be safe
-            return token;
-          }
+          if (!email) return token;
 
           let dbUser = await db.collection('users').findOne({ email });
 
           if (!dbUser) {
-            // Generate random password for future email login
             const randomPassword = Array.from({ length: 32 }, () =>
               'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'.charAt(
                 Math.floor(Math.random() * 70)
@@ -83,15 +82,16 @@ export const authOptions: NextAuthOptions = {
             ).join('');
             const passwordHash = await hash(randomPassword, 12);
 
-            // Create username from Discord name
-            const displayName = profile.global_name || profile.username || 'User';
+            // Safely access Discord fields
+            const discordProfile = profile as ExtendedDiscordProfile;
+            const displayName = discordProfile.global_name || discordProfile.username || 'User';
+
             let username = displayName
               .toLowerCase()
               .replace(/\s+/g, '_')
               .replace(/[^a-z0-9_]/g, '');
             if (username.length < 3) username = `user_${Date.now().toString(36).slice(-6)}`;
 
-            // Ensure unique username
             let base = username;
             let counter = 1;
             while (await db.collection('users').findOne({ username })) {
@@ -103,7 +103,7 @@ export const authOptions: NextAuthOptions = {
               email,
               username,
               name: displayName,
-              avatar: profile.image || '',
+              avatar: discordProfile.image || '',
               bio: '',
               passwordHash,
               badges: [],
@@ -120,14 +120,12 @@ export const authOptions: NextAuthOptions = {
             };
 
             await db.collection('users').insertOne(newUser);
-            // Update token with final DB values
             token.id = newUser._id.toString();
             token.username = newUser.username;
             token.name = newUser.name;
             token.email = newUser.email;
             token.picture = newUser.avatar;
           } else {
-            // Update token with existing DB user (in case profile changed)
             token.id = dbUser._id.toString();
             token.username = dbUser.username;
             token.name = dbUser.name;
@@ -137,7 +135,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      return token; // ✅ Always return the token object
+      return token;
     },
 
     async session({ session, token }) {
@@ -155,7 +153,7 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
-    signIn: '/auth/login', // ✅ matches your route
+    signIn: '/auth/login',
   },
 };
 
@@ -163,7 +161,6 @@ export async function getServerSession() {
   return await getNextAuthServerSession(authOptions);
 }
 
-// Optional: Keep your custom cookie utility
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('biolink_session')?.value;

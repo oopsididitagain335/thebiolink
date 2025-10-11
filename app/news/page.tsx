@@ -1,4 +1,3 @@
-// app/news/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -60,7 +59,6 @@ export default function NewsPage() {
       const updatedPost = await res.json();
       if (res.ok) {
         setPosts(posts.map(p => p.id === postId ? updatedPost : p));
-        // Clear email after successful interaction
         setEmailMap(prev => ({ ...prev, [postId]: '' }));
       } else {
         alert(updatedPost.error || 'Action failed');
@@ -87,15 +85,17 @@ export default function NewsPage() {
               </span>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-4">
-              {['/', '/news', '/pricing'].map((href) => (
+              {['/', '/news', '/pricing', '/auth/login', '/auth/signup'].map((href) => (
                 <Link
                   key={href}
                   href={href}
                   className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 transition-all duration-200"
                 >
                   {href === '/' && 'Home'}
-                  {href === '/news' && 'News'}
                   {href === '/pricing' && 'Pricing'}
+                  {href === '/auth/login' && 'Login'}
+                  {href === '/auth/signup' && 'Signup'}
+                  {href === 'https://discord.gg/29yDsapcXh' && 'Discord'}
                 </Link>
               ))}
               <Link

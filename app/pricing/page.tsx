@@ -6,7 +6,14 @@ import Script from 'next/script';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const PLANS = [
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+const PLANS: Plan[] = [
   { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
   { id: 'basic', name: 'Basic', price: 5, description: 'Perfect for creators & small projects.' },
   { id: 'premium', name: 'Premium', price: 15, description: 'Advanced analytics & customization.' },
@@ -16,10 +23,12 @@ const PLANS = [
 function PricingContent() {
   const searchParams = useSearchParams();
   const errorParam = searchParams?.get('error');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (errorParam) setError(decodeURIComponent(errorParam));
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
   }, [errorParam]);
 
   return (

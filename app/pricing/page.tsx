@@ -27,12 +27,6 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
                 Home
               </Link>
               <Link
-                href="/news"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                News
-              </Link>
-              <Link
                 href="/auth/login"
                 className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >

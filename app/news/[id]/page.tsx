@@ -20,7 +20,10 @@ interface NewsPost {
   }>;
 }
 
+// ✅ No explicit props typing — Next.js handles it automatically
 export default function NewsPostPage({ params }: { params: { id: string } }) {
+  const id = params.id;
+
   const [post, setPost] = useState<NewsPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailMap, setEmailMap] = useState<string>('');
@@ -29,7 +32,7 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/news/${params.id}`);
+        const res = await fetch(`/api/news/${id}`);
         if (!res.ok) throw new Error('Post not found');
         const data = await res.json();
         setPost(data);
@@ -40,7 +43,7 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
       }
     };
     fetchPost();
-  }, [params.id]);
+  }, [id]);
 
   const handleInteraction = async (type: 'like' | 'comment', content?: string) => {
     if (!emailMap.trim()) {
@@ -52,7 +55,7 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
       const res = await fetch('/api/news/interact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: params.id, email: emailMap, type, content })
+        body: JSON.stringify({ postId: id, email: emailMap, type, content })
       });
 
       const updatedPost = await res.json();
@@ -68,13 +71,12 @@ export default function NewsPostPage({ params }: { params: { id: string } }) {
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/news/${params.id}`;
+    const url = `${window.location.origin}/news/${id}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopyStatus('Copied!');
       setTimeout(() => setCopyStatus(''), 2000);
     } catch (err) {
-      // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = url;
       textArea.style.position = 'fixed';

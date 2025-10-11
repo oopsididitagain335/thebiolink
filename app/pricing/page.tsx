@@ -1,5 +1,9 @@
-// app/pricing/page.tsx
+'use client';
+
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import Script from 'next/script';
+import { useEffect, useState } from 'react';
 
 const PLANS = [
   { id: 'free', name: 'Free', price: 0, description: 'Forever free. No card needed.' },
@@ -8,15 +12,27 @@ const PLANS = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-export default async function PricingPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ error?: string }>;
-}) {
-  const sp = (await searchParams) || {};
+export default function PricingPage() {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams?.get('error');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [errorParam]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
+      {/* Google AdSense Script */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8336311096274398"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
+
       {/* Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,9 +75,9 @@ export default async function PricingPage({
       {/* Main Content */}
       <div className="pt-20 p-4">
         <div className="max-w-6xl mx-auto">
-          {sp.error && (
+          {error && (
             <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
-              ❌ {decodeURIComponent(sp.error)}
+              ❌ {error}
             </div>
           )}
 
@@ -100,7 +116,7 @@ export default async function PricingPage({
                     </form>
                   ) : (
                     <form action="/api/checkout" method="POST">
-                      <input type="hidden" name="price" value={plan.price} />
+                      <input type="hidden" name="price" value={String(plan.price)} />
                       <input
                         type="email"
                         name="email"

@@ -556,3 +556,47 @@ export async function unbanUser(userId: string) {
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
 }
+
+// --- NEWLY ADDED FUNCTION (DO NOT REMOVE) ---
+export async function getNewsPostById(id: string) {
+  const db = await connectDB();
+  let post;
+  try {
+    post = await db.collection<NewsPost>('news').findOne({ _id: new ObjectId(id) });
+  } catch {
+    return null;
+  }
+  if (!post) return null;
+
+  const likes = await db.collection<NewsInteraction>('news_interactions')
+    .countDocuments({ postId: post._id, type: 'like' });
+
+  const comments = await db.collection<NewsInteraction>('news_interactions')
+    .find({ postId: post._id, type: 'comment' })
+    .sort({ createdAt: 1 })
+    .toArray();
+
+  const commentAuthors = await Promise.all(
+    comments.map(async (c) => {
+      const user = await db.collection<UserDoc>('users').findOne({ _id: c.userId });
+      return {
+        id: c._id.toString(),
+        content: c.content || '',
+        author: user ? user.username : 'Unknown',
+        authorName: user ? user.name : 'Anonymous',
+        createdAt: c.createdAt.toISOString(),
+      };
+    })
+  );
+
+  return {
+    id: post._id.toString(),
+    title: post.title,
+    content: post.content,
+    imageUrl: post.imageUrl,
+    authorName: post.authorName,
+    publishedAt: post.publishedAt.toISOString(),
+    likes,
+    comments: commentAuthors,
+  };
+}

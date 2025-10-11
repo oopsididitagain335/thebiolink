@@ -1,8 +1,13 @@
 // app/[username]/page.tsx
+import { headers } from 'next/headers';
 import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
+
+// Force dynamic rendering — critical for real-time view counts
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Badge {
   id: string;
@@ -60,8 +65,7 @@ interface MetadataUser {
 }
 
 interface PageProps {
-  params: Promise<{ username: string }>;
-  searchParams: Promise<{ clientId?: string }>;
+  params: { username: string }; // No Promise<> in App Router for static params
 }
 
 // Helper: Extract YouTube video ID
@@ -76,14 +80,19 @@ function getSpotifyId(url: string): string {
   return match ? `${match[1]}/${match[2]}` : '';
 }
 
-export default async function UserPage({ params, searchParams }: PageProps) {
-  const { username } = await params;
-  const { clientId = '' } = await searchParams;
+export default async function UserPage({ params }: PageProps) {
+  const { username } = params;
+
+  // Get IP address from headers (Vercel/Next.js compatible)
+  const headersList = headers();
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+             headersList.get('x-real-ip') || 
+             '0.0.0.0'; // fallback
 
   try {
-    const userData = await getUserByUsername(username, clientId);
+    // Pass IP to your storage layer for deduplication
+    const userData = await getUserByUsername(username, ip);
 
-    // --- NOT FOUND PAGE ---
     if (!userData) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
@@ -108,7 +117,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    // --- BANNED PAGE ---
     if (userData.isBanned) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
@@ -134,7 +142,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       );
     }
 
-    // --- USER PROFILE PAGE ---
     const {
       name = '',
       avatar = '',
@@ -161,24 +168,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     return (
       <div className="min-h-screen relative">
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                let clientId = localStorage.getItem('clientId');
-                if (!clientId) {
-                  clientId = crypto.randomUUID();
-                  localStorage.setItem('clientId', clientId);
-                }
-                const url = new URL(window.location);
-                if (url.searchParams.get('clientId') !== clientId) {
-                  url.searchParams.set('clientId', clientId);
-                  window.history.replaceState({}, '', url);
-                }
-              })();
-            `,
-          }}
-        />
+        {/* ✅ REMOVED client-side clientId script */}
 
         {backgroundVideo && isValidBackgroundVideo ? (
           <video
@@ -280,7 +270,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                     ) : widget.type === 'twitter' && widget.url ? (
                       <div className="bg-gray-800 rounded-lg p-4">
                         <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
+                          View Twitter Feed
                         </a>
                       </div>
                     ) : widget.type === 'custom' && widget.content ? (
@@ -290,10 +280,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
                       />
                     ) : (
                       <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && '🎵 Spotify embed'}
-                        {widget.type === 'youtube' && '📺 YouTube video'}
-                        {widget.type === 'twitter' && '🐦 Twitter feed'}
-                        {!widget.type && 'Widget content'}
+                        Spotify embed
                       </div>
                     )}
                   </div>
@@ -331,7 +318,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       </div>
     );
   } catch (error: any) {
-    console.error('UserPage error:', { username, clientId, error: error.message });
+    console.error('UserPage error:', { username, error: error.message });
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-xl p-8 text-center border border-gray-700">
@@ -347,7 +334,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { username } = await params;
+  const { username } = params;
   try {
     const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
     if (!userData || userData.isBanned) {

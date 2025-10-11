@@ -22,7 +22,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (window.innerWidth >= 768) {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
       inputRef.current?.focus();
     }
   }, []);

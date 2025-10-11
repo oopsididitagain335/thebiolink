@@ -61,13 +61,14 @@ export default async function PricingPage({
         <div className="max-w-6xl mx-auto">
           {sp.error && (
             <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-center">
-              ❌ {sp.error}
+              ❌ {decodeURIComponent(sp.error)}
             </div>
           )}
 
           <h1 className="text-4xl font-bold text-white text-center mb-12">
             Choose Your Plan
           </h1>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {PLANS.map((plan) => (
               <div
@@ -82,11 +83,7 @@ export default async function PricingPage({
                 <div className="mt-6">
                   {plan.id === 'free' ? (
                     <form action="/api/subscribe" method="POST">
-                      <input
-                        type="hidden"
-                        name="plan"
-                        value={plan.id}
-                      />
+                      <input type="hidden" name="plan" value="free" />
                       <input
                         type="email"
                         name="email"
@@ -103,16 +100,7 @@ export default async function PricingPage({
                     </form>
                   ) : (
                     <form action="/api/checkout" method="POST">
-                      <input
-                        type="hidden"
-                        name="plan"
-                        value={plan.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="price"
-                        value={plan.price}
-                      />
+                      <input type="hidden" name="price" value={plan.price} />
                       <input
                         type="email"
                         name="email"
@@ -136,9 +124,7 @@ export default async function PricingPage({
           <div className="text-center mt-12 text-gray-500 text-sm">
             <p>
               Already have a BioLink? Visit{' '}
-              <span className="font-mono text-indigo-400">
-                thebiolink.lol/youruser
-              </span>
+              <span className="font-mono text-indigo-400">thebiolink.lol/youruser</span>
             </p>
           </div>
         </div>

@@ -50,10 +50,10 @@ const FAMOUS_LINKS = [
 ];
 
 const WIDGET_TYPES = [
-  { id: 'youtube', name: 'YouTube Video', icon: '📺' },
-  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
-  { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
-  { id: 'custom', name: 'Custom HTML', icon: '</>' },
+  { id: 'youtube', name: 'YouTube Video' },
+  { id: 'spotify', name: 'Spotify Embed' },
+  { id: 'twitter', name: 'Twitter Feed' },
+  { id: 'custom', name: 'Custom HTML' },
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -337,7 +337,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
           )}
         </div>
       </div>
-      {/* ✅ REMOVED "Connect Services" section */}
+      {/* "Connect Services" section already removed */}
     </div>
   );
 };
@@ -380,8 +380,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
               onClick={() => addWidget(w.id as Widget['type'])}
               className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
             >
-              <div className="text-2xl mb-1">{w.icon}</div>
-              <div className="text-xs">{w.name}</div>
+              <div className="text-xs font-medium">{w.name}</div>
             </button>
           ))}
         </div>
@@ -431,86 +430,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
           )}
         </div>
       </div>
-    </div>
-  );
-};
-
-const MessagesTab = () => {
-  const [username, setUsername] = useState('');
-  const [message, setMessageText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim() || !message.trim()) return;
-
-    setIsSending(true);
-    setFeedback(null);
-
-    try {
-      const res = await fetch('/api/messages/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: username.trim(), content: message.trim() }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setFeedback({ type: 'success', text: 'Message sent!' });
-        setUsername('');
-        setMessageText('');
-      } else {
-        setFeedback({ type: 'error', text: data.error || 'Failed to send message.' });
-      }
-    } catch (err) {
-      setFeedback({ type: 'error', text: 'Network error. Try again.' });
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Send a Message</h2>
-      <p className="text-gray-400 mb-6">Message any user by their username.</p>
-
-      <form onSubmit={sendMessage} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">To (Username)</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. johndoe"
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessageText(e.target.value)}
-            rows={4}
-            maxLength={500}
-            placeholder="Write your message (max 500 chars)"
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isSending}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 disabled:opacity-70"
-        >
-          {isSending ? 'Sending...' : 'Send Message'}
-        </button>
-      </form>
-
-      {feedback && (
-        <div className={`mt-4 p-3 rounded-lg ${feedback.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-          {feedback.text}
-        </div>
-      )}
     </div>
   );
 };
@@ -657,25 +576,25 @@ const ProfileBuilderTab = ({
             onClick={() => addSection('bio')}
             className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            📝 Bio
+            Bio
           </button>
           <button
             onClick={() => addSection('links')}
             className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            🔗 Links
+            Links
           </button>
           <button
             onClick={() => addSection('spacer', { height: 20 })}
             className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            ⬇️ Spacer
+            Spacer
           </button>
           <button
             onClick={() => addSection('custom', { content: '' })}
             className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            ✏️ Custom
+            Custom
           </button>
         </div>
         {widgets.length > 0 && (
@@ -796,7 +715,7 @@ const ProfileBuilderTab = ({
                     ) : widget.type === 'twitter' && widget.url ? (
                       <div className="bg-gray-800 rounded-lg p-4">
                         <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
+                          View Twitter Feed
                         </a>
                       </div>
                     ) : widget.type === 'custom' && widget.content ? (
@@ -806,9 +725,9 @@ const ProfileBuilderTab = ({
                       />
                     ) : (
                       <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && '🎵 Spotify embed'}
-                        {widget.type === 'youtube' && '📺 YouTube video'}
-                        {widget.type === 'twitter' && '🐦 Twitter feed'}
+                        {widget.type === 'spotify' && 'Spotify embed'}
+                        {widget.type === 'youtube' && 'YouTube video'}
+                        {widget.type === 'twitter' && 'Twitter feed'}
                         {!widget.type && 'Widget content'}
                       </div>
                     )}
@@ -1015,16 +934,16 @@ export default function Dashboard() {
     }
   };
 
+  // ✅ Tabs without emojis and without "Messages"
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'customize', name: 'Customize', icon: '🎨' },
-    { id: 'builder', name: 'Profile Builder', icon: '🧱' },
-    { id: 'links', name: 'Links', icon: '🔗' },
-    { id: 'widgets', name: 'Widgets', icon: '📱' },
-    { id: 'messages', name: 'Messages', icon: '✉️' },
-    { id: 'badges', name: 'Badges', icon: '🏆' },
-    { id: 'manage', name: 'Manage', icon: '⚙️' },
-    { id: 'settings', name: 'Settings', icon: '🔧' },
+    { id: 'overview', name: 'Overview' },
+    { id: 'customize', name: 'Customize' },
+    { id: 'builder', name: 'Profile Builder' },
+    { id: 'links', name: 'Links' },
+    { id: 'widgets', name: 'Widgets' },
+    { id: 'badges', name: 'Badges' },
+    { id: 'manage', name: 'Manage' },
+    { id: 'settings', name: 'Settings' },
   ];
 
   if (loading) {
@@ -1072,18 +991,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
-          <nav className="flex space-x-4 pb-4 whitespace-nowrap">
+          <nav className="flex space-x-6 pb-4 whitespace-nowrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center py-2 px-3 rounded-t-lg font-medium text-sm ${
+                className={`py-2 px-3 rounded-t-lg font-medium text-sm ${
                   activeTab === tab.id
                     ? 'bg-gray-800 text-white border-b-2 border-indigo-500'
                     : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/30'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span> {tab.name}
+                {tab.name}
               </button>
             ))}
           </nav>
@@ -1106,7 +1025,6 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'messages' && <MessagesTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
@@ -1169,9 +1087,9 @@ export default function Dashboard() {
                           <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                             <div className="text-gray-400 text-sm italic">
-                              {widget.type === 'spotify' && '🎵 Spotify embed'}
-                              {widget.type === 'youtube' && '📺 YouTube video'}
-                              {widget.type === 'twitter' && '🐦 Twitter feed'}
+                              {widget.type === 'spotify' && 'Spotify embed'}
+                              {widget.type === 'youtube' && 'YouTube video'}
+                              {widget.type === 'twitter' && 'Twitter feed'}
                               {widget.type === 'custom' && 'Custom content'}
                             </div>
                           </div>

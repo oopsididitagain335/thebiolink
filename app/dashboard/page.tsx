@@ -337,7 +337,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
           )}
         </div>
       </div>
-      {/* "Connect Services" section already removed */}
     </div>
   );
 };
@@ -692,45 +691,9 @@ const ProfileBuilderTab = ({
                 return (
                   <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                     {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                    {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                          frameBorder="0"
-                          allowTransparency={true}
-                          allow="encrypted-media"
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          View Twitter Feed
-                        </a>
-                      </div>
-                    ) : widget.type === 'custom' && widget.content ? (
-                      <div
-                        className="text-gray-300 text-sm"
-                        dangerouslySetInnerHTML={{ __html: widget.content }}
-                      />
-                    ) : (
-                      <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && 'Spotify embed'}
-                        {widget.type === 'youtube' && 'YouTube video'}
-                        {widget.type === 'twitter' && 'Twitter feed'}
-                        {!widget.type && 'Widget content'}
-                      </div>
-                    )}
+                    <div className="text-gray-400 text-sm italic">
+                      Spotify embed
+                    </div>
                   </div>
                 );
               }
@@ -758,7 +721,6 @@ const ProfileBuilderTab = ({
 const ComingSoonTab = ({ title }: { title: string }) => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">
-      <div className="text-6xl mb-4">🚧</div>
       <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
       <p className="text-gray-400">This feature is under development.</p>
     </div>
@@ -934,7 +896,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Tabs without emojis and without "Messages"
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1087,10 +1048,7 @@ export default function Dashboard() {
                           <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                             <div className="text-gray-400 text-sm italic">
-                              {widget.type === 'spotify' && 'Spotify embed'}
-                              {widget.type === 'youtube' && 'YouTube video'}
-                              {widget.type === 'twitter' && 'Twitter feed'}
-                              {widget.type === 'custom' && 'Custom content'}
+                              Spotify embed
                             </div>
                           </div>
                         );

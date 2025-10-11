@@ -1,12 +1,11 @@
-// app/[username]/page.tsx
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { headers } from 'next/headers';
 import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 import Links from '@/components/Links';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 interface Badge {
   id: string;
@@ -85,9 +84,9 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
-// ✅ Page component — NO custom interface, inline type
-export default async function UserPage({ params }: { params: { username: string } }) {
-  const { username } = params;
+export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
+  const resolvedParams = await params;
+  const { username } = resolvedParams;
 
   const headersList = headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -349,9 +348,9 @@ export default async function UserPage({ params }: { params: { username: string 
   }
 }
 
-// ✅ generateMetadata — use same inline typing
-export async function generateMetadata({ params }: { params: { username: string } }) {
-  const { username } = params;
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const resolvedParams = await params;
+  const { username } = resolvedParams;
   try {
     const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
     if (!userData || userData.isBanned) {

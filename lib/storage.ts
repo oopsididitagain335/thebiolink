@@ -44,6 +44,7 @@ interface UserDoc {
   ipAddress?: string;
   profileViews: number;
   plan?: string;
+  theme?: string; // 👈 THEME SUPPORT
   layoutStructure?: Array<{
     id: string;
     type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -199,6 +200,8 @@ export async function getUserById(id: string) {
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     plan: user.plan || 'free',
+    profileViews: user.profileViews || 0, // 👈
+    theme: user.theme || 'indigo',        // 👈
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -256,6 +259,7 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date(),
     profileViews: 0,
     plan: 'free',
+    theme: 'indigo', // 👈
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -274,6 +278,7 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date().toISOString(),
     profileViews: 0,
     plan: 'free',
+    theme: 'indigo', // 👈
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -337,6 +342,9 @@ export async function updateUserProfile(userId: string, updates: any) {
     if (existing) throw new Error('Username taken');
   }
 
+  const validThemes = ['indigo', 'purple', 'green', 'red'];
+  const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
+
   const clean = {
     name: updates.name?.trim() || '',
     username: updates.username?.trim().toLowerCase() || '',
@@ -344,6 +352,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
     plan: updates.plan || 'free',
+    theme, // 👈
     layoutStructure: updates.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -557,7 +566,6 @@ export async function unbanUser(userId: string) {
   );
 }
 
-// --- NEWLY ADDED FUNCTION (DO NOT REMOVE) ---
 export async function getNewsPostById(id: string) {
   const db = await connectDB();
   let post;

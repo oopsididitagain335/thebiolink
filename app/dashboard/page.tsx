@@ -30,7 +30,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
-  theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween'; // 👈
+  theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
 }
 
 interface LayoutSection {
@@ -127,7 +127,6 @@ const DraggableItem = ({
   );
 };
 
-// ====== Analytics Tab ======
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
   return (
     <div className="space-y-6">
@@ -150,7 +149,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
   );
 };
 
-// ====== News Tab ======
 const NewsTab = () => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,32 +205,31 @@ const NewsTab = () => {
   );
 };
 
-// ====== Themes Tab ======
 const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const themes = [
-    { id: 'indigo', name: 'Indigo', bg: 'bg-gradient-to-r from-indigo-600 to-purple-600' },
-    { id: 'purple', name: 'Purple', bg: 'bg-gradient-to-r from-purple-600 to-pink-600' },
-    { id: 'green', name: 'Green', bg: 'bg-gradient-to-r from-green-600 to-emerald-600' },
-    { id: 'red', name: 'Red', bg: 'bg-gradient-to-r from-red-600 to-rose-600' },
-    { id: 'halloween', name: '🎃 Halloween', bg: 'bg-gradient-to-r from-orange-600 to-red-700' },
+    { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
+    { id: 'purple', name: 'Purple', color: '#7c3aed' },
+    { id: 'green', name: 'Green', color: '#10b981' },
+    { id: 'red', name: 'Red', color: '#ef4444' },
+    { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Select Your Theme</h2>
-        <p className="text-gray-400 mb-6">Choose a color scheme for your BioLink page.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
+        <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {themes.map((theme) => (
             <button
               key={theme.id}
               onClick={() => setUser({ ...user, theme: theme.id as any })}
-              className={`p-4 rounded-xl text-white text-left flex items-center ${
+              className={`p-4 rounded-xl text-white flex flex-col items-center ${
                 user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
               }`}
             >
-              <div className={`w-8 h-8 rounded-lg ${theme.bg} mr-3`}></div>
-              <span className="font-medium">{theme.name}</span>
+              <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }}></div>
+              <span className="text-sm font-medium">{theme.name}</span>
             </button>
           ))}
         </div>
@@ -241,7 +238,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   );
 };
 
-// ====== Remaining Tabs (Overview, Customize, Links, Widgets, Builder, ComingSoon) — UNCHANGED ======
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -368,8 +364,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
-// ... (LinksTab, WidgetsTab, ProfileBuilderTab, ComingSoonTab, helpers like getYouTubeId, getSpotifyId — keep as in your original)
 
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
@@ -824,6 +818,14 @@ const ProfileBuilderTab = ({
                 );
               }
               if (section.type === 'links' && links.length > 0) {
+                const hoverClass = {
+                  indigo: 'hover:bg-indigo-900/30',
+                  purple: 'hover:bg-purple-900/30',
+                  green: 'hover:bg-emerald-900/30',
+                  red: 'hover:bg-rose-900/30',
+                  halloween: 'hover:bg-orange-900/30',
+                }[user.theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
+
                 return (
                   <div key={section.id} className="space-y-3">
                     {links
@@ -834,17 +836,7 @@ const ProfileBuilderTab = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
-                            user.theme === 'halloween'
-                              ? 'bg-orange-600 hover:bg-orange-700'
-                              : user.theme === 'purple'
-                              ? 'bg-purple-600 hover:bg-purple-700'
-                              : user.theme === 'green'
-                              ? 'bg-green-600 hover:bg-green-700'
-                              : user.theme === 'red'
-                              ? 'bg-red-600 hover:bg-red-700'
-                              : 'bg-indigo-600 hover:bg-indigo-700'
-                          }`}
+                          className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
                         >
                           {link.title}
                         </a>
@@ -941,7 +933,6 @@ const getSpotifyId = (url: string): string => {
   return match ? `${match[1]}/${match[2]}` : '';
 };
 
-// ====== Main Dashboard Component ======
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -953,7 +944,7 @@ export default function Dashboard() {
     isEmailVerified: true,
     plan: 'free',
     profileViews: 0,
-    theme: 'indigo', 
+    theme: 'indigo',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -991,7 +982,7 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
-          theme: (data.user.theme as User['theme']) || 'indigo', 
+          theme: (data.user.theme as User['theme']) || 'indigo',
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1085,7 +1076,7 @@ export default function Dashboard() {
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
-            theme: user.theme || 'indigo',  
+            theme: user.theme || 'indigo',
             layoutStructure,
           },
           links: linksToSend,
@@ -1113,7 +1104,7 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'themes', name: 'Themes' }, 
+    { id: 'themes', name: 'Themes' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
@@ -1238,6 +1229,14 @@ export default function Dashboard() {
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
+                        const hoverClass = {
+                          indigo: 'hover:bg-indigo-900/30',
+                          purple: 'hover:bg-purple-900/30',
+                          green: 'hover:bg-emerald-900/30',
+                          red: 'hover:bg-rose-900/30',
+                          halloween: 'hover:bg-orange-900/30',
+                        }[user.theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
+
                         return (
                           <div key={section.id} className="space-y-3">
                             {links
@@ -1248,17 +1247,7 @@ export default function Dashboard() {
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
-                                    user.theme === 'halloween'
-                                      ? 'bg-orange-600 hover:bg-orange-700'
-                                      : user.theme === 'purple'
-                                      ? 'bg-purple-600 hover:bg-purple-700'
-                                      : user.theme === 'green'
-                                      ? 'bg-green-600 hover:bg-green-700'
-                                      : user.theme === 'red'
-                                      ? 'bg-red-600 hover:bg-red-700'
-                                      : 'bg-indigo-600 hover:bg-indigo-700'
-                                  }`}
+                                  className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
                                 >
                                   {link.title}
                                 </a>

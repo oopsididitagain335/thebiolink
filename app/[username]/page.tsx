@@ -10,7 +10,7 @@ import Badges from '@/components/Badges';
 // ✅ Minimal metadata-safe function
 async function getUserByUsernameForMetadata(username: string) {
   try {
-    const user = await getUserByUsername(username);
+    const user = await getUserByUsername(username, '0.0.0.0');
     if (!user) return null;
     return {
       name: user.name,

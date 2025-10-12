@@ -30,7 +30,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
-  theme?: 'indigo' | 'purple' | 'green' | 'red';
+  theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween'; // 👈
 }
 
 interface LayoutSection {
@@ -128,22 +128,11 @@ const DraggableItem = ({
 };
 
 // ====== Analytics Tab ======
-const AnalyticsTab = ({ user, links, onRefresh }: { user: User; links: Link[]; onRefresh: () => void }) => {
+const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Profile Analytics</h2>
-          <button
-            onClick={onRefresh}
-            className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Stats
-          </button>
-        </div>
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-900/50 p-5 rounded-xl">
             <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
@@ -218,7 +207,79 @@ const NewsTab = () => {
   );
 };
 
-// ====== Theme Selector in CustomizeTab ======
+// ====== Themes Tab ======
+const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  const themes = [
+    { id: 'indigo', name: 'Indigo', bg: 'bg-gradient-to-r from-indigo-600 to-purple-600' },
+    { id: 'purple', name: 'Purple', bg: 'bg-gradient-to-r from-purple-600 to-pink-600' },
+    { id: 'green', name: 'Green', bg: 'bg-gradient-to-r from-green-600 to-emerald-600' },
+    { id: 'red', name: 'Red', bg: 'bg-gradient-to-r from-red-600 to-rose-600' },
+    { id: 'halloween', name: '🎃 Halloween', bg: 'bg-gradient-to-r from-orange-600 to-red-700' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Select Your Theme</h2>
+        <p className="text-gray-400 mb-6">Choose a color scheme for your BioLink page.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {themes.map((theme) => (
+            <button
+              key={theme.id}
+              onClick={() => setUser({ ...user, theme: theme.id as any })}
+              className={`p-4 rounded-xl text-white text-left flex items-center ${
+                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg ${theme.bg} mr-3`}></div>
+              <span className="font-medium">{theme.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====== Remaining Tabs (Overview, Customize, Links, Widgets, Builder, ComingSoon) — UNCHANGED ======
+const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
+  const bioLinkUrl = getBioLinkUrl(user.username);
+  const completion = Math.round(
+    ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
+  );
+  const planDisplay = user.plan 
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
+    : 'Free';
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
+            <a
+              href={bioLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-indigo-400 hover:underline break-all"
+            >
+              {bioLinkUrl}
+            </a>
+          </div>
+          <div>
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -228,10 +289,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     } else {
       setUser({ ...user, [name]: value });
     }
-  };
-
-  const handleThemeChange = (theme: User['theme']) => {
-    setUser({ ...user, theme });
   };
 
   return (
@@ -307,77 +364,12 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             placeholder="Tell people about yourself"
           />
         </div>
-
-        {/* THEME SELECTOR */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Theme Color</label>
-          <div className="grid grid-cols-4 gap-2">
-            {(['indigo', 'purple', 'green', 'red'] as const).map((color) => (
-              <button
-                key={color}
-                onClick={() => handleThemeChange(color)}
-                className={`py-2 rounded-lg text-sm font-medium capitalize ${
-                  user.theme === color
-                    ? 'ring-2 ring-white ring-opacity-60'
-                    : 'bg-gray-700/50 text-gray-300'
-                }`}
-                style={{
-                  backgroundColor:
-                    color === 'indigo' ? 'rgb(99, 102, 241)' :
-                    color === 'purple' ? 'rgb(168, 85, 247)' :
-                    color === 'green' ? 'rgb(34, 197, 94)' :
-                    'rgb(239, 68, 68)',
-                  color: 'white'
-                }}
-              >
-                {color}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
-// ====== Remaining Tabs (Overview, Links, Widgets, Builder, ComingSoon) — UNCHANGED ======
-const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
-  const bioLinkUrl = getBioLinkUrl(user.username);
-  const completion = Math.round(
-    ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
-  );
-  const planDisplay = user.plan 
-    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
-    : 'Free';
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
-            <a
-              href={bioLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
-            >
-              {bioLinkUrl}
-            </a>
-          </div>
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+// ... (LinksTab, WidgetsTab, ProfileBuilderTab, ComingSoonTab, helpers like getYouTubeId, getSpotifyId — keep as in your original)
 
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
@@ -843,10 +835,15 @@ const ProfileBuilderTab = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
-                            user.theme === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                            user.theme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-                            user.theme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-                            'bg-red-600 hover:bg-red-700'
+                            user.theme === 'halloween'
+                              ? 'bg-orange-600 hover:bg-orange-700'
+                              : user.theme === 'purple'
+                              ? 'bg-purple-600 hover:bg-purple-700'
+                              : user.theme === 'green'
+                              ? 'bg-green-600 hover:bg-green-700'
+                              : user.theme === 'red'
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-indigo-600 hover:bg-indigo-700'
                           }`}
                         >
                           {link.title}
@@ -956,7 +953,7 @@ export default function Dashboard() {
     isEmailVerified: true,
     plan: 'free',
     profileViews: 0,
-    theme: 'indigo',
+    theme: 'indigo', // 👈
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -972,68 +969,67 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
-  const fetchUserData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/dashboard/data');
-      if (!res.ok) {
-        router.push('/auth/login');
-        return;
-      }
-      const data = await res.json();
-      const rawUsername = data.user.username || '';
-      const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
-      setUser({
-        _id: data.user._id || '',
-        name: (data.user.name || '').substring(0, 100),
-        username: safeUsername,
-        avatar: (data.user.avatar || '').trim(),
-        bio: (data.user.bio || '').substring(0, 500),
-        background: (data.user.background || '').trim(),
-        isEmailVerified: data.user.isEmailVerified ?? true,
-        plan: data.user.plan || 'free',
-        profileViews: data.user.profileViews || 0,
-        theme: data.user.theme || 'indigo',
-      });
-      const fetchedLinks = Array.isArray(data.links) ? data.links : [];
-      const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-      setLinks(
-        sortedLinks.length > 0
-          ? sortedLinks.map((link: any) => ({
-              id: link.id || Date.now().toString(),
-              url: (link.url || '').trim(),
-              title: (link.title || '').substring(0, 100),
-              icon: (link.icon || '').trim(),
-              position: link.position ?? 0,
-            }))
-          : []
-      );
-      const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
-      const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-      setWidgets(
-        sortedWidgets.map((w: any) => ({
-          id: w.id || Date.now().toString(),
-          type: w.type || 'custom',
-          title: w.title || '',
-          content: w.content || '',
-          url: w.url || '',
-          position: w.position ?? 0,
-        }))
-      );
-      setLayoutStructure(data.layoutStructure || [
-        { id: 'bio', type: 'bio' },
-        { id: 'spacer-1', type: 'spacer', height: 20 },
-        { id: 'links', type: 'links' }
-      ]);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      router.push('/auth/login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) {
+          router.push('/auth/login');
+          return;
+        }
+        const data = await res.json();
+        const rawUsername = data.user.username || '';
+        const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
+        setUser({
+          _id: data.user._id || '',
+          name: (data.user.name || '').substring(0, 100),
+          username: safeUsername,
+          avatar: (data.user.avatar || '').trim(),
+          bio: (data.user.bio || '').substring(0, 500),
+          background: (data.user.background || '').trim(),
+          isEmailVerified: data.user.isEmailVerified ?? true,
+          plan: data.user.plan || 'free',
+          profileViews: data.user.profileViews || 0,
+          theme: (data.user.theme as User['theme']) || 'indigo', // 👈
+        });
+        const fetchedLinks = Array.isArray(data.links) ? data.links : [];
+        const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        setLinks(
+          sortedLinks.length > 0
+            ? sortedLinks.map((link: any) => ({
+                id: link.id || Date.now().toString(),
+                url: (link.url || '').trim(),
+                title: (link.title || '').substring(0, 100),
+                icon: (link.icon || '').trim(),
+                position: link.position ?? 0,
+              }))
+            : []
+        );
+        const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
+        const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        setWidgets(
+          sortedWidgets.map((w: any) => ({
+            id: w.id || Date.now().toString(),
+            type: w.type || 'custom',
+            title: w.title || '',
+            content: w.content || '',
+            url: w.url || '',
+            position: w.position ?? 0,
+          }))
+        );
+        setLayoutStructure(data.layoutStructure || [
+          { id: 'bio', type: 'bio' },
+          { id: 'spacer-1', type: 'spacer', height: 20 },
+          { id: 'links', type: 'links' }
+        ]);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        router.push('/auth/login');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchUserData();
   }, [router]);
 
@@ -1045,10 +1041,6 @@ export default function Dashboard() {
     } finally {
       router.push('/auth/login');
     }
-  };
-
-  const handleRefreshStats = () => {
-    fetchUserData();
   };
 
   const handleSave = () => {
@@ -1093,7 +1085,7 @@ export default function Dashboard() {
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
-            theme: user.theme || 'indigo',
+            theme: user.theme || 'indigo', // 👈
             layoutStructure,
           },
           links: linksToSend,
@@ -1103,7 +1095,6 @@ export default function Dashboard() {
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
-        fetchUserData(); // ✅ REFRESH to get latest profileViews
       } else {
         const errorMessage = data.error || 'Failed to save changes.';
         setMessage({ type: 'error', text: errorMessage });
@@ -1122,8 +1113,9 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'analytics', name: 'Analytics' }, // ✅
-    { id: 'news', name: 'News' },           // ✅
+    { id: 'themes', name: 'Themes' }, // 👈
+    { id: 'analytics', name: 'Analytics' },
+    { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
@@ -1208,7 +1200,8 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} onRefresh={handleRefreshStats} />}
+            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />} // 👈
+            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
@@ -1256,10 +1249,15 @@ export default function Dashboard() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
-                                    user.theme === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                                    user.theme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-                                    user.theme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-                                    'bg-red-600 hover:bg-red-700'
+                                    user.theme === 'halloween'
+                                      ? 'bg-orange-600 hover:bg-orange-700'
+                                      : user.theme === 'purple'
+                                      ? 'bg-purple-600 hover:bg-purple-700'
+                                      : user.theme === 'green'
+                                      ? 'bg-green-600 hover:bg-green-700'
+                                      : user.theme === 'red'
+                                      ? 'bg-red-600 hover:bg-red-700'
+                                      : 'bg-indigo-600 hover:bg-indigo-700'
                                   }`}
                                 >
                                   {link.title}

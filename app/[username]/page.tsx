@@ -1,3 +1,4 @@
+// app/[username]/page.tsx
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -52,6 +53,7 @@ interface UserData {
   layoutStructure?: LayoutSection[];
   isBanned: boolean;
   profileViews: number;
+  theme?: string; // 👈
 }
 
 interface MetadataUser {
@@ -61,6 +63,37 @@ interface MetadataUser {
   isBanned: boolean;
   links: { url: string; title: string }[];
 }
+
+// ===== THEME HELPER =====
+const getThemeClasses = (theme: string) => {
+  switch (theme) {
+    case 'purple':
+      return {
+        bgGradient: 'from-purple-900/70 to-pink-800/50',
+        buttonBg: 'bg-purple-600 hover:bg-purple-700',
+      };
+    case 'green':
+      return {
+        bgGradient: 'from-green-900/70 to-emerald-800/50',
+        buttonBg: 'bg-green-600 hover:bg-green-700',
+      };
+    case 'red':
+      return {
+        bgGradient: 'from-red-900/70 to-rose-800/50',
+        buttonBg: 'bg-red-600 hover:bg-red-700',
+      };
+    case 'halloween':
+      return {
+        bgGradient: 'from-orange-900/80 via-red-900/60 to-black',
+        buttonBg: 'bg-orange-600 hover:bg-orange-700',
+      };
+    default: // 'indigo'
+      return {
+        bgGradient: 'from-gray-900 via-black to-indigo-900/20',
+        buttonBg: 'bg-indigo-600 hover:bg-indigo-700',
+      };
+  }
+};
 
 // Helpers
 function getYouTubeId(url: string): string {
@@ -192,7 +225,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         { id: 'links', type: 'links' }
       ],
       profileViews = 0,
+      theme = 'indigo', // 👈
     } = userData;
+
+    const themeClasses = getThemeClasses(theme);
 
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
@@ -201,7 +237,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
     return (
-      <div className="min-h-screen relative">
+      <div className={`min-h-screen bg-gradient-to-br ${themeClasses.bgGradient} relative`}>
         {backgroundVideo && isValidBackgroundVideo ? (
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
@@ -216,9 +252,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${background})` }}
           />
-        ) : (
-          <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 to-black" />
-        )}
+        ) : null}
 
         {backgroundAudio && (
           <audio autoPlay loop>
@@ -280,7 +314,21 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               }
 
               if (section.type === 'links' && sortedLinks.length > 0) {
-                return <Links key={section.id} links={sortedLinks} />;
+                return (
+                  <div key={section.id} className="space-y-3 mb-6">
+                    {sortedLinks.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${themeClasses.buttonBg}`}
+                      >
+                        {link.title}
+                      </a>
+                    ))}
+                  </div>
+                );
               }
 
               if (section.type === 'widget') {
@@ -305,7 +353,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     {widget.type === 'youtube' && widget.url ? (
                       <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
                         <iframe
-                          src={`https://www.youtube.com/embed/  ${getYouTubeId(widget.url)}`}
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                           frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
@@ -315,7 +363,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     ) : widget.type === 'spotify' && widget.url ? (
                       <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
                         <iframe
-                          src={`https://open.spotify.com/embed/  ${getSpotifyId(widget.url)}`}
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           frameBorder="0"
                           allowTransparency
                           allow="encrypted-media"
@@ -403,7 +451,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
         title: `${userData.name || username} | The BioLink`,
         description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
         images: userData.avatar ? [userData.avatar] : [],
-        url: `https://thebiolink.lol/  ${username}`,
+        url: `https://thebiolink.lol/${username}`,
         siteName: 'The BioLink',
       },
       twitter: {
@@ -417,4 +465,4 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     console.error('Metadata error:', { username, error: error.message });
     return { title: 'User Not Found | The BioLink' };
   }
-} 
+}

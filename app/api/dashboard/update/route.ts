@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest) {
     const { profile, links, widgets } = await request.json();
 
     if (profile) {
-      const validThemes = ['indigo', 'purple', 'green', 'red'];
+      const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
       const theme = validThemes.includes(profile.theme) ? profile.theme : 'indigo';
 
       await updateUserProfile(user._id, {

@@ -34,12 +34,9 @@ function getSpotifyId(url: string): string {
 
 function getSpecialProfileTag(username: string): string | null {
   switch (username.toLowerCase()) {
-    case 'xsetnews':
-      return 'Biggest Sponsored Member';
-    case 'ceosolace':
-      return 'Founder of BioLinkHQ';
-    default:
-      return null;
+    case 'xsetnews': return 'Biggest Sponsored Member';
+    case 'ceosolace': return 'Founder of BioLinkHQ';
+    default: return null;
   }
 }
 
@@ -69,8 +66,7 @@ function getWidgetIcon(type: string): JSX.Element | null {
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
         </svg>
       );
-    default:
-      return null;
+    default: return null;
   }
 }
 
@@ -79,13 +75,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   const { username } = resolvedParams;
 
   const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             headersList.get('x-real-ip') ||
-             '0.0.0.0';
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
   try {
     const userData = await getUserByUsername(username, ip);
-
     if (!userData) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
@@ -97,12 +90,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
             <h1 className="text-3xl font-bold text-white mb-3">BioLink Not Found</h1>
             <p className="text-gray-300 mb-6">
-              We couldn’t find a profile for <span className="font-medium">{username}</span>. Maybe it’s time to create your own BioLink!
+              We couldn’t find a profile for <span className="font-medium">{username}</span>.
             </p>
-            <a
-              href="/"
-              className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md"
-            >
+            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md">
               Create Yours
             </a>
           </div>
@@ -121,13 +111,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
             <h1 className="text-3xl font-bold text-white mb-3">Account Suspended</h1>
             <p className="text-gray-300 mb-6">
-              This BioLink has been suspended for violating our terms of service. 
-              If you believe this is a mistake, please <a href="/support" className="text-red-400 hover:underline">contact support</a>.
+              This BioLink has been suspended.
             </p>
-            <a
-              href="/"
-              className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md"
-            >
+            <a href="/" className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md">
               Explore Other BioLinks
             </a>
           </div>
@@ -156,17 +142,18 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
-
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    const hoverClass = {
+    // ✅ FIXED: Type-safe hover class
+    const themeHoverMap: Record<string, string> = {
       indigo: 'hover:bg-indigo-900/30',
       purple: 'hover:bg-purple-900/30',
       green: 'hover:bg-emerald-900/30',
       red: 'hover:bg-rose-900/30',
       halloween: 'hover:bg-orange-900/30',
-    }[theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
+    };
+    const hoverClass = themeHoverMap[theme] || 'hover:bg-indigo-900/30';
 
     return (
       <div className="min-h-screen relative">
@@ -201,19 +188,13 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       {links.length > 0 && <span>🔗 {links.length}</span>}
                     </div>
                     {badges.length > 0 && <Badges badges={badges} />}
-                    {(() => {
-                      const specialTag = getSpecialProfileTag(username);
-                      if (specialTag) {
-                        return (
-                          <div className="mt-4 pt-4 border-t border-white/20 animate-pulse">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg">
-                              🏆 {specialTag}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {getSpecialProfileTag(username) && (
+                      <div className="mt-4 pt-4 border-t border-white/20 animate-pulse">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg">
+                          🏆 {getSpecialProfileTag(username)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -241,51 +222,21 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 if (!widget) return null;
                 return (
                   <div key={section.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left mb-6">
-                    {widget.title ? (
-                      <h3 className="flex items-center gap-2 text-white font-medium mb-2">
-                        {getWidgetIcon(widget.type)}
-                        {widget.title}
-                      </h3>
-                    ) : getWidgetIcon(widget.type) ? (
-                      <div className="flex justify-start mb-2">
-                        {getWidgetIcon(widget.type)}
-                      </div>
-                    ) : null}
+                    {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url ? (
                       <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
+                        <iframe src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`} frameBorder="0" allowFullScreen className="w-full h-full"></iframe>
                       </div>
                     ) : widget.type === 'spotify' && widget.url ? (
                       <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                          frameBorder="0"
-                          allowTransparency={true}
-                          allow="encrypted-media"
-                          className="w-full h-full"
-                        ></iframe>
+                        <iframe src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`} frameBorder="0" allow="encrypted-media" className="w-full h-full"></iframe>
                       </div>
                     ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
-                        </a>
-                      </div>
-                    ) : widget.type === 'custom' && widget.content ? (
-                      <div
-                        className="text-gray-300 text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: widget.content }}
-                      />
+                      <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">🐦 Twitter Feed</a>
+                    ) : widget.content ? (
+                      <div className="text-gray-300 text-sm" dangerouslySetInnerHTML={{ __html: widget.content }} />
                     ) : (
-                      <div className="text-gray-400 text-sm italic">
-                        Widget content not available
-                      </div>
+                      <div className="text-gray-400 text-sm italic">Widget content</div>
                     )}
                   </div>
                 );
@@ -297,11 +248,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
               if (section.type === 'custom' && section.content) {
                 return (
-                  <div 
-                    key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg mb-6"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
-                  />
+                  <div key={section.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg mb-6" dangerouslySetInnerHTML={{ __html: section.content }} />
                 );
               }
 
@@ -310,12 +257,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
             <div className="text-center text-gray-400 text-xs mt-8 pt-6 border-t border-white/10">
               <p className="mb-1">Powered by The BioLink</p>
-              <a
-                href="/"
-                className="text-indigo-300 hover:text-indigo-200 hover:underline transition-colors"
-              >
-                Create your own
-              </a>
+              <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
             </div>
           </div>
         </div>

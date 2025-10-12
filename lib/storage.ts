@@ -44,7 +44,7 @@ interface UserDoc {
   ipAddress?: string;
   profileViews: number;
   plan?: string;
-  theme?: string; // 👈 THEME SUPPORT
+  theme?: string;
   layoutStructure?: Array<{
     id: string;
     type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -143,6 +143,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     isBanned: user.isBanned || false,
     profileViews: user.profileViews || 0,
     plan: user.plan || 'free',
+    theme: user.theme || 'indigo',
     links: links.map(l => ({
       id: l._id.toString(),
       url: l.url,
@@ -200,8 +201,8 @@ export async function getUserById(id: string) {
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     plan: user.plan || 'free',
-    profileViews: user.profileViews || 0, // 👈
-    theme: user.theme || 'indigo',        // 👈
+    profileViews: user.profileViews || 0,
+    theme: user.theme || 'indigo',
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -259,7 +260,7 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date(),
     profileViews: 0,
     plan: 'free',
-    theme: 'indigo', // 👈
+    theme: 'indigo',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -278,7 +279,7 @@ export async function createUser(email: string, password: string, username: stri
     createdAt: new Date().toISOString(),
     profileViews: 0,
     plan: 'free',
-    theme: 'indigo', // 👈
+    theme: 'indigo',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -342,7 +343,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     if (existing) throw new Error('Username taken');
   }
 
-  const validThemes = ['indigo', 'purple', 'green', 'red'];
+  const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
   const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
 
   const clean = {
@@ -352,7 +353,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     bio: updates.bio?.trim() || '',
     background: updates.background?.trim() || '',
     plan: updates.plan || 'free',
-    theme, // 👈
+    theme,
     layoutStructure: updates.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },

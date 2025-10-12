@@ -7,6 +7,22 @@ import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 
+// ✅ Minimal metadata-safe function
+async function getUserByUsernameForMetadata(username: string) {
+  try {
+    const user = await getUserByUsername(username);
+    if (!user) return null;
+    return {
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      isBanned: user.isBanned,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const getThemeBackground = (theme: string) => {
   const base = 'radial-gradient(circle at 50% 0%, ';
   switch (theme) {
@@ -40,40 +56,9 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
-function getWidgetIcon(type: string): JSX.Element | null {
-  switch (type) {
-    case 'youtube':
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-500">
-          <path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
-        </svg>
-      );
-    case 'spotify':
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-green-500">
-          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm0 22c-5.52 0-10-4.48-10-10S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm5.34-10.2c-.38 0-.6-.26-.68-.66-.34-1.6-1.1-2.88-2.3-3.78-1.34-.98-3-.98-4.32 0-1.2.9-1.96 2.18-2.3 3.78-.08.4-.3.66-.68.66-.46 0-.76-.36-.68-.82.4-1.92 1.34-3.5 2.78-4.62C7.46 6.18 9.24 6 10.98 6c1.76 0 3.54.18 4.92 1.44 1.44 1.12 2.38 2.7 2.78 4.62.08.46-.22.82-.68.82zm-1.3 2.3c-.3 0-.52-.2-.58-.5-.3-1.22-.9-2.22-1.88-2.92-.98-.7-2.14-.7-3.12 0-.98.7-1.58 1.7-1.88 2.92-.06.3-.28.5-.58.5-.38 0-.64-.3-.58-.68.34-1.54 1.08-2.8 2.24-3.68.98-.74 2.1-.74 3.08 0 .98.74 1.72 1.94 2.1 3.42l.14.26c.06.38-.2.68-.58.68zm-1.08 2.14c-.24 0-.42-.16-.48-.4-.22-.96-.7-1.74-1.5-2.3-.8-.56-1.74-.56-2.54 0-.8.56-1.28 1.34-1.5 2.3-.06.24-.24.4-.48.4-.3 0-.5-.24-.48-.54.28-1.22.86-2.22 1.8-2.92.8-.6 1.72-.6 2.52 0 .8.6 1.38 1.5 1.68 2.66l.1.26c.02.3-.18.54-.48.54z" />
-        </svg>
-      );
-    case 'twitter':
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-400">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-        </svg>
-      );
-    case 'custom':
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-      );
-    default: return null;
-  }
-}
-
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
-
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
@@ -110,9 +95,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-white mb-3">Account Suspended</h1>
-            <p className="text-gray-300 mb-6">
-              This BioLink has been suspended.
-            </p>
+            <p className="text-gray-300 mb-6">This BioLink has been suspended.</p>
             <a href="/" className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md">
               Explore Other BioLinks
             </a>
@@ -134,7 +117,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       layoutStructure = [
         { id: 'bio', type: 'bio' },
         { id: 'spacer-1', type: 'spacer', height: 20 },
-        { id: 'links', type: 'links' }
+        { id: 'links', type: 'links' },
       ],
       profileViews = 0,
       theme = 'indigo',
@@ -145,7 +128,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    // ✅ FIXED: Type-safe hover class
     const themeHoverMap: Record<string, string> = {
       indigo: 'hover:bg-indigo-900/30',
       purple: 'hover:bg-purple-900/30',
@@ -158,22 +140,16 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     return (
       <div className="min-h-screen relative">
         {!isValidBackground && !isValidBackgroundVideo && (
-          <div 
-            className="absolute inset-0 z-0"
-            style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }}
-          />
+          <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
-
-        {backgroundVideo && isValidBackgroundVideo && (
+        {isValidBackgroundVideo && (
           <video className="absolute inset-0 z-0 object-cover w-full h-full" src={backgroundVideo} autoPlay loop muted playsInline />
         )}
         {isValidBackground && !isValidBackgroundVideo && (
           <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${background})` }} />
         )}
-
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
-        <div className="absolute inset-0 bg-black/30 z-10"></div>
-
+        <div className="absolute inset-0 bg-black/30 z-10" />
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {layoutStructure.map((section) => {
@@ -217,39 +193,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 );
               }
 
-              if (section.type === 'widget') {
-                const widget = sortedWidgets.find(w => w.id === section.widgetId);
-                if (!widget) return null;
-                return (
-                  <div key={section.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left mb-6">
-                    {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
-                    {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
-                        <iframe src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`} frameBorder="0" allowFullScreen className="w-full h-full"></iframe>
-                      </div>
-                    ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
-                        <iframe src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`} frameBorder="0" allow="encrypted-media" className="w-full h-full"></iframe>
-                      </div>
-                    ) : widget.type === 'twitter' && widget.url ? (
-                      <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">🐦 Twitter Feed</a>
-                    ) : widget.content ? (
-                      <div className="text-gray-300 text-sm" dangerouslySetInnerHTML={{ __html: widget.content }} />
-                    ) : (
-                      <div className="text-gray-400 text-sm italic">Widget content</div>
-                    )}
-                  </div>
-                );
-              }
-
               if (section.type === 'spacer') {
                 return <div key={section.id} style={{ height: `${section.height}px` }} />;
-              }
-
-              if (section.type === 'custom' && section.content) {
-                return (
-                  <div key={section.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg mb-6" dangerouslySetInnerHTML={{ __html: section.content }} />
-                );
               }
 
               return null;
@@ -283,7 +228,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const resolvedParams = await params;
   const { username } = resolvedParams;
   try {
-    const userData = await getUserByUsernameForMetadata(username) as any;
+    const userData = await getUserByUsernameForMetadata(username);
     if (!userData || userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }

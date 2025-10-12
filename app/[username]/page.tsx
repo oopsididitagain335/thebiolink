@@ -229,9 +229,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         <div className="absolute inset-0 bg-black/60 z-10"></div>
 
         {/* 🎃👻🕷️ HALLOWEEN DECORATIONS — AROUND, NOT OVER CONTENT */}
-        <div className="absolute inset-0 z-15 pointer-events-none">
+        <div className="absolute inset-0 z-15 pointer-events-none overflow-hidden">
           {/* Top Left - Large Pumpkin */}
-          <div className="absolute top-6 left-6">
+          <div className="absolute top-6 left-6 animate-bounce-slow">
             <svg width="70" height="70" viewBox="0 0 24 24" fill="#ff7518" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C10.34 2 9 3.34 9 5C9 6.03 9.53 6.94 10.31 7.47C9.4 8.34 8.8 9.58 8.8 11C8.8 13.21 10.59 15 12.8 15C15.01 15 16.8 13.21 16.8 11C16.8 9.58 16.2 8.34 15.29 7.47C16.07 6.94 16.6 6.03 16.6 5C16.6 3.34 15.26 2 13.6 2H12Z" />
               <path d="M12 6C10.9 6 10 6.9 10 8C10 9.1 10.9 10 12 10C13.1 10 14 9.1 14 8C14 6.9 13.1 6 12 6Z" fill="#000" />
@@ -241,8 +241,19 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </svg>
           </div>
 
+          {/* Top Left - Small Pumpkin */}
+          <div className="absolute top-20 left-2 animate-bounce-slow delay-200">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="#ff7518" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C10.34 2 9 3.34 9 5C9 6.03 9.53 6.94 10.31 7.47C9.4 8.34 8.8 9.58 8.8 11C8.8 13.21 10.59 15 12.8 15C15.01 15 16.8 13.21 16.8 11C16.8 9.58 16.2 8.34 15.29 7.47C16.07 6.94 16.6 6.03 16.6 5C16.6 3.34 15.26 2 13.6 2H12Z" />
+              <path d="M12 6C10.9 6 10 6.9 10 8C10 9.1 10.9 10 12 10C13.1 10 14 9.1 14 8C14 6.9 13.1 6 12 6Z" fill="#000" />
+              <path d="M15 6C14.45 6 14 6.45 14 7C14 7.55 14.45 8 15 8C15.55 8 16 7.55 16 7C16 6.45 15.55 6 15 6Z" fill="#000" />
+              <path d="M9 6C8.45 6 8 6.45 8 7C8 7.55 8.45 8 9 8C9.55 8 10 7.55 10 7C10 6.45 9.55 6 9 6Z" fill="#000" />
+              <path d="M12 12C11.45 12 11 12.45 11 13V14C11 14.55 11.45 15 12 15C12.55 15 13 14.55 13 14V13C13 12.45 12.55 12 12 12Z" fill="#000" />
+            </svg>
+          </div>
+
           {/* Top Right - Bat */}
-          <div className="absolute top-8 right-8">
+          <div className="absolute top-8 right-8 animate-float">
             <svg width="50" height="50" viewBox="0 0 24 24" fill="#4b0082" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C8.5 2 5.5 4 4 7c-1 2-1 5 1 7-1.5 1-2.5 3-2 5 .5 2 2.5 3 4.5 3h7c2 0 4-1 4.5-3 .5-2-.5-4-2-5 1.5-2 1.5-5 .5-7-1.5-3-4.5-5-8-5z"/>
               <circle cx="8" cy="9" r="1" fill="#fff"/>
@@ -250,8 +261,17 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </svg>
           </div>
 
+          {/* Top Right - Another Bat */}
+          <div className="absolute top-2 right-20 animate-float delay-300">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="#4b0082" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.5 2 5.5 4 4 7c-1 2-1 5 1 7-1.5 1-2.5 3-2 5 .5 2 2.5 3 4.5 3h7c2 0 4-1 4.5-3 .5-2-.5-4-2-5 1.5-2 1.5-5 .5-7-1.5-3-4.5-5-8-5z"/>
+              <circle cx="8" cy="9" r="1" fill="#fff"/>
+              <circle cx="16" cy="9" r="1" fill="#fff"/>
+            </svg>
+          </div>
+
           {/* Bottom Left - Ghost */}
-          <div className="absolute bottom-12 left-8">
+          <div className="absolute bottom-12 left-8 animate-float-slow">
             <svg width="60" height="70" viewBox="0 0 24 28" fill="#f0f0f0" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C7 2 3 5 3 10v8c0 3 2 6 5 8v2h8v-2c3-2 5-5 5-8v-8c0-5-4-8-9-8z" fill="#d3d3d3"/>
               <circle cx="8" cy="9" r="1.5" fill="#000"/>
@@ -260,16 +280,34 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </svg>
           </div>
 
+          {/* Bottom Left - Small Ghost */}
+          <div className="absolute bottom-4 left-24 animate-float-slow delay-500">
+            <svg width="40" height="50" viewBox="0 0 24 28" fill="#f0f0f0" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C7 2 3 5 3 10v8c0 3 2 6 5 8v2h8v-2c3-2 5-5 5-8v-8c0-5-4-8-9-8z" fill="#d3d3d3"/>
+              <circle cx="8" cy="9" r="1.5" fill="#000"/>
+              <circle cx="16" cy="9" r="1.5" fill="#000"/>
+              <path d="M7 14h10" stroke="#000" strokeWidth="1"/>
+            </svg>
+          </div>
+
           {/* Bottom Right - Spider */}
-          <div className="absolute bottom-10 right-10">
+          <div className="absolute bottom-10 right-10 animate-wiggle">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="#2e003e" xmlns="http://www.w3.org/2000/svg">
               <circle cx="12" cy="12" r="3" fill="#000"/>
               <path d="M12 9v-3M12 15v3M9 12h-3M15 12h3M10 10l-2-2M14 10l2-2M10 14l-2 2M14 14l2 2" stroke="#000" strokeWidth="1.5"/>
             </svg>
           </div>
 
+          {/* Bottom Right - Another Spider */}
+          <div className="absolute bottom-24 right-4 animate-wiggle delay-200">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="#2e003e" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="3" fill="#000"/>
+              <path d="M12 9v-3M12 15v3M9 12h-3M15 12h3M10 10l-2-2M14 10l2-2M10 14l-2 2M14 14l2 2" stroke="#000" strokeWidth="1.5"/>
+            </svg>
+          </div>
+
           {/* Left Side - Floating Bat (mid) */}
-          <div className="absolute left-4 top-1/3">
+          <div className="absolute left-4 top-1/3 animate-float delay-100">
             <svg width="35" height="35" viewBox="0 0 24 24" fill="#4b0082" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C8.5 2 5.5 4 4 7c-1 2-1 5 1 7-1.5 1-2.5 3-2 5 .5 2 2.5 3 4.5 3h7c2 0 4-1 4.5-3 .5-2-.5-4-2-5 1.5-2 1.5-5 .5-7-1.5-3-4.5-5-8-5z"/>
               <circle cx="8" cy="9" r="1" fill="#fff"/>
@@ -277,14 +315,150 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </svg>
           </div>
 
+          {/* Left Side - Another Bat (lower) */}
+          <div className="absolute left-8 bottom-1/4 animate-float delay-400">
+            <svg width="45" height="45" viewBox="0 0 24 24" fill="#4b0082" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.5 2 5.5 4 4 7c-1 2-1 5 1 7-1.5 1-2.5 3-2 5 .5 2 2.5 3 4.5 3h7c2 0 4-1 4.5-3 .5-2-.5-4-2-5 1.5-2 1.5-5 .5-7-1.5-3-4.5-5-8-5z"/>
+              <circle cx="8" cy="9" r="1" fill="#fff"/>
+              <circle cx="16" cy="9" r="1" fill="#fff"/>
+            </svg>
+          </div>
+
           {/* Right Side - Small Pumpkin */}
-          <div className="absolute right-4 top-2/3">
+          <div className="absolute right-4 top-2/3 animate-bounce-slow">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="#ff7518" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C10.34 2 9 3.34 9 5C9 6.03 9.53 6.94 10.31 7.47C9.4 8.34 8.8 9.58 8.8 11C8.8 13.21 10.59 15 12.8 15C15.01 15 16.8 13.21 16.8 11C16.8 9.58 16.2 8.34 15.29 7.47C16.07 6.94 16.6 6.03 16.6 5C16.6 3.34 15.26 2 13.6 2H12Z" />
               <path d="M12 6C10.9 6 10 6.9 10 8C10 9.1 10.9 10 12 10C13.1 10 14 9.1 14 8C14 6.9 13.1 6 12 6Z" fill="#000" />
               <path d="M15 6C14.45 6 14 6.45 14 7C14 7.55 14.45 8 15 8C15.55 8 16 7.55 16 7C16 6.45 15.55 6 15 6Z" fill="#000" />
               <path d="M9 6C8.45 6 8 6.45 8 7C8 7.55 8.45 8 9 8C9.55 8 10 7.55 10 7C10 6.45 9.55 6 9 6Z" fill="#000" />
               <path d="M12 12C11.45 12 11 12.45 11 13V14C11 14.55 11.45 15 12 15C12.55 15 13 14.55 13 14V13C13 12.45 12.55 12 12 12Z" fill="#000" />
+            </svg>
+          </div>
+
+          {/* Right Side - Another Pumpkin (upper) */}
+          <div className="absolute right-10 top-1/4 animate-bounce-slow delay-300">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="#ff7518" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C10.34 2 9 3.34 9 5C9 6.03 9.53 6.94 10.31 7.47C9.4 8.34 8.8 9.58 8.8 11C8.8 13.21 10.59 15 12.8 15C15.01 15 16.8 13.21 16.8 11C16.8 9.58 16.2 8.34 15.29 7.47C16.07 6.94 16.6 6.03 16.6 5C16.6 3.34 15.26 2 13.6 2H12Z" />
+              <path d="M12 6C10.9 6 10 6.9 10 8C10 9.1 10.9 10 12 10C13.1 10 14 9.1 14 8C14 6.9 13.1 6 12 6Z" fill="#000" />
+              <path d="M15 6C14.45 6 14 6.45 14 7C14 7.55 14.45 8 15 8C15.55 8 16 7.55 16 7C16 6.45 15.55 6 15 6Z" fill="#000" />
+              <path d="M9 6C8.45 6 8 6.45 8 7C8 7.55 8.45 8 9 8C9.55 8 10 7.55 10 7C10 6.45 9.55 6 9 6Z" fill="#000" />
+              <path d="M12 12C11.45 12 11 12.45 11 13V14C11 14.55 11.45 15 12 15C12.55 15 13 14.55 13 14V13C13 12.45 12.55 12 12 12Z" fill="#000" />
+            </svg>
+          </div>
+
+          {/* Top Center - Witch Hat */}
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 animate-float-slow">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="#000" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2l-8 8h16l-8-8zm-8 10h16v10H4z" fill="#4b0082"/>
+              <rect x="4" y="18" width="16" height="2" fill="#ffd700"/>
+            </svg>
+          </div>
+
+          {/* Bottom Center - Candy Corn */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 animate-bounce-slow">
+            <svg width="30" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L4 12H20L12 2Z" fill="#fff"/>
+              <path d="M12 8L6 16H18L12 8Z" fill="#ff7518"/>
+              <path d="M12 14L8 20H16L12 14Z" fill="#ffd700"/>
+            </svg>
+          </div>
+
+          {/* Left Mid - Spider Web */}
+          <div className="absolute left-0 top-1/2 transform -translate-y-1/2 opacity-50">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#fff" strokeWidth="2">
+              <line x1="50" y1="0" x2="50" y2="100"/>
+              <line x1="0" y1="50" x2="100" y2="50"/>
+              <line x1="0" y1="0" x2="100" y2="100"/>
+              <line x1="100" y1="0" x2="0" y2="100"/>
+              <circle cx="50" cy="50" r="20" fill="none"/>
+              <circle cx="50" cy="50" r="40" fill="none"/>
+            </svg>
+          </div>
+
+          {/* Right Mid - Another Spider Web */}
+          <div className="absolute right-0 top-1/3 transform -translate-y-1/2 opacity-50">
+            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="#fff" strokeWidth="2">
+              <line x1="50" y1="0" x2="50" y2="100"/>
+              <line x1="0" y1="50" x2="100" y2="50"/>
+              <line x1="0" y1="0" x2="100" y2="100"/>
+              <line x1="100" y1="0" x2="0" y2="100"/>
+              <circle cx="50" cy="50" r="20" fill="none"/>
+              <circle cx="50" cy="50" r="40" fill="none"/>
+            </svg>
+          </div>
+
+          {/* Top Left Corner - Cobweb */}
+          <div className="absolute top-0 left-0 opacity-70">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#ccc" strokeWidth="1.5">
+              <path d="M0 50Q25 25 50 50Q75 75 100 50" />
+              <path d="M50 0Q25 25 50 50Q75 25 50 0" />
+              <line x1="0" y1="0" x2="50" y2="50"/>
+              <line x1="100" y1="0" x2="50" y2="50"/>
+              <line x1="0" y1="100" x2="50" y2="50"/>
+              <line x1="100" y1="100" x2="50" y2="50"/>
+            </svg>
+          </div>
+
+          {/* Top Right Corner - Cobweb */}
+          <div className="absolute top-0 right-0 opacity-70">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#ccc" strokeWidth="1.5">
+              <path d="M0 50Q25 25 50 50Q75 75 100 50" />
+              <path d="M50 0Q25 25 50 50Q75 25 50 0" />
+              <line x1="0" y1="0" x2="50" y2="50"/>
+              <line x1="100" y1="0" x2="50" y2="50"/>
+              <line x1="0" y1="100" x2="50" y2="50"/>
+              <line x1="100" y1="100" x2="50" y2="50"/>
+            </svg>
+          </div>
+
+          {/* Bottom Left Corner - Cobweb */}
+          <div className="absolute bottom-0 left-0 opacity-70">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#ccc" strokeWidth="1.5">
+              <path d="M0 50Q25 75 50 50Q75 25 100 50" />
+              <path d="M50 100Q25 75 50 50Q75 75 50 100" />
+              <line x1="0" y1="100" x2="50" y2="50"/>
+              <line x1="100" y1="100" x2="50" y2="50"/>
+              <line x1="0" y1="0" x2="50" y2="50"/>
+              <line x1="100" y1="0" x2="50" y2="50"/>
+            </svg>
+          </div>
+
+          {/* Bottom Right Corner - Cobweb */}
+          <div className="absolute bottom-0 right-0 opacity-70">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#ccc" strokeWidth="1.5">
+              <path d="M0 50Q25 75 50 50Q75 25 100 50" />
+              <path d="M50 100Q25 75 50 50Q75 75 50 100" />
+              <line x1="0" y1="100" x2="50" y2="50"/>
+              <line x1="100" y1="100" x2="50" y2="50"/>
+              <line x1="0" y1="0" x2="50" y2="50"/>
+              <line x1="100" y1="0" x2="50" y2="50"/>
+            </svg>
+          </div>
+
+          {/* Additional Floating Ghost - Top Mid */}
+          <div className="absolute top-16 left-1/3 animate-float-slow delay-700">
+            <svg width="50" height="60" viewBox="0 0 24 28" fill="#f0f0f0" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C7 2 3 5 3 10v8c0 3 2 6 5 8v2h8v-2c3-2 5-5 5-8v-8c0-5-4-8-9-8z" fill="#d3d3d3"/>
+              <circle cx="8" cy="9" r="1.5" fill="#000"/>
+              <circle cx="16" cy="9" r="1.5" fill="#000"/>
+              <path d="M7 14h10" stroke="#000" strokeWidth="1"/>
+            </svg>
+          </div>
+
+          {/* Additional Spider - Mid Right */}
+          <div className="absolute right-16 top-1/2 animate-wiggle delay-500">
+            <svg width="35" height="35" viewBox="0 0 24 24" fill="#2e003e" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="3" fill="#000"/>
+              <path d="M12 9v-3M12 15v3M9 12h-3M15 12h3M10 10l-2-2M14 10l2-2M10 14l-2 2M14 14l2 2" stroke="#000" strokeWidth="1.5"/>
+            </svg>
+          </div>
+
+          {/* Additional Bat - Bottom Mid */}
+          <div className="absolute bottom-20 left-2/3 animate-float delay-200">
+            <svg width="45" height="45" viewBox="0 0 24 24" fill="#4b0082" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.5 2 5.5 4 4 7c-1 2-1 5 1 7-1.5 1-2.5 3-2 5 .5 2 2.5 3 4.5 3h7c2 0 4-1 4.5-3 .5-2-.5-4-2-5 1.5-2 1.5-5 .5-7-1.5-3-4.5-5-8-5z"/>
+              <circle cx="8" cy="9" r="1" fill="#fff"/>
+              <circle cx="16" cy="9" r="1" fill="#fff"/>
             </svg>
           </div>
         </div>

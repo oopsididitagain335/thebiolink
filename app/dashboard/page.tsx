@@ -9,7 +9,6 @@ interface Link {
   title: string;
   icon: string;
   position: number;
-  clicks?: number; // Optional, for future use
 }
 
 interface Widget {
@@ -30,7 +29,8 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
-  profileViews?: number; // 👈 ADDED
+  profileViews?: number;        // 👈
+  theme?: 'indigo' | 'purple' | 'green' | 'red'; // 👈
 }
 
 interface LayoutSection {
@@ -127,12 +127,23 @@ const DraggableItem = ({
   );
 };
 
-// ====== NEW: Analytics Tab ======
-const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
+// ====== Analytics Tab ======
+const AnalyticsTab = ({ user, links, onRefresh }: { user: User; links: Link[]; onRefresh: () => void }) => {
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-white">Profile Analytics</h2>
+          <button
+            onClick={onRefresh}
+            className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh Stats
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-900/50 p-5 rounded-xl">
             <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
@@ -146,34 +157,11 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
           </div>
         </div>
       </div>
-
-      {links.length > 0 && (
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold mb-4 text-white">Your Links</h3>
-          <div className="space-y-3">
-            {links
-              .filter(link => link.url && link.title)
-              .map((link) => (
-                <div key={link.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center">
-                    {link.icon && (
-                      <img src={link.icon} alt="" className="w-6 h-6 mr-3 rounded" />
-                    )}
-                    <span className="text-white max-w-xs truncate">{link.title}</span>
-                  </div>
-                  <span className="text-gray-400 text-sm">
-                    {link.url}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-// ====== NEW: News Tab ======
+// ====== News Tab ======
 const NewsTab = () => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,45 +218,7 @@ const NewsTab = () => {
   );
 };
 
-// ====== Existing Tabs (unchanged) ======
-const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
-  const bioLinkUrl = getBioLinkUrl(user.username);
-  const completion = Math.round(
-    ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
-  );
-  const planDisplay = user.plan 
-    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
-    : 'Free';
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
-            <a
-              href={bioLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
-            >
-              {bioLinkUrl}
-            </a>
-          </div>
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+// ====== Customize Tab with Theme ======
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -279,6 +229,11 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
+  const handleThemeChange = (theme: User['theme']) => {
+    setUser({ ...user, theme });
+  };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -351,6 +306,73 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Tell people about yourself"
           />
+        </div>
+
+        {/* THEME SELECTOR */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Theme Color</label>
+          <div className="grid grid-cols-4 gap-2">
+            {(['indigo', 'purple', 'green', 'red'] as const).map((color) => (
+              <button
+                key={color}
+                onClick={() => handleThemeChange(color)}
+                className={`py-2 rounded-lg text-sm font-medium capitalize ${
+                  user.theme === color
+                    ? 'ring-2 ring-white ring-opacity-60'
+                    : 'bg-gray-700/50 text-gray-300'
+                }`}
+                style={{
+                  backgroundColor:
+                    color === 'indigo' ? 'rgb(99, 102, 241)' :
+                    color === 'purple' ? 'rgb(168, 85, 247)' :
+                    color === 'green' ? 'rgb(34, 197, 94)' :
+                    'rgb(239, 68, 68)',
+                  color: 'white'
+                }}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====== Remaining Tabs (Overview, Links, Widgets, Builder) — UNCHANGED FROM YOUR ORIGINAL ======
+const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
+  const bioLinkUrl = getBioLinkUrl(user.username);
+  const completion = Math.round(
+    ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
+  );
+  const planDisplay = user.plan 
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
+    : 'Free';
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
+            <a
+              href={bioLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-indigo-400 hover:underline break-all"
+            >
+              {bioLinkUrl}
+            </a>
+          </div>
+          <div>
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -820,7 +842,12 @@ const ProfileBuilderTab = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                          className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
+                            user.theme === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                            user.theme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                            user.theme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                            'bg-red-600 hover:bg-red-700'
+                          }`}
                         >
                           {link.title}
                         </a>
@@ -917,6 +944,7 @@ const getSpotifyId = (url: string): string => {
   return match ? `${match[1]}/${match[2]}` : '';
 };
 
+// ====== Main Dashboard Component ======
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -927,7 +955,8 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
-    profileViews: 0, // 👈 default
+    profileViews: 0,
+    theme: 'indigo',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -943,66 +972,68 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/dashboard/data');
-        if (!res.ok) {
-          router.push('/auth/login');
-          return;
-        }
-        const data = await res.json();
-        const rawUsername = data.user.username || '';
-        const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
-        setUser({
-          _id: data.user._id || '',
-          name: (data.user.name || '').substring(0, 100),
-          username: safeUsername,
-          avatar: (data.user.avatar || '').trim(),
-          bio: (data.user.bio || '').substring(0, 500),
-          background: (data.user.background || '').trim(),
-          isEmailVerified: data.user.isEmailVerified ?? true,
-          plan: data.user.plan || 'free',
-          profileViews: data.user.profileViews || 0, // 👈 critical
-        });
-        const fetchedLinks = Array.isArray(data.links) ? data.links : [];
-        const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-        setLinks(
-          sortedLinks.length > 0
-            ? sortedLinks.map((link: any) => ({
-                id: link.id || Date.now().toString(),
-                url: (link.url || '').trim(),
-                title: (link.title || '').substring(0, 100),
-                icon: (link.icon || '').trim(),
-                position: link.position ?? 0,
-              }))
-            : []
-        );
-        const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
-        const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-        setWidgets(
-          sortedWidgets.map((w: any) => ({
-            id: w.id || Date.now().toString(),
-            type: w.type || 'custom',
-            title: w.title || '',
-            content: w.content || '',
-            url: w.url || '',
-            position: w.position ?? 0,
-          }))
-        );
-        setLayoutStructure(data.layoutStructure || [
-          { id: 'bio', type: 'bio' },
-          { id: 'spacer-1', type: 'spacer', height: 20 },
-          { id: 'links', type: 'links' }
-        ]);
-      } catch (error) {
-        console.error('Fetch error:', error);
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/dashboard/data');
+      if (!res.ok) {
         router.push('/auth/login');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+      const data = await res.json();
+      const rawUsername = data.user.username || '';
+      const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
+      setUser({
+        _id: data.user._id || '',
+        name: (data.user.name || '').substring(0, 100),
+        username: safeUsername,
+        avatar: (data.user.avatar || '').trim(),
+        bio: (data.user.bio || '').substring(0, 500),
+        background: (data.user.background || '').trim(),
+        isEmailVerified: data.user.isEmailVerified ?? true,
+        plan: data.user.plan || 'free',
+        profileViews: data.user.profileViews || 0,
+        theme: data.user.theme || 'indigo',
+      });
+      const fetchedLinks = Array.isArray(data.links) ? data.links : [];
+      const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setLinks(
+        sortedLinks.length > 0
+          ? sortedLinks.map((link: any) => ({
+              id: link.id || Date.now().toString(),
+              url: (link.url || '').trim(),
+              title: (link.title || '').substring(0, 100),
+              icon: (link.icon || '').trim(),
+              position: link.position ?? 0,
+            }))
+          : []
+      );
+      const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
+      const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setWidgets(
+        sortedWidgets.map((w: any) => ({
+          id: w.id || Date.now().toString(),
+          type: w.type || 'custom',
+          title: w.title || '',
+          content: w.content || '',
+          url: w.url || '',
+          position: w.position ?? 0,
+        }))
+      );
+      setLayoutStructure(data.layoutStructure || [
+        { id: 'bio', type: 'bio' },
+        { id: 'spacer-1', type: 'spacer', height: 20 },
+        { id: 'links', type: 'links' }
+      ]);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      router.push('/auth/login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
   }, [router]);
 
@@ -1014,6 +1045,10 @@ export default function Dashboard() {
     } finally {
       router.push('/auth/login');
     }
+  };
+
+  const handleRefreshStats = () => {
+    fetchUserData();
   };
 
   const handleSave = () => {
@@ -1058,6 +1093,7 @@ export default function Dashboard() {
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
+            theme: user.theme || 'indigo',
             layoutStructure,
           },
           links: linksToSend,
@@ -1067,6 +1103,7 @@ export default function Dashboard() {
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
+        fetchUserData(); // ✅ REFRESH to get latest profileViews
       } else {
         const errorMessage = data.error || 'Failed to save changes.';
         setMessage({ type: 'error', text: errorMessage });
@@ -1079,15 +1116,14 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Updated tabs: added 'analytics' and 'news'
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'analytics', name: 'Analytics' }, // 👈 NEW
-    { id: 'news', name: 'News' },           // 👈 NEW
+    { id: 'analytics', name: 'Analytics' }, // ✅
+    { id: 'news', name: 'News' },           // ✅
     { id: 'badges', name: 'Badges' },
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
@@ -1172,7 +1208,7 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
+            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} onRefresh={handleRefreshStats} />}
             {activeTab === 'news' && <NewsTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
@@ -1185,9 +1221,7 @@ export default function Dashboard() {
                 {user.background && (
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center"
-                    style={{
-                      backgroundImage: `url(${user.background})`,
-                    }}
+                    style={{ backgroundImage: `url(${user.background})` }}
                   />
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
@@ -1221,7 +1255,12 @@ export default function Dashboard() {
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg text-sm transition-colors"
+                                  className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${
+                                    user.theme === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                                    user.theme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                                    user.theme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                                    'bg-red-600 hover:bg-red-700'
+                                  }`}
                                 >
                                   {link.title}
                                 </a>

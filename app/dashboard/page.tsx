@@ -953,7 +953,7 @@ export default function Dashboard() {
     isEmailVerified: true,
     plan: 'free',
     profileViews: 0,
-    theme: 'indigo', // 👈
+    theme: 'indigo', 
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -991,7 +991,7 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
-          theme: (data.user.theme as User['theme']) || 'indigo', // 👈
+          theme: (data.user.theme as User['theme']) || 'indigo', 
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1085,7 +1085,7 @@ export default function Dashboard() {
             bio: user.bio?.trim().substring(0, 500) || '',
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
-            theme: user.theme || 'indigo', // 👈
+            theme: user.theme || 'indigo',  
             layoutStructure,
           },
           links: linksToSend,
@@ -1113,7 +1113,7 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'themes', name: 'Themes' }, // 👈
+    { id: 'themes', name: 'Themes' }, 
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
@@ -1200,7 +1200,7 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />} // 👈
+            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (

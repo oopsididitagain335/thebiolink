@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -818,13 +817,14 @@ const ProfileBuilderTab = ({
                 );
               }
               if (section.type === 'links' && links.length > 0) {
-                const hoverClass = {
+                const themeHoverMap = {
                   indigo: 'hover:bg-indigo-900/30',
                   purple: 'hover:bg-purple-900/30',
                   green: 'hover:bg-emerald-900/30',
                   red: 'hover:bg-rose-900/30',
                   halloween: 'hover:bg-orange-900/30',
-                }[user.theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
+                } as const;
+                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
 
                 return (
                   <div key={section.id} className="space-y-3">
@@ -1229,13 +1229,14 @@ export default function Dashboard() {
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
-                        const hoverClass = {
+                        const themeHoverMap = {
                           indigo: 'hover:bg-indigo-900/30',
                           purple: 'hover:bg-purple-900/30',
                           green: 'hover:bg-emerald-900/30',
                           red: 'hover:bg-rose-900/30',
                           halloween: 'hover:bg-orange-900/30',
-                        }[user.theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
+                        } as const;
+                        const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
 
                         return (
                           <div key={section.id} className="space-y-3">

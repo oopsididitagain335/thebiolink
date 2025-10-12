@@ -29,8 +29,8 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
-  profileViews?: number;        // 👈
-  theme?: 'indigo' | 'purple' | 'green' | 'red'; // 👈
+  profileViews?: number;
+  theme?: 'indigo' | 'purple' | 'green' | 'red';
 }
 
 interface LayoutSection {
@@ -218,7 +218,7 @@ const NewsTab = () => {
   );
 };
 
-// ====== Customize Tab with Theme ======
+// ====== Theme Selector in CustomizeTab ======
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -340,7 +340,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
   );
 };
 
-// ====== Remaining Tabs (Overview, Links, Widgets, Builder) — UNCHANGED FROM YOUR ORIGINAL ======
+// ====== Remaining Tabs (Overview, Links, Widgets, Builder, ComingSoon) — UNCHANGED ======
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(

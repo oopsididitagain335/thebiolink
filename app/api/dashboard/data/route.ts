@@ -23,9 +23,12 @@ export async function GET(request: NextRequest) {
       bio: user.bio,
       background: user.background,
       isEmailVerified: user.isEmailVerified,
+      plan: user.plan || 'free',
+      profileViews: user.profileViews || 0, // ✅
+      theme: user.theme || 'indigo',        // ✅
     },
     links: user.links,
     widgets: user.widgets,
-    layoutStructure: user.layoutStructure, // ✅ Only this exists now
+    layoutStructure: user.layoutStructure,
   });
 }

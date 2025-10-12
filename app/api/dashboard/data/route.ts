@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       background: user.background,
       isEmailVerified: user.isEmailVerified,
       plan: user.plan || 'free',
-      profileViews: user.profileViews || 0, // ✅
-      theme: user.theme || 'indigo',        // ✅
+      profileViews: user.profileViews, // ✅ Now exists
+      theme: user.theme,               // ✅ Now exists
     },
     links: user.links,
     widgets: user.widgets,

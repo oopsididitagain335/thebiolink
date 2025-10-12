@@ -417,4 +417,4 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     console.error('Metadata error:', { username, error: error.message });
     return { title: 'User Not Found | The BioLink' };
   }
-} add punkins to the background of all pages
+} 

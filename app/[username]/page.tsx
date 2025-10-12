@@ -3,99 +3,25 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { headers } from 'next/headers';
-import { getUserByUsername, getUserByUsernameForMetadata } from '@/lib/storage';
+import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
-import Links from '@/components/Links';
 
-interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  awardedAt: string;
-}
-
-interface Link {
-  id: string;
-  url: string;
-  title: string;
-  icon?: string;
-  position?: number;
-}
-
-interface Widget {
-  id: string;
-  type: 'spotify' | 'youtube' | 'twitter' | 'custom';
-  title?: string;
-  content?: string;
-  url?: string;
-  position?: number;
-}
-
-interface LayoutSection {
-  id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
-  widgetId?: string;
-  height?: number;
-  content?: string;
-}
-
-interface UserData {
-  name: string;
-  avatar?: string;
-  bio?: string;
-  background?: string;
-  backgroundVideo?: string;
-  backgroundAudio?: string;
-  badges: Badge[];
-  links: Link[];
-  widgets?: Widget[];
-  layoutStructure?: LayoutSection[];
-  isBanned: boolean;
-  profileViews: number;
-  theme?: string; // 👈
-}
-
-interface MetadataUser {
-  name: string;
-  avatar?: string;
-  bio?: string;
-  isBanned: boolean;
-  links: { url: string; title: string }[];
-}
-
-// ===== THEME HELPER =====
-const getThemeClasses = (theme: string) => {
+const getThemeBackground = (theme: string) => {
+  const base = 'radial-gradient(circle at 50% 0%, ';
   switch (theme) {
-    case 'purple':
-      return {
-        bgGradient: 'from-purple-900/70 to-pink-800/50',
-        buttonBg: 'bg-purple-600 hover:bg-purple-700',
-      };
-    case 'green':
-      return {
-        bgGradient: 'from-green-900/70 to-emerald-800/50',
-        buttonBg: 'bg-green-600 hover:bg-green-700',
-      };
-    case 'red':
-      return {
-        bgGradient: 'from-red-900/70 to-rose-800/50',
-        buttonBg: 'bg-red-600 hover:bg-red-700',
-      };
+    case 'purple': return `${base}#581c87, #000000)`;
+    case 'green': return `${base}#065f46, #000000)`;
+    case 'red': return `${base}#991b1b, #000000)`;
     case 'halloween':
-      return {
-        bgGradient: 'from-orange-900/80 via-red-900/60 to-black',
-        buttonBg: 'bg-orange-600 hover:bg-orange-700',
-      };
-    default: // 'indigo'
-      return {
-        bgGradient: 'from-gray-900 via-black to-indigo-900/20',
-        buttonBg: 'bg-indigo-600 hover:bg-indigo-700',
-      };
+      return `
+        radial-gradient(circle at 30% 30%, #ea580c, #000000),
+        repeating-conic-gradient(transparent 0deg 10deg, rgba(255,165,0,0.03) 10deg 20deg)
+      `;
+    default: return `${base}#312e81, #000000)`;
   }
 };
 
-// Helpers
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
@@ -225,10 +151,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         { id: 'links', type: 'links' }
       ],
       profileViews = 0,
-      theme = 'indigo', // 👈
+      theme = 'indigo',
     } = userData;
-
-    const themeClasses = getThemeClasses(theme);
 
     const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
@@ -236,66 +160,47 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${themeClasses.bgGradient} relative`}>
-        {backgroundVideo && isValidBackgroundVideo ? (
-          <video
-            className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={backgroundVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        ) : isValidBackground ? (
-          <div
-            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${background})` }}
-          />
-        ) : null}
+    const hoverClass = {
+      indigo: 'hover:bg-indigo-900/30',
+      purple: 'hover:bg-purple-900/30',
+      green: 'hover:bg-emerald-900/30',
+      red: 'hover:bg-rose-900/30',
+      halloween: 'hover:bg-orange-900/30',
+    }[theme as keyof typeof hoverClass] || 'hover:bg-indigo-900/30';
 
-        {backgroundAudio && (
-          <audio autoPlay loop>
-            <source src={backgroundAudio} type="audio/mpeg" />
-          </audio>
+    return (
+      <div className="min-h-screen relative">
+        {!isValidBackground && !isValidBackgroundVideo && (
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }}
+          />
         )}
 
-        <div className="absolute inset-0 bg-black/60 z-10"></div>
+        {backgroundVideo && isValidBackgroundVideo && (
+          <video className="absolute inset-0 z-0 object-cover w-full h-full" src={backgroundVideo} autoPlay loop muted playsInline />
+        )}
+        {isValidBackground && !isValidBackgroundVideo && (
+          <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${background})` }} />
+        )}
+
+        {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
+        <div className="absolute inset-0 bg-black/30 z-10"></div>
 
         <div className="relative z-20 flex items-center justify-center p-4 min-h-screen">
           <div className="w-full max-w-md">
             {layoutStructure.map((section) => {
               if (section.type === 'bio') {
                 return (
-                  <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6 shadow-xl">
+                  <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6">
                     <Avatar name={name} avatar={avatar} />
                     <h1 className="text-2xl font-bold text-white mt-3 mb-1">{name}</h1>
                     {bio && <p className="text-gray-200 mb-4 px-2">{bio}</p>}
-
                     <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        {profileViews.toLocaleString()}
-                      </span>
-                      {links.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a2 2 0 00-2.828 0l-6 6a2 2 0 002.828 2.828l6-6a2 2 0 000-2.828z" />
-                          </svg>
-                          {links.length}
-                        </span>
-                      )}
+                      <span>👁️ {profileViews.toLocaleString()}</span>
+                      {links.length > 0 && <span>🔗 {links.length}</span>}
                     </div>
-
-                    {badges.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-white/20">
-                        <Badges badges={badges} />
-                      </div>
-                    )}
-
+                    {badges.length > 0 && <Badges badges={badges} />}
                     {(() => {
                       const specialTag = getSpecialProfileTag(username);
                       if (specialTag) {
@@ -322,7 +227,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`block w-full py-3 px-4 rounded-lg text-sm transition-colors text-white ${themeClasses.buttonBg}`}
+                        className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass} transition-colors`}
                       >
                         {link.title}
                       </a>
@@ -334,12 +239,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               if (section.type === 'widget') {
                 const widget = sortedWidgets.find(w => w.id === section.widgetId);
                 if (!widget) return null;
-
                 return (
-                  <div
-                    key={section.id}
-                    className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left mb-6"
-                  >
+                  <div key={section.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-left mb-6">
                     {widget.title ? (
                       <h3 className="flex items-center gap-2 text-white font-medium mb-2">
                         {getWidgetIcon(widget.type)}
@@ -351,7 +252,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       </div>
                     ) : null}
                     {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                      <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
                         <iframe
                           src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                           frameBorder="0"
@@ -361,11 +262,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                         ></iframe>
                       </div>
                     ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                      <div className="aspect-video bg-black/30 rounded-lg overflow-hidden">
                         <iframe
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           frameBorder="0"
-                          allowTransparency
+                          allowTransparency={true}
                           allow="encrypted-media"
                           className="w-full h-full"
                         ></iframe>
@@ -373,7 +274,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     ) : widget.type === 'twitter' && widget.url ? (
                       <div className="bg-gray-800 rounded-lg p-4">
                         <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          View Twitter Feed
+                          🐦 View Twitter Feed
                         </a>
                       </div>
                     ) : widget.type === 'custom' && widget.content ? (
@@ -440,7 +341,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const resolvedParams = await params;
   const { username } = resolvedParams;
   try {
-    const userData = await getUserByUsernameForMetadata(username) as MetadataUser | null;
+    const userData = await getUserByUsernameForMetadata(username) as any;
     if (!userData || userData.isBanned) {
       return { title: 'User Not Found | The BioLink' };
     }

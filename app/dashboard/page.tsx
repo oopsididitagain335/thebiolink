@@ -9,6 +9,7 @@ interface Link {
   title: string;
   icon: string;
   position: number;
+  clicks?: number; // Optional, for future use
 }
 
 interface Widget {
@@ -29,6 +30,7 @@ interface User {
   background: string;
   isEmailVerified: boolean;
   plan?: string;
+  profileViews?: number; // 👈 ADDED
 }
 
 interface LayoutSection {
@@ -37,6 +39,23 @@ interface LayoutSection {
   widgetId?: string;
   height?: number;
   content?: string;
+}
+
+interface NewsPost {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  authorName: string;
+  publishedAt: string;
+  likes: number;
+  comments: Array<{
+    id: string;
+    content: string;
+    author: string;
+    authorName: string;
+    createdAt: string;
+  }>;
 }
 
 const FAMOUS_LINKS = [
@@ -108,6 +127,110 @@ const DraggableItem = ({
   );
 };
 
+// ====== NEW: Analytics Tab ======
+const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-900/50 p-5 rounded-xl">
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
+            <p className="text-3xl font-bold text-white">
+              {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
+            </p>
+          </div>
+          <div className="bg-gray-900/50 p-5 rounded-xl">
+            <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
+            <p className="text-3xl font-bold text-white">{links.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {links.length > 0 && (
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <h3 className="text-lg font-semibold mb-4 text-white">Your Links</h3>
+          <div className="space-y-3">
+            {links
+              .filter(link => link.url && link.title)
+              .map((link) => (
+                <div key={link.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                  <div className="flex items-center">
+                    {link.icon && (
+                      <img src={link.icon} alt="" className="w-6 h-6 mr-3 rounded" />
+                    )}
+                    <span className="text-white max-w-xs truncate">{link.title}</span>
+                  </div>
+                  <span className="text-gray-400 text-sm">
+                    {link.url}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ====== NEW: News Tab ======
+const NewsTab = () => {
+  const [posts, setPosts] = useState<NewsPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const res = await fetch('/api/news');
+        const data = await res.json();
+        setPosts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to load news', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+
+  const truncate = (str: string, len = 100) =>
+    str.length > len ? str.substring(0, len) + '...' : str;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : posts.length === 0 ? (
+          <p className="text-gray-400 text-center py-6">No news available.</p>
+        ) : (
+          <div className="space-y-4">
+            {posts.slice(0, 5).map((post) => (
+              <div key={post.id} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
+                <h3 className="text-white font-medium">{post.title}</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                  {new Date(post.publishedAt).toLocaleDateString()} • {post.authorName}
+                </p>
+                <p className="text-gray-300 mt-2 text-sm">{truncate(post.content)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <a
+          href="/news"
+          className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+        >
+          View all news →
+        </a>
+      </div>
+    </div>
+  );
+};
+
+// ====== Existing Tabs (unchanged) ======
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -804,6 +927,7 @@ export default function Dashboard() {
     background: '',
     isEmailVerified: true,
     plan: 'free',
+    profileViews: 0, // 👈 default
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -816,7 +940,6 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
-  // ✅ REMOVED: showWidgetsNotice state
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
@@ -841,6 +964,7 @@ export default function Dashboard() {
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
+          profileViews: data.user.profileViews || 0, // 👈 critical
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -955,12 +1079,15 @@ export default function Dashboard() {
     }
   };
 
+  // ✅ Updated tabs: added 'analytics' and 'news'
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
+    { id: 'analytics', name: 'Analytics' }, // 👈 NEW
+    { id: 'news', name: 'News' },           // 👈 NEW
     { id: 'badges', name: 'Badges' },
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
@@ -1015,10 +1142,7 @@ export default function Dashboard() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => {
-                  // ✅ REMOVED: setShowWidgetsNotice(true)
-                  setActiveTab(tab.id);
-                }}
+                onClick={() => setActiveTab(tab.id)}
                 className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-white'
@@ -1048,6 +1172,8 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
+            {activeTab === 'news' && <NewsTab />}
             {['badges', 'manage', 'settings'].includes(activeTab) && (
               <ComingSoonTab title={`${tabs.find(t => t.id === activeTab)?.name} Tab`} />
             )}
@@ -1186,7 +1312,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        {/* ✅ WIDGETS NOTICE MODAL REMOVED */}
       </div>
     </div>
   );

@@ -184,7 +184,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`block w-full py-4 px-5 rounded-2xl text-base font-medium text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-lg`}
+                        className={`block w-full py-4 px-5 rounded-2xl text-base font-medium text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-lg hover:scale-105`}
                       >
                         <div className="flex items-center justify-center">
                           {link.icon && <img src={link.icon} alt="" className="w-6 h-6 mr-3" />}
@@ -220,7 +220,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           title={widget.title || 'Spotify embed'}
                           frameBorder="0"
-                          allowTransparency="true"
+                          allowTransparency={true}
                           allow="encrypted-media"
                           className="w-full h-full rounded-xl"
                         ></iframe>

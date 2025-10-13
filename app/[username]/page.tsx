@@ -157,8 +157,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 return (
                   <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6">
                     <Avatar name={name} avatar={avatar} />
-                    <h1 className="text-2xl font-bold text-white mt-3 mb-1">{name}</h1>
-                    {bio && <p className="text-gray-200 mb-4 px-2">{bio}</p>}
+                    <h1 className="text-3xl font-bold text-white mt-3 mb-1">{name}</h1>
+                    {bio && <p className="text-gray-100 text-base mb-4 px-2">{bio}</p>}
                     <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
                       <span>👁️ {profileViews.toLocaleString()}</span>
                       {links.length > 0 && <span>🔗 {links.length}</span>}
@@ -184,17 +184,72 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass} transition-colors`}
+                        className={`block w-full py-4 px-5 rounded-2xl text-base font-medium text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-lg`}
                       >
-                        {link.title}
+                        <div className="flex items-center justify-center">
+                          {link.icon && <img src={link.icon} alt="" className="w-6 h-6 mr-3" />}
+                          {link.title}
+                        </div>
                       </a>
                     ))}
                   </div>
                 );
               }
 
+              if (section.type === 'widget' && section.widgetId) {
+                const widget = sortedWidgets.find(w => w.id === section.widgetId);
+                if (!widget) return null;
+                return (
+                  <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 mb-6">
+                    {widget.title && <h3 className="text-lg font-semibold text-white mb-3">{widget.title}</h3>}
+                    {widget.type === 'youtube' && widget.url && (
+                      <div className="aspect-video">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          title={widget.title || 'YouTube video'}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full rounded-xl"
+                        ></iframe>
+                      </div>
+                    )}
+                    {widget.type === 'spotify' && widget.url && (
+                      <div className="aspect-video">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          title={widget.title || 'Spotify embed'}
+                          frameBorder="0"
+                          allowTransparency="true"
+                          allow="encrypted-media"
+                          className="w-full h-full rounded-xl"
+                        ></iframe>
+                      </div>
+                    )}
+                    {widget.type === 'twitter' && widget.url && (
+                      <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">
+                        View Twitter Feed
+                      </a>
+                    )}
+                    {widget.type === 'custom' && widget.content && (
+                      <div dangerouslySetInnerHTML={{ __html: widget.content }} />
+                    )}
+                  </div>
+                );
+              }
+
               if (section.type === 'spacer') {
                 return <div key={section.id} style={{ height: `${section.height}px` }} />;
+              }
+
+              if (section.type === 'custom' && section.content) {
+                return (
+                  <div 
+                    key={section.id} 
+                    className="my-4"
+                    dangerouslySetInnerHTML={{ __html: section.content }} 
+                  />
+                );
               }
 
               return null;

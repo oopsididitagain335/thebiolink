@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
+import TypingBio from '@/components/TypingBio';
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -53,55 +54,6 @@ function getSpecialProfileTag(username: string): string | null {
     case 'ceosolace': return 'Founder of BioLinkHQ';
     default: return null;
   }
-}
-
-// Typing Bio Component
-'use client';
-import { useState, useEffect } from 'react';
-
-interface TypingBioProps {
-  bio: string;
-}
-
-export function TypingBio({ bio }: TypingBioProps) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loopNum, setLoopNum] = useState(0);
-  const [typingSpeed, setTypingSpeed] = useState(100);
-
-  useEffect(() => {
-    const handleTyping = () => {
-      const fullText = bio;
-      const current = displayedText;
-      const isEnd = loopNum === 2;
-
-      if (isDeleting) {
-        setDisplayedText(fullText.substring(0, current.length - 1));
-      } else {
-        setDisplayedText(fullText.substring(0, current.length + 1));
-      }
-
-      setTypingSpeed(isDeleting ? 50 : 100);
-
-      if (!isDeleting && current === fullText) {
-        setTimeout(() => setIsDeleting(true), 1000);
-      } else if (isDeleting && current === '') {
-        setIsDeleting(false);
-        setLoopNum(loopNum + 1);
-      }
-    };
-
-    const timer = setTimeout(handleTyping, typingSpeed);
-
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, loopNum, bio, typingSpeed]);
-
-  return (
-    <div className="text-gray-300 text-sm font-medium">
-      {displayedText}
-      <span className="inline-block w-1 h-5 bg-white ml-1 animate-blink"></span>
-    </div>
-  );
 }
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
@@ -212,7 +164,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           <img
             className="absolute inset-0 z-0 object-cover w-full h-full"
             src={background}
-            alt="Background GIF"
+            alt="Animated background"
           />
         )}
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
@@ -225,7 +177,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           <div className="w-full max-w-md space-y-4">
             {/* Profile Card */}
             <div className={`bg-gray-900/70 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-gray-700 ${glow}`}>
-              {/* Avatar + Name + Badges */}
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="relative">
                   <Avatar name={name} avatar={avatar} />
@@ -241,15 +192,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 </div>
                 <div className="text-left">
                   <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
-                  {bio && (
-                    <div className="mt-2">
-                      <TypingBio bio={bio} />
-                    </div>
-                  )}
+                  {bio && <TypingBio bio={bio} />}
                 </div>
               </div>
 
-              {/* Location & Stats */}
               <div className="flex justify-center gap-4 text-xs text-gray-400 mb-4">
                 {location && (
                   <div className="flex items-center gap-1">
@@ -264,7 +210,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 {links.length > 0 && <span>🔗 {links.length}</span>}
               </div>
 
-              {/* Special Tag */}
               {getSpecialProfileTag(username) && (
                 <div className="mt-2 pt-2 border-t border-gray-700">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${btn} shadow-sm`}>
@@ -346,7 +291,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </div>
             )}
 
-            {/* Footer */}
             <div className="text-center text-gray-500 text-xs pt-4 border-t border-gray-800 mt-4">
               <p className="mb-1">Powered by The BioLink</p>
               <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>

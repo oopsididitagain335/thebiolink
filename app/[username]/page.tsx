@@ -175,34 +175,34 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           <div className="w-full max-w-md space-y-4">
             {/* Profile Card */}
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
-              {/* Avatar + Badges Container */}
               <div className="relative inline-block mb-4">
                 <Avatar name={name} avatar={avatar} />
-                {/* Badges as small icons stacked to the top-right of avatar */}
-                {badges.length > 0 && (
-                  <div className="absolute -top-2 -right-2 flex flex-wrap gap-1">
-                    {badges.slice(0, 3).map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="w-6 h-6 rounded-full overflow-hidden border-2 border-gray-900"
-                        title={badge.name}
-                      >
-                        <img
-                          src={badge.icon}
-                          alt={badge.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
+
+              {/* ✅ BADGES AS READABLE TAGS BETWEEN NAME AND BIO */}
+              {badges.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
+                  {badges.map((badge) => (
+                    <span
+                      key={badge.id}
+                      className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
+                      title={`Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
+                    >
+                      {badge.icon && (
+                        <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      {badge.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {bio && <TypingBio bio={bio} />}
 
               {/* Location & Stats */}
-              <div className="flex justify-center gap-4 text-xs text-gray-300 mt-3">
+              <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
                 {location && (
                   <div className="flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,7 +216,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 {links.length > 0 && <span>🔗 {links.length}</span>}
               </div>
 
-              {/* Special Profile Tag (only from username, not badges) */}
+              {/* Special Profile Tag (e.g., "Founder") */}
               {getSpecialProfileTag(username) && (
                 <div className="mt-3 pt-3 border-t border-white/20">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">

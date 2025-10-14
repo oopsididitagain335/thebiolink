@@ -65,18 +65,16 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const userData = await getUserByUsername(username, ip);
     if (!userData) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-          <div className="max-w-md w-full bg-gray-800/70 backdrop-blur-lg rounded-3xl shadow-xl p-8 text-center border border-gray-700">
-            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-indigo-700/20 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-indigo-600/20 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m2 0a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4v4m0 0v4m0-4h4m-4 0H7" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-3">BioLink Not Found</h1>
-            <p className="text-gray-300 mb-6">
-              We couldn’t find a profile for <span className="font-medium">{username}</span>.
-            </p>
-            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md">
+            <h1 className="text-xl font-bold text-white mb-2">Profile Not Found</h1>
+            <p className="text-gray-400 mb-4">No BioLink exists for <span className="font-semibold">@{username}</span>.</p>
+            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md">
               Create Yours
             </a>
           </div>
@@ -86,17 +84,17 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     if (userData.isBanned) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-          <div className="max-w-md w-full bg-gray-800/70 backdrop-blur-lg rounded-3xl shadow-xl p-8 text-center border border-gray-700">
-            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-red-700/20 rounded-full animate-pulse">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-red-800/50">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-red-600/20 rounded-full animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-3">Account Suspended</h1>
-            <p className="text-gray-300 mb-6">This BioLink has been suspended.</p>
-            <a href="/" className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-semibold transition-colors shadow-md">
-              Explore Other BioLinks
+            <h1 className="text-xl font-bold text-white mb-2">Suspended</h1>
+            <p className="text-gray-400 mb-4">This profile has been restricted.</p>
+            <a href="/" className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md">
+              Explore Others
             </a>
           </div>
         </div>
@@ -116,7 +114,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       widgets = [],
       layoutStructure = [
         { id: 'bio', type: 'bio' },
-        { id: 'spacer-1', type: 'spacer', height: 20 },
+        { id: 'spacer-1', type: 'spacer', height: 24 },
         { id: 'links', type: 'links' },
       ],
       profileViews = 0,
@@ -128,183 +126,167 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    const themeHoverMap: Record<string, string> = {
-      indigo: 'hover:bg-indigo-900/30',
-      purple: 'hover:bg-purple-900/30',
-      green: 'hover:bg-emerald-900/30',
-      red: 'hover:bg-rose-900/30',
-      halloween: 'hover:bg-orange-900/30',
+    const themeClasses = {
+      indigo: { glow: 'shadow-[0_0_15px_rgba(99,102,241,0.5)]', btn: 'bg-indigo-600 hover:bg-indigo-700' },
+      purple: { glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]', btn: 'bg-purple-600 hover:bg-purple-700' },
+      green: { glow: 'shadow-[0_0_15px_rgba(34,197,94,0.5)]', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+      red: { glow: 'shadow-[0_0_15px_rgba(239,68,68,0.5)]', btn: 'bg-rose-600 hover:bg-rose-700' },
+      halloween: { glow: 'shadow-[0_0_15px_rgba(234,88,12,0.5)]', btn: 'bg-orange-600 hover:bg-orange-700' },
     };
-    const hoverClass = themeHoverMap[theme] || 'hover:bg-indigo-900/30';
 
-    const wrapperClass = theme === 'halloween' 
-      ? "relative z-20 flex justify-center p-4 min-h-screen"
-      : "relative z-20 flex items-center justify-center p-4 min-h-screen";
+    const { glow, btn } = themeClasses[theme as keyof typeof themeClasses] || themeClasses.indigo;
 
     return (
-      <div className="min-h-screen relative">
+      <div className="min-h-screen relative overflow-hidden bg-black">
+        {/* Background */}
         {!isValidBackground && !isValidBackgroundVideo && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
         {isValidBackgroundVideo && (
-          <video className="absolute inset-0 z-0 object-cover w-full h-full" src={backgroundVideo} autoPlay loop muted playsInline />
+          <video
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={backgroundVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
         )}
         {isValidBackground && !isValidBackgroundVideo && (
-          <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${background})` }} />
+          <div
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${background})` }}
+          />
         )}
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
-        <div className="absolute inset-0 bg-black/30 z-10" />
-        <div className={wrapperClass}>
-          <div className="w-full max-w-md">
-            {layoutStructure.map((section) => {
-              if (section.type === 'bio') {
-                if (theme === 'halloween') {
-                  return (
-                    <div key={section.id} className="flex items-center bg-white/5 backdrop-blur-lg border border-orange-500/20 rounded-full p-4 mb-6 shadow-[0_0_15px_rgba(234,88,12,0.6)]">
-                      <div className="relative mr-3">
-                        <div className="w-12 h-12 rounded-full overflow-hidden">
-                          <Avatar name={name} avatar={avatar} />
-                        </div>
-                        <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-purple-500 opacity-50 blur"></div>
-                      </div>
-                      <div>
-                        <h1 className="text-2xl font-bold text-white">{name}</h1>
-                        <div className="flex items-center text-orange-200 text-sm">
-                          @{username}
-                          {location && (
-                            <>
-                              <span className="mx-2">•</span>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              <span>{location}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6">
-                      <Avatar name={name} avatar={avatar} />
-                      <h1 className="text-3xl font-bold text-white mt-3 mb-1">{name}</h1>
-                      {location && (
-                        <div className="flex items-center justify-center text-gray-200 mb-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span>{location}</span>
-                        </div>
-                      )}
-                      {bio && <p className="text-gray-100 text-base mb-4 px-2">{bio}</p>}
-                      <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
-                        <span>👁️ {profileViews.toLocaleString()}</span>
-                        {links.length > 0 && <span>🔗 {links.length}</span>}
-                      </div>
-                      {badges.length > 0 && <Badges badges={badges} />}
-                      {getSpecialProfileTag(username) && (
-                        <div className="mt-4 pt-4 border-t border-white/20 animate-pulse">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg">
-                            🏆 {getSpecialProfileTag(username)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-              }
 
-              if (section.type === 'links' && sortedLinks.length > 0) {
-                const linkClass = theme === 'halloween'
-                  ? `block w-full py-3 px-5 rounded-full text-base font-medium text-white backdrop-blur-md border border-orange-500/20 ${hoverClass} transition-all hover:shadow-[0_0_10px_rgba(234,88,12,0.6)] hover:scale-105`
-                  : `block w-full py-4 px-5 rounded-2xl text-base font-medium text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-lg hover:scale-105`;
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/60 z-10" />
 
-                return (
-                  <div key={section.id} className="space-y-3 mb-6">
-                    {sortedLinks.map((link) => (
-                      <a
-                        key={link.id}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={linkClass}
-                      >
-                        <div className="flex items-center justify-center">
-                          {link.icon && <img src={link.icon} alt="" className="w-6 h-6 mr-3" />}
-                          {link.title}
+        {/* Main Content */}
+        <div className="relative z-20 flex justify-center p-4 min-h-screen">
+          <div className="w-full max-w-md space-y-4">
+            {/* Profile Card */}
+            <div className={`bg-gray-900/70 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-gray-700 ${glow}`}>
+              {/* Avatar + Name + Badges */}
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="relative">
+                  <Avatar name={name} avatar={avatar} size="lg" />
+                  {badges.length > 0 && (
+                    <div className="absolute -top-1 -right-1 flex gap-1">
+                      {badges.slice(0, 3).map((badge, i) => (
+                        <div key={i} className="w-6 h-6 rounded-full overflow-hidden">
+                          <img src={badge.icon} alt="" className="w-full h-full" />
                         </div>
-                      </a>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="text-left">
+                  <h1 className="text-2xl font-bold text-white">{name || username}</h1>
+                  {bio && <p className="text-gray-300 text-sm mt-1 line-clamp-2">{bio}</p>}
+                </div>
+              </div>
+
+              {/* Location & Stats */}
+              <div className="flex justify-center gap-4 text-xs text-gray-400 mb-4">
+                {location && (
+                  <div className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{location}</span>
                   </div>
-                );
-              }
+                )}
+                <span>👁️ {profileViews.toLocaleString()}</span>
+                {links.length > 0 && <span>🔗 {links.length}</span>}
+              </div>
 
-              if (section.type === 'widget' && section.widgetId) {
-                const widget = sortedWidgets.find(w => w.id === section.widgetId);
-                if (!widget) return null;
-                const widgetClass = theme === 'halloween'
-                  ? "bg-white/5 backdrop-blur-lg border border-orange-500/20 rounded-2xl p-4 mb-6 shadow-[0_0_10px_rgba(234,88,12,0.3)]"
-                  : "bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 mb-6";
-                return (
-                  <div key={section.id} className={widgetClass}>
-                    {widget.title && <h3 className="text-lg font-semibold text-white mb-3">{widget.title}</h3>}
+              {/* Special Tag */}
+              {getSpecialProfileTag(username) && (
+                <div className="mt-2 pt-2 border-t border-gray-700">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${btn} shadow-sm`}>
+                    🏆 {getSpecialProfileTag(username)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Links */}
+            {sortedLinks.length > 0 && (
+              <div className="space-y-2">
+                {sortedLinks.map((link) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block w-full py-3 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 ${btn} hover:shadow-lg transform hover:-translate-y-0.5`}
+                  >
+                    {link.icon ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <img src={link.icon} alt="" className="w-5 h-5" />
+                        <span>{link.title}</span>
+                      </div>
+                    ) : (
+                      link.title
+                    )}
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Widgets */}
+            {sortedWidgets.length > 0 && (
+              <div className="space-y-4">
+                {sortedWidgets.map((widget) => (
+                  <div key={widget.id} className="bg-gray-900/50 backdrop-blur-md rounded-xl p-4 shadow-lg border border-gray-700">
+                    {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url && (
-                      <div className="aspect-video">
+                      <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
                         <iframe
                           src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                           title={widget.title || 'YouTube video'}
                           frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
-                          className="w-full h-full rounded-xl"
+                          className="w-full h-full"
                         ></iframe>
                       </div>
                     )}
                     {widget.type === 'spotify' && widget.url && (
-                      <div className="aspect-video">
+                      <div className="aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg">
                         <iframe
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           title={widget.title || 'Spotify embed'}
                           frameBorder="0"
-                          allowTransparency={true}
+                          allowTransparency
                           allow="encrypted-media"
-                          className="w-full h-full rounded-xl"
+                          className="w-full h-full"
                         ></iframe>
                       </div>
                     )}
                     {widget.type === 'twitter' && widget.url && (
-                      <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">
-                        View Twitter Feed
+                      <a
+                        href={widget.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-blue-300 hover:underline text-center mt-2"
+                      >
+                        View on Twitter
                       </a>
                     )}
                     {widget.type === 'custom' && widget.content && (
                       <div dangerouslySetInnerHTML={{ __html: widget.content }} />
                     )}
                   </div>
-                );
-              }
+                ))}
+              </div>
+            )}
 
-              if (section.type === 'spacer') {
-                return <div key={section.id} style={{ height: `${section.height}px` }} />;
-              }
-
-              if (section.type === 'custom' && section.content) {
-                return (
-                  <div 
-                    key={section.id} 
-                    className="my-4"
-                    dangerouslySetInnerHTML={{ __html: section.content }} 
-                  />
-                );
-              }
-
-              return null;
-            })}
-
-            <div className="text-center text-gray-400 text-xs mt-8 pt-6 border-t border-white/10">
+            {/* Footer */}
+            <div className="text-center text-gray-500 text-xs pt-4 border-t border-gray-800 mt-4">
               <p className="mb-1">Powered by The BioLink</p>
               <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
             </div>
@@ -315,11 +297,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   } catch (error: any) {
     console.error('UserPage error:', { username, error: error.message });
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-xl p-8 text-center border border-gray-700">
-          <h1 className="text-2xl font-bold text-white mb-2">Error</h1>
-          <p className="text-gray-400 mb-6">Failed to load this profile.</p>
-          <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors">
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-2">Oops!</h2>
+          <p className="text-gray-400 mb-4">Something went wrong loading this profile.</p>
+          <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
             Go Home
           </a>
         </div>
@@ -334,7 +316,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   try {
     const userData = await getUserByUsernameForMetadata(username);
     if (!userData || userData.isBanned) {
-      return { title: 'User Not Found | The BioLink' };
+      return { title: 'Not Found | The BioLink' };
     }
     return {
       title: `${userData.name || username} | The BioLink`,
@@ -355,6 +337,6 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     };
   } catch (error: any) {
     console.error('Metadata error:', { username, error: error.message });
-    return { title: 'User Not Found | The BioLink' };
+    return { title: 'Not Found | The BioLink' };
   }
 }

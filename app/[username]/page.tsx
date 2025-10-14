@@ -7,7 +7,6 @@ import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import Badges from '@/components/Badges';
 
-// ✅ Minimal metadata-safe function
 async function getUserByUsernameForMetadata(username: string) {
   try {
     const user = await getUserByUsername(username, '0.0.0.0');
@@ -108,6 +107,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       name = '',
       avatar = '',
       bio = '',
+      location = '', // ←←← ADDED
       background = '',
       backgroundVideo = '',
       backgroundAudio = '',
@@ -158,6 +158,15 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                   <div key={section.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center mb-6">
                     <Avatar name={name} avatar={avatar} />
                     <h1 className="text-3xl font-bold text-white mt-3 mb-1">{name}</h1>
+                    {location && (
+                      <div className="flex items-center justify-center text-gray-200 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>{location}</span>
+                      </div>
+                    )}
                     {bio && <p className="text-gray-100 text-base mb-4 px-2">{bio}</p>}
                     <div className="text-gray-300 text-sm mb-4 flex justify-center gap-4">
                       <span>👁️ {profileViews.toLocaleString()}</span>

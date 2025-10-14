@@ -28,6 +28,7 @@ interface UserDoc {
   passwordHash: string;
   avatar?: string;
   bio?: string;
+  location?: string; // ←←← ADDED
   background?: string;
   backgroundVideo?: string;
   backgroundAudio?: string;
@@ -136,6 +137,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
+    location: user.location || '', // ←←← RETURN
     background: user.background || '',
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
@@ -198,6 +200,7 @@ export async function getUserById(id: string) {
     username: user.username || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
+    location: user.location || '', // ←←← RETURN
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     plan: user.plan || 'free',
@@ -232,6 +235,7 @@ export async function getUserByEmail(email: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
+    location: user.location || '', // ←←← RETURN
     isEmailVerified: user.isEmailVerified,
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
@@ -253,6 +257,7 @@ export async function createUser(email: string, password: string, username: stri
     name,
     passwordHash,
     background,
+    location: '', // ←←← INITIALIZE
     ipAddress,
     badges: [],
     isEmailVerified: true,
@@ -273,6 +278,7 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     background,
+    location: '', // ←←← RETURN
     badges: [],
     isEmailVerified: true,
     isBanned: false,
@@ -351,6 +357,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
+    location: updates.location?.trim().substring(0, 100) || '', // ←←← SAVE
     background: updates.background?.trim() || '',
     plan: updates.plan || 'free',
     theme,
@@ -488,6 +495,7 @@ export async function getAllUsers() {
       name: 1,
       avatar: 1,
       bio: 1,
+      location: 1, // ←←← INCLUDE IN ADMIN
       isBanned: 1,
       badges: 1,
       plan: 1,
@@ -500,6 +508,7 @@ export async function getAllUsers() {
     name: user.name || '',
     avatar: user.avatar || undefined,
     bio: user.bio || undefined,
+    location: user.location || undefined, // ←←← RETURN
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
     badges: Array.isArray(user.badges) ? user.badges : [],

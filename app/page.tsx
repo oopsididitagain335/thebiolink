@@ -30,6 +30,15 @@ export default function HomePage() {
   const isValidUsername = /^[a-zA-Z0-9]*$/.test(username);
   const isDisabled = !username.trim() || !isValidUsername;
 
+  // Announcement logic: Oct 17, 2025 00:00 UTC → Oct 18, 2025 09:00 UTC (10 AM BST)
+  const shouldShowAnnouncement = () => {
+    if (typeof window === 'undefined') return false;
+    const now = new Date();
+    const start = new Date('2025-10-17T00:00:00Z');
+    const end = new Date('2025-10-18T09:00:00Z'); // 10 AM BST = 09:00 UTC
+    return now >= start && now < end;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-indigo-900/20 overflow-x-hidden">
       {/* Google AdSense Script */}
@@ -164,6 +173,31 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* The Ripple Announcement — Only Oct 17, 2025 (00:00 UTC) to Oct 18, 2025 (09:00 UTC) */}
+      {shouldShowAnnouncement() && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full px-4">
+          <div className="bg-gradient-to-r from-indigo-900/80 to-purple-900/80 backdrop-blur-lg border border-indigo-700/50 rounded-2xl p-4 shadow-2xl animate-fade-in">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🎮</span>
+                  <h3 className="font-bold text-white">The Ripple Tournament</h3>
+                </div>
+                <p className="text-indigo-200 text-sm">
+                  Sign up now for our exclusive Fortnite tournament!
+                </p>
+              </div>
+              <Link
+                href="/ripple"
+                className="ml-3 px-4 py-2 bg-white text-indigo-900 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-md whitespace-nowrap"
+              >
+                Join Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

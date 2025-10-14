@@ -17,13 +17,13 @@ export async function PUT(request: NextRequest) {
       const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
       const theme = validThemes.includes(profile.theme) ? profile.theme : 'indigo';
 
-      // Sanitize and trim location
+      // Sanitize location
       const location = profile.location ? profile.location.trim().substring(0, 100) : '';
 
       await updateUserProfile(user._id, {
         ...profile,
         theme,
-        location, // ←←← save to DB
+        location, // ←←← PASS TO STORAGE
       });
     }
 

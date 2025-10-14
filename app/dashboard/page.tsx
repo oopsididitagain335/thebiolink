@@ -1,3 +1,5 @@
+// app/dashboard/page.tsx — FULL FILE (with location support)
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,6 +27,7 @@ interface User {
   username: string;
   avatar: string;
   bio: string;
+  location?: string; // ←←← ADDED
   background: string;
   isEmailVerified: boolean;
   plan?: string;
@@ -151,7 +154,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
 const NewsTab = () => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -166,10 +168,8 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
-
   const truncate = (str: string, len = 100) =>
     str.length > len ? str.substring(0, len) + '...' : str;
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -212,7 +212,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ];
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -285,7 +284,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -321,6 +319,18 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
           <p className="mt-2 text-xs text-gray-500">
             Letters, numbers, underscores, hyphens only (3–30 chars)
           </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Location (optional)</label>
+          <input
+            type="text"
+            name="location"
+            value={user.location || ''}
+            onChange={handleProfileChange}
+            maxLength={100}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="e.g., Los Angeles, Tokyo, Berlin"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
@@ -804,7 +814,7 @@ const ProfileBuilderTab = ({
                         alt={user.name}
                         className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                       />
-                    ) : (
+                    ) else (
                       <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}
@@ -812,6 +822,15 @@ const ProfileBuilderTab = ({
                       </div>
                     )}
                     <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                    {user.location && (
+                      <div className="flex items-center justify-center text-gray-300 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>{user.location}</span>
+                      </div>
+                    )}
                     {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
                   </div>
                 );
@@ -825,7 +844,6 @@ const ProfileBuilderTab = ({
                   halloween: 'hover:bg-orange-900/30',
                 } as const;
                 const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
-
                 return (
                   <div key={section.id} className="space-y-3">
                     {links
@@ -940,6 +958,7 @@ export default function Dashboard() {
     username: '',
     avatar: '',
     bio: '',
+    location: '', // ←←← initialize
     background: '',
     isEmailVerified: true,
     plan: 'free',
@@ -959,7 +978,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -978,6 +996,7 @@ export default function Dashboard() {
           username: safeUsername,
           avatar: (data.user.avatar || '').trim(),
           bio: (data.user.bio || '').substring(0, 500),
+          location: (data.user.location || '').substring(0, 100), // ←←← hydrate
           background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
@@ -1023,7 +1042,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1033,11 +1051,9 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
-
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1074,6 +1090,7 @@ export default function Dashboard() {
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
+            location: user.location?.trim().substring(0, 100) || '', // ←←← send
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
             theme: user.theme || 'indigo',
@@ -1097,7 +1114,6 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1111,7 +1127,6 @@ export default function Dashboard() {
     { id: 'manage', name: 'Manage' },
     { id: 'settings', name: 'Settings' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1119,7 +1134,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1224,6 +1238,15 @@ export default function Dashboard() {
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                  {user.location && (
+                    <div className="flex items-center justify-center text-gray-300 mb-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{user.location}</span>
+                    </div>
+                  )}
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
@@ -1237,7 +1260,6 @@ export default function Dashboard() {
                           halloween: 'hover:bg-orange-900/30',
                         } as const;
                         const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
-
                         return (
                           <div key={section.id} className="space-y-3">
                             {links

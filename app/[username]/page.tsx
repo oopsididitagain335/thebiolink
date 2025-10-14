@@ -55,6 +55,55 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
+// Typing Bio Component
+'use client';
+import { useState, useEffect } from 'react';
+
+interface TypingBioProps {
+  bio: string;
+}
+
+export function TypingBio({ bio }: TypingBioProps) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [loopNum, setLoopNum] = useState(0);
+  const [typingSpeed, setTypingSpeed] = useState(100);
+
+  useEffect(() => {
+    const handleTyping = () => {
+      const fullText = bio;
+      const current = displayedText;
+      const isEnd = loopNum === 2;
+
+      if (isDeleting) {
+        setDisplayedText(fullText.substring(0, current.length - 1));
+      } else {
+        setDisplayedText(fullText.substring(0, current.length + 1));
+      }
+
+      setTypingSpeed(isDeleting ? 50 : 100);
+
+      if (!isDeleting && current === fullText) {
+        setTimeout(() => setIsDeleting(true), 1000);
+      } else if (isDeleting && current === '') {
+        setIsDeleting(false);
+        setLoopNum(loopNum + 1);
+      }
+    };
+
+    const timer = setTimeout(handleTyping, typingSpeed);
+
+    return () => clearTimeout(timer);
+  }, [displayedText, isDeleting, loopNum, bio, typingSpeed]);
+
+  return (
+    <div className="text-gray-300 text-sm font-medium">
+      {displayedText}
+      <span className="inline-block w-1 h-5 bg-white ml-1 animate-blink"></span>
+    </div>
+  );
+}
+
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
@@ -121,17 +170,18 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       theme = 'indigo',
     } = userData;
 
-    const isValidBackground = background && /\.(gif|png|jpg|jpeg|webp)$/i.test(background);
+    const isValidGif = background && /\.gif$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
+    const isValidImage = background && /\.(png|jpg|jpeg|webp)$/i.test(background);
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
     const themeClasses = {
-      indigo: { glow: 'shadow-[0_0_15px_rgba(99,102,241,0.5)]', btn: 'bg-indigo-600 hover:bg-indigo-700' },
-      purple: { glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]', btn: 'bg-purple-600 hover:bg-purple-700' },
-      green: { glow: 'shadow-[0_0_15px_rgba(34,197,94,0.5)]', btn: 'bg-emerald-600 hover:bg-emerald-700' },
-      red: { glow: 'shadow-[0_0_15px_rgba(239,68,68,0.5)]', btn: 'bg-rose-600 hover:bg-rose-700' },
-      halloween: { glow: 'shadow-[0_0_15px_rgba(234,88,12,0.5)]', btn: 'bg-orange-600 hover:bg-orange-700' },
+      indigo: { glow: 'shadow-[0_0_20px_rgba(99,102,241,0.7)]', btn: 'bg-indigo-600 hover:bg-indigo-700' },
+      purple: { glow: 'shadow-[0_0_20px_rgba(168,85,247,0.7)]', btn: 'bg-purple-600 hover:bg-purple-700' },
+      green: { glow: 'shadow-[0_0_20px_rgba(34,197,94,0.7)]', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+      red: { glow: 'shadow-[0_0_20px_rgba(239,68,68,0.7)]', btn: 'bg-rose-600 hover:bg-rose-700' },
+      halloween: { glow: 'shadow-[0_0_20px_rgba(234,88,12,0.7)]', btn: 'bg-orange-600 hover:bg-orange-700' },
     };
 
     const { glow, btn } = themeClasses[theme as keyof typeof themeClasses] || themeClasses.indigo;
@@ -139,7 +189,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
         {/* Background */}
-        {!isValidBackground && !isValidBackgroundVideo && (
+        {!isValidGif && !isValidBackgroundVideo && !isValidImage && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
         {isValidBackgroundVideo && (
@@ -152,10 +202,17 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             playsInline
           />
         )}
-        {isValidBackground && !isValidBackgroundVideo && (
+        {isValidImage && !isValidBackgroundVideo && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${background})` }}
+          />
+        )}
+        {isValidGif && (
+          <img
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={background}
+            alt="Background GIF"
           />
         )}
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
@@ -171,7 +228,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               {/* Avatar + Name + Badges */}
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="relative">
-                  <Avatar name={name} avatar={avatar} size="lg" />
+                  <Avatar name={name} avatar={avatar} />
                   {badges.length > 0 && (
                     <div className="absolute -top-1 -right-1 flex gap-1">
                       {badges.slice(0, 3).map((badge, i) => (
@@ -183,8 +240,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                   )}
                 </div>
                 <div className="text-left">
-                  <h1 className="text-2xl font-bold text-white">{name || username}</h1>
-                  {bio && <p className="text-gray-300 text-sm mt-1 line-clamp-2">{bio}</p>}
+                  <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
+                  {bio && (
+                    <div className="mt-2">
+                      <TypingBio bio={bio} />
+                    </div>
+                  )}
                 </div>
               </div>
 

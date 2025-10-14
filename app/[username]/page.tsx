@@ -162,7 +162,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                   return (
                     <div key={section.id} className="flex items-center bg-white/5 backdrop-blur-lg border border-orange-500/20 rounded-full p-4 mb-6 shadow-[0_0_15px_rgba(234,88,12,0.6)]">
                       <div className="relative mr-3">
-                        <Avatar name={name} avatar={avatar} className="w-12 h-12 rounded-full" />
+                        <div className="w-12 h-12 rounded-full overflow-hidden">
+                          <Avatar name={name} avatar={avatar} />
+                        </div>
                         <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-purple-500 opacity-50 blur"></div>
                       </div>
                       <div>

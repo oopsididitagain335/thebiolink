@@ -67,7 +67,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (!userData) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+          <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-gray-700">
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-indigo-600/20 rounded-full">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m2 0a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4v4m0 0v4m0-4h4m-4 0H7" />
@@ -75,7 +75,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Profile Not Found</h1>
             <p className="text-gray-400 mb-4">No BioLink exists for <span className="font-semibold">@{username}</span>.</p>
-            <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md">
+            <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
               Create Yours
             </a>
           </div>
@@ -86,7 +86,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-red-800/50">
+          <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-red-800/50">
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-red-600/20 rounded-full animate-pulse">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
@@ -94,7 +94,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Suspended</h1>
             <p className="text-gray-400 mb-4">This profile has been restricted.</p>
-            <a href="/" className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md">
+            <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
               Explore Others
             </a>
           </div>
@@ -128,15 +128,18 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    const themeClasses = {
-      indigo: { glow: 'shadow-[0_0_20px_rgba(99,102,241,0.7)]', btn: 'bg-indigo-600 hover:bg-indigo-700' },
-      purple: { glow: 'shadow-[0_0_20px_rgba(168,85,247,0.7)]', btn: 'bg-purple-600 hover:bg-purple-700' },
-      green: { glow: 'shadow-[0_0_20px_rgba(34,197,94,0.7)]', btn: 'bg-emerald-600 hover:bg-emerald-700' },
-      red: { glow: 'shadow-[0_0_20px_rgba(239,68,68,0.7)]', btn: 'bg-rose-600 hover:bg-rose-700' },
-      halloween: { glow: 'shadow-[0_0_20px_rgba(234,88,12,0.7)]', btn: 'bg-orange-600 hover:bg-orange-700' },
+    const themeGlowMap: Record<string, string> = {
+      indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
+      purple: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
+      green: 'shadow-[0_0_20px_rgba(34,197,94,0.6)]',
+      red: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
+      halloween: 'shadow-[0_0_20px_rgba(234,88,12,0.6)]',
     };
+    const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
-    const { glow, btn } = themeClasses[theme as keyof typeof themeClasses] || themeClasses.indigo;
+    // Separate badges
+    const iconBadges = badges.filter(b => b.type === 'icon');
+    const tagBadges = badges.filter(b => b.type === 'tag');
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
@@ -176,15 +179,15 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">
             {/* Profile Card */}
-            <div className={`bg-gray-900/70 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-gray-700 ${glow}`}>
+            <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="relative">
                   <Avatar name={name} avatar={avatar} />
-                  {badges.length > 0 && (
+                  {iconBadges.length > 0 && (
                     <div className="absolute -top-1 -right-1 flex gap-1">
-                      {badges.slice(0, 3).map((badge, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full overflow-hidden">
-                          <img src={badge.icon} alt="" className="w-full h-full" />
+                      {iconBadges.slice(0, 3).map((badge, i) => (
+                        <div key={i} className="w-6 h-6 rounded-full overflow-hidden" title={badge.name}>
+                          <img src={badge.icon} alt={badge.name} className="w-full h-full" />
                         </div>
                       ))}
                     </div>
@@ -196,7 +199,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 </div>
               </div>
 
-              <div className="flex justify-center gap-4 text-xs text-gray-400 mb-4">
+              {/* Location & Stats */}
+              <div className="flex justify-center gap-4 text-xs text-gray-300 mb-4">
                 {location && (
                   <div className="flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,16 +214,28 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 {links.length > 0 && <span>🔗 {links.length}</span>}
               </div>
 
-              {getSpecialProfileTag(username) && (
-                <div className="mt-2 pt-2 border-t border-gray-700">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${btn} shadow-sm`}>
-                    🏆 {getSpecialProfileTag(username)}
-                  </span>
+              {/* Tag Badges & Special Profile Tag */}
+              {(tagBadges.length > 0 || getSpecialProfileTag(username)) && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  {tagBadges.map(badge => (
+                    <span
+                      key={badge.id}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm mb-2 mr-2"
+                    >
+                      {badge.icon && <img src={badge.icon} alt="" className="w-4 h-4 mr-1" />}
+                      {badge.name}
+                    </span>
+                  ))}
+                  {getSpecialProfileTag(username) && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
+                      🏆 {getSpecialProfileTag(username)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Links */}
+            {/* Links - Transparent Glass Buttons */}
             {sortedLinks.length > 0 && (
               <div className="space-y-2">
                 {sortedLinks.map((link) => (
@@ -228,7 +244,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`block w-full py-3 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 ${btn} hover:shadow-lg transform hover:-translate-y-0.5`}
+                    className="block w-full py-3.5 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:shadow-lg hover:-translate-y-0.5"
                   >
                     {link.icon ? (
                       <div className="flex items-center justify-center gap-2">
@@ -247,7 +263,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             {sortedWidgets.length > 0 && (
               <div className="space-y-4">
                 {sortedWidgets.map((widget) => (
-                  <div key={widget.id} className="bg-gray-900/50 backdrop-blur-md rounded-xl p-4 shadow-lg border border-gray-700">
+                  <div key={widget.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
                     {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url && (
                       <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
@@ -291,7 +307,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </div>
             )}
 
-            <div className="text-center text-gray-500 text-xs pt-4 border-t border-gray-800 mt-4">
+            {/* Footer */}
+            <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
               <p className="mb-1">Powered by The BioLink</p>
               <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
             </div>
@@ -303,10 +320,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     console.error('UserPage error:', { username, error: error.message });
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+        <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-2">Oops!</h2>
           <p className="text-gray-400 mb-4">Something went wrong loading this profile.</p>
-          <a href="/" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
             Go Home
           </a>
         </div>

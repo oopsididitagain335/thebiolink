@@ -107,7 +107,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       name = '',
       avatar = '',
       bio = '',
-      location = '', // ←←← ADDED
+      location = '', // ←←← NOW SAFE (thanks to storage.ts)
       background = '',
       backgroundVideo = '',
       backgroundAudio = '',
@@ -184,6 +184,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 );
               }
 
+              // ... rest of layout rendering (links, widgets, etc.) unchanged ...
               if (section.type === 'links' && sortedLinks.length > 0) {
                 return (
                   <div key={section.id} className="space-y-3 mb-6">

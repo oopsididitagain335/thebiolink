@@ -121,6 +121,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       theme = 'indigo',
     } = userData;
 
+    // ✅ FILTER OUT HIDDEN BADGES
+    const visibleBadges = badges.filter(badge => !badge.hidden);
+
     const isValidGif = background && /\.gif$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
     const isValidImage = background && /\.(png|jpg|jpeg|webp)$/i.test(background);
@@ -181,14 +184,14 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
               <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
 
-              {/* ✅ BADGES AS READABLE TAGS BETWEEN NAME AND BIO */}
-              {badges.length > 0 && (
+              {/* ✅ ONLY VISIBLE BADGES RENDERED */}
+              {visibleBadges.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
-                  {badges.map((badge) => (
+                  {visibleBadges.map((badge) => (
                     <span
                       key={badge.id}
                       className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
-                      title={`Awarded: ${new Date(badge.awardedAt).toLocaleDateString()}`}
+                      title={`Awarded: ${new Date(badge.awardedAt || badge.earnedAt).toLocaleDateString()}`}
                     >
                       {badge.icon && (
                         <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />

@@ -21,36 +21,74 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   transition: background-color 0.3s ease;
+  overflow-x: hidden;
 }
 
+/* Glass-morphism inspired card */
 .card {
-  background: rgb(var(--card-bg));
-  border: 1px solid rgb(var(--card-border));
+  background: rgba(var(--card-bg), 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--card-border), 0.3);
   border-radius: 1.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
 .card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
+/* Primary button with glow */
 .btn-primary {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  opacity: 0.95;
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
 }
 
+/* Link card subtle hover */
 .link-card {
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .link-card:hover {
-  transform: translateX(4px);
+  transform: translateX(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Typing bio cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s infinite;
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: white;
+  margin-left: 4px;
+  vertical-align: text-bottom;
+}
+
+/* Smooth scroll for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure full height layout */
+#__next,
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }

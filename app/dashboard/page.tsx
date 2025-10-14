@@ -53,6 +53,23 @@ interface LayoutSection {
   content?: string;
 }
 
+interface NewsPost {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  authorName: string;
+  publishedAt: string;
+  likes: number;
+  comments: Array<{
+    id: string;
+    content: string;
+    author: string;
+    authorName: string;
+    createdAt: string;
+  }>;
+}
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -216,26 +233,31 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       {/* Upgrade to Premium */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
         <div className="flex items-start">
+          {/* ✅ Clean, valid SVG (star icon) */}
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1......
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975L10 15.5l1.07-3.292c.298-.921 1.603-.921 1.902 0l1.07 3.292c.298.921 1.603.921 1.902 0l3.292-.677a1 1 0 00.684-1.028l1.07-3.292a1 1 0 00-1.285-1.975l-3.292-.677a1 1 0 00-1.028.684L13.257 4.001z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-white font-medium">Upgrade to Premium</h3>
+            <p className="text-gray-400 text-sm mt-1">
+              Unlock custom domains, advanced analytics, priority support, and more.
+            </p>
+            <button
+              onClick={handleUpgrade}
+              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            >
+              Upgrade Now
+            </button>
+          </div>
         </div>
-        <h3 className="text-white font-medium">Upgrade to Premium</h3>
-        <p className="text-gray-400 text-sm mt-1">
-          Unlock custom domains, advanced analytics, priority support, and more.
-        </p>
-        <button
-          onClick={handleUpgrade}
-          className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          Upgrade Now
-        </button>
       </div>
     </div>
   );
 };
 
-// --- Other Tabs (simplified for brevity but fully functional) ---
+// --- Other Tabs (from your KB, unchanged) ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -257,7 +279,7 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
 );
 
 const NewsTab = () => {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchNews = async () => {
@@ -273,6 +295,8 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
+  const truncate = (str: string, len = 100) =>
+    str.length > len ? str.substring(0, len) + '...' : str;
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -285,18 +309,21 @@ const NewsTab = () => {
           <p className="text-gray-400 text-center py-6">No news available.</p>
         ) : (
           <div className="space-y-4">
-            {posts.slice(0, 5).map((post: any) => (
+            {posts.slice(0, 5).map((post) => (
               <div key={post.id} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
                 <h3 className="text-white font-medium">{post.title}</h3>
                 <p className="text-gray-400 text-sm mt-1">
                   {new Date(post.publishedAt).toLocaleDateString()} • {post.authorName}
                 </p>
-                <p className="text-gray-300 mt-2 text-sm">{post.content.substring(0, 100)}...</p>
+                <p className="text-gray-300 mt-2 text-sm">{truncate(post.content)}</p>
               </div>
             ))}
           </div>
         )}
-        <a href="/news" className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium">
+        <a
+          href="/news"
+          className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+        >
           View all news →
         </a>
       </div>
@@ -1025,7 +1052,7 @@ const getSpotifyId = (url: string): string => {
   return match ? `${match[1]}/${match[2]}` : '';
 };
 
-// --- Main Dashboard Component ---
+// --- Main Dashboard ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',

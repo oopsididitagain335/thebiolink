@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -10,7 +9,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom';
@@ -19,7 +17,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface Badge {
   id: string;
   name: string;
@@ -28,7 +25,6 @@ interface Badge {
   earnedAt: string;
   hidden?: boolean;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -44,7 +40,6 @@ interface User {
   badges?: Badge[];
   email?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
@@ -52,7 +47,6 @@ interface LayoutSection {
   height?: number;
   content?: string;
 }
-
 interface NewsPost {
   id: string;
   title: string;
@@ -69,7 +63,6 @@ interface NewsPost {
     createdAt: string;
   }>;
 }
-
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -83,23 +76,19 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
-
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
-
 // --- Draggable Component ---
 const DraggableItem = ({ 
   children,
@@ -138,7 +127,6 @@ const DraggableItem = ({
     </div>
   );
 };
-
 // --- Badges Tab ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
@@ -147,7 +135,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
-
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -156,7 +143,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -196,24 +182,19 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 // --- Settings Tab ---
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
-
   const handleAccountSecurity = () => {
     alert('Please set up your email and password for improved security.');
   };
-
   const handleUpgrade = () => {
-    window.location.href = '/premium';
+    window.location.href = '/pricing'; // ✅ FIXED: was '/premium'
   };
-
   return (
     <div className="space-y-6">
       {/* Account Security */}
@@ -229,11 +210,9 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
-
       {/* Upgrade to Premium */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
         <div className="flex items-start">
-          {/* ✅ Clean, valid SVG (star icon) */}
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975L10 15.5l1.07-3.292c.298-.921 1.603-.921 1.902 0l1.07 3.292c.298.921 1.603.921 1.902 0l3.292-.677a1 1 0 00.684-1.028l1.07-3.292a1 1 0 00-1.285-1.975l-3.292-.677a1 1 0 00-1.028.684L13.257 4.001z" />
@@ -256,8 +235,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
-
-// --- Other Tabs (from your KB, unchanged) ---
+// --- Other Tabs ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -277,7 +255,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
-
 const NewsTab = () => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,7 +307,6 @@ const NewsTab = () => {
     </div>
   );
 };
-
 const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const themes = [
     { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
@@ -362,7 +338,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -400,7 +375,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -500,7 +474,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -610,7 +583,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
-
 const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -703,7 +675,6 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     </div>
   );
 };
-
 const ProfileBuilderTab = ({ 
   user, 
   setUser, 
@@ -1041,17 +1012,14 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
-
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
-
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 };
-
 // --- Main Dashboard ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1082,7 +1050,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1149,7 +1116,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1159,11 +1125,9 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
-
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1225,7 +1189,6 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1238,7 +1201,6 @@ export default function Dashboard() {
     { id: 'badges', name: 'Badges' },
     { id: 'settings', name: 'Settings' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1246,7 +1208,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

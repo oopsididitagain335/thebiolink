@@ -54,6 +54,13 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
+type LegacyBadge = {
+  id: string;
+  name: string;
+  icon: string;
+  awardedAt: string;
+};
+
 type Badge = {
   id: string;
   name: string;
@@ -117,7 +124,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       background = '',
       backgroundVideo = '',
       backgroundAudio = '',
-      badges = [] as Badge[],
+      badges = [] as (LegacyBadge | Badge)[],
       links = [],
       widgets = [],
       layoutStructure = [
@@ -130,7 +137,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     } = userData;
 
     // ✅ FILTER OUT HIDDEN BADGES
-    const visibleBadges = badges.filter(badge => !badge.hidden);
+    const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
     const isValidGif = background && /\.gif$/i.test(background);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
@@ -199,7 +206,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     <span
                       key={badge.id}
                       className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
-                      title={`Awarded: ${new Date(badge.awardedAt || badge.earnedAt || Date.now()).toLocaleDateString()}`}
+                      title={`Awarded: ${new Date(badge.awardedAt ?? (('earnedAt' in badge) ? badge.earnedAt : undefined) ?? Date.now()).toLocaleDateString()}`}
                     >
                       {badge.icon && (
                         <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />

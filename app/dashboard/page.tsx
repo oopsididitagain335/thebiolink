@@ -35,7 +35,6 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
-  theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
 }
@@ -127,32 +126,30 @@ const DraggableItem = ({
   );
 };
 // --- Badges Tab ---
-const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+const BadgesTab = ({ user }: { user: User }) => {
   if (!user.badges || user.badges.length === 0) {
     return (
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-        <p className="text-gray-400">You haven't earned any badges yet.</p>
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Your Badges</h2>
+        <p className="text-slate-400 text-lg">You haven't earned any badges yet.</p>
       </div>
     );
   }
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-      <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+      <h2 className="text-2xl font-bold mb-6 text-white">Your Badges</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {user.badges.map(badge => (
           <div 
             key={badge.id} 
-            className="p-4 rounded-xl border border-indigo-500 bg-indigo-900/20"
+            className="p-6 rounded-2xl border border-blue-500 bg-blue-900/10 shadow-lg hover:shadow-xl transition-shadow"
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
-                <span className="text-white font-medium">{badge.name}</span>
-              </div>
+            <div className="flex items-center space-x-4 mb-4">
+              <img src={badge.icon} alt={badge.name} className="w-12 h-12 rounded-full" />
+              <span className="text-white text-lg font-semibold">{badge.name}</span>
             </div>
-            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-slate-300 text-base mb-3">{badge.description}</p>
+            <p className="text-sm text-slate-500">
               Earned: {new Date(badge.earnedAt).toLocaleDateString()}
             </p>
           </div>
@@ -172,39 +169,37 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     alert('Please set up your email and password for improved security.');
   };
   const handleUpgrade = () => {
-    window.location.href = '/pricing'; // ✅ FIXED: was '/premium'
+    window.location.href = '/pricing';
   };
   return (
-    <div className="space-y-6">
-      {/* Account Security */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
-        <p className="text-gray-400 mb-4">
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Account Security</h2>
+        <p className="text-slate-400 mb-6 text-lg">
           {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
         </p>
         <button
           onClick={handleAccountSecurity}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm transition-colors shadow-md"
+          className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-xl text-base font-semibold transition-colors shadow-lg"
         >
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
-      {/* Upgrade to Premium */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6 shadow-lg">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-violet-700 rounded-3xl p-8 shadow-2xl">
         <div className="flex items-start">
-          <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
-            <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-violet-500/20 p-4 rounded-2xl mr-6">
+            <svg className="w-8 h-8 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975L10 15.5l1.07-3.292c.298-.921 1.603-.921 1.902 0l1.07 3.292c.298.921 1.603.921 1.902 0l3.292-.677a1 1 0 00.684-1.028l1.07-3.292a1 1 0 00-1.285-1.975l-3.292-.677a1 1 0 00-1.028.684L13.257 4.001z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-white font-medium">Upgrade to Premium</h3>
-            <p className="text-gray-400 text-sm mt-1">
+            <h3 className="text-white text-xl font-semibold">Upgrade to Premium</h3>
+            <p className="text-slate-400 text-base mt-2">
               Unlock custom domains, advanced analytics, priority support, and more.
             </p>
             <button
               onClick={handleUpgrade}
-              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
+              className="mt-4 bg-gradient-to-r from-violet-600 to-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold transition-colors shadow-lg"
             >
               Upgrade Now
             </button>
@@ -216,19 +211,19 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
 };
 // --- Other Tabs ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
-  <div className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900/50 p-5 rounded-xl shadow-md">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
-          <p className="text-3xl font-bold text-white">
+  <div className="space-y-8">
+    <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+      <h2 className="text-2xl font-bold mb-6 text-white">Profile Analytics</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-slate-900/50 p-6 rounded-2xl shadow-lg">
+          <h3 className="text-slate-300 text-base font-semibold mb-2">Profile Views</h3>
+          <p className="text-4xl font-bold text-white">
             {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
           </p>
         </div>
-        <div className="bg-gray-900/50 p-5 rounded-xl shadow-md">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
-          <p className="text-3xl font-bold text-white">{links.length}</p>
+        <div className="bg-slate-900/50 p-6 rounded-2xl shadow-lg">
+          <h3 className="text-slate-300 text-base font-semibold mb-2">Total Links</h3>
+          <p className="text-4xl font-bold text-white">{links.length}</p>
         </div>
       </div>
     </div>
@@ -254,65 +249,34 @@ const NewsTab = () => {
   const truncate = (str: string, len = 100) =>
     str.length > len ? str.substring(0, len) + '...' : str;
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Latest News</h2>
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : posts.length === 0 ? (
-          <p className="text-gray-400 text-center py-6">No news available.</p>
+          <p className="text-slate-400 text-center py-8 text-lg">No news available.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {posts.slice(0, 5).map((post) => (
-              <div key={post.id} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
-                <h3 className="text-white font-medium">{post.title}</h3>
-                <p className="text-gray-400 text-sm mt-1">
+              <div key={post.id} className="border-b border-slate-700 pb-6 last:border-0 last:pb-0">
+                <h3 className="text-white text-xl font-semibold">{post.title}</h3>
+                <p className="text-slate-400 text-sm mt-2">
                   {new Date(post.publishedAt).toLocaleDateString()} • {post.authorName}
                 </p>
-                <p className="text-gray-300 mt-2 text-sm">{truncate(post.content)}</p>
+                <p className="text-slate-300 mt-3 text-base">{truncate(post.content)}</p>
               </div>
             ))}
           </div>
         )}
         <a
           href="/news"
-          className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+          className="mt-6 inline-block text-blue-400 hover:text-blue-300 text-base font-semibold"
         >
           View all news →
         </a>
-      </div>
-    </div>
-  );
-};
-const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const themes = [
-    { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
-    { id: 'purple', name: 'Purple', color: '#7c3aed' },
-    { id: 'green', name: 'Green', color: '#10b981' },
-    { id: 'red', name: 'Red', color: '#ef4444' },
-    { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
-  ];
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
-        <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {themes.map((theme) => (
-            <button
-              key={theme.id}
-              onClick={() => setUser({ ...user, theme: theme.id as any })}
-              className={`p-4 rounded-xl text-white flex flex-col items-center transition-shadow hover:shadow-lg ${
-                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }}></div>
-              <span className="text-sm font-medium">{theme.name}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -326,27 +290,27 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Profile Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
+            <h3 className="text-slate-300 text-base font-semibold mb-2">Your BioLink</h3>
             <a
               href={bioLinkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
+              className="font-mono text-blue-400 hover:underline break-all text-lg"
             >
               {bioLinkUrl}
             </a>
           </div>
           <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
+            <h3 className="text-slate-300 text-base font-semibold mb-2">Stats</h3>
+            <div className="space-y-3 text-base">
+              <div className="flex justify-between"><span className="text-slate-400">Total Links</span><span className="text-white font-semibold">{links.length}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Profile Completion</span><span className="text-white font-semibold">{completion}%</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Plan</span><span className="text-violet-400 font-semibold">{planDisplay}</span></div>
             </div>
           </div>
         </div>
@@ -365,25 +329,25 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     }
   };
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-      <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
-      <div className="space-y-5">
+    <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+      <h2 className="text-2xl font-bold mb-8 text-white">Profile Settings</h2>
+      <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Full Name</label>
           <input
             type="text"
             name="name"
             value={user.name}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             placeholder="John Doe"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Username</label>
           <div className="flex">
-            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
+            <span className="inline-flex items-center px-5 rounded-l-2xl border border-r-0 border-slate-600 bg-slate-700/50 text-slate-400 text-lg">
               thebiolink.lol/
             </span>
             <input
@@ -392,60 +356,60 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               value={user.username}
               onChange={handleProfileChange}
               maxLength={30}
-              className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 min-w-0 px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-r-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
               placeholder="yourname"
             />
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-3 text-sm text-slate-500">
             Letters, numbers, underscores, hyphens only (3–30 chars)
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Location (optional)</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Location (optional)</label>
           <input
             type="text"
             name="location"
             value={user.location || ''}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             placeholder="e.g., Los Angeles, Tokyo, Berlin"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Avatar URL</label>
           <input
             type="url"
             name="avatar"
             value={user.avatar}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Background GIF/Video URL</label>
           <input
             type="url"
             name="background"
             value={user.background}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             placeholder="https://example.com/background.gif"
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-3 text-sm text-slate-500">
             Supports .gif, .mp4, .webm
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+          <label className="block text-base font-semibold text-slate-300 mb-3">Bio</label>
           <textarea
             name="bio"
             value={user.bio}
             onChange={handleProfileChange}
             maxLength={500}
-            rows={3}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            rows={4}
+            className="w-full px-5 py-4 bg-slate-700/50 border border-slate-600 rounded-2xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             placeholder="Tell people about yourself"
           />
         </div>
@@ -486,15 +450,15 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h2 className="text-xl font-semibold text-white">Link Manager</h2>
-          <div className="flex flex-wrap gap-2">
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-6">
+          <h2 className="text-2xl font-bold text-white">Link Manager</h2>
+          <div className="flex flex-wrap gap-3">
             <select
               value={newLinkTitle}
               onChange={(e) => setNewLinkTitle(e.target.value)}
-              className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+              className="bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white text-base"
             >
               <option value="">Custom Link</option>
               {FAMOUS_LINKS.map((link, i) => (
@@ -503,34 +467,34 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </select>
             <button
               onClick={addLink}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm shadow-md"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors text-base font-semibold shadow-lg"
             >
               + Add Link
             </button>
           </div>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30 shadow-md">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="border border-slate-700 rounded-2xl p-6 bg-slate-700/30 shadow-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                    <label className="block text-base font-semibold text-slate-300 mb-2">Title</label>
                     <input
                       type="text"
                       value={link.title}
                       onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
                       maxLength={100}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 text-lg"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
+                    <label className="block text-base font-semibold text-slate-300 mb-2">URL</label>
                     <input
                       type="url"
                       value={link.url}
                       onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 text-lg"
                     />
                   </div>
                 </div>
@@ -539,12 +503,12 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
                     type="text"
                     value={link.icon}
                     onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
-                    className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                    className="px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-base text-white placeholder-slate-400 flex-1 mr-4"
                     placeholder="Icon URL (optional)"
                   />
                   <button
                     onClick={() => removeLink(index)}
-                    className="text-red-400 hover:text-red-300 font-medium"
+                    className="text-red-400 hover:text-red-300 font-semibold text-base"
                   >
                     Remove
                   </button>
@@ -553,7 +517,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </DraggableItem>
           ))}
           {links.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-12 text-slate-500 text-lg">
               <p>No links added yet</p>
             </div>
           )}
@@ -589,55 +553,55 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
-        <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Custom Widgets</h2>
+        <p className="text-slate-400 mb-6 text-lg">Add embeds, media, or custom HTML to your BioLink.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {WIDGET_TYPES.map((w) => (
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white transition-shadow hover:shadow-md"
+              className="bg-slate-700/50 hover:bg-slate-700 p-4 rounded-2xl text-center text-white transition-shadow hover:shadow-lg"
             >
-              <div className="text-2xl mb-1">{w.icon}</div>
-              <div className="text-xs">{w.name}</div>
+              <div className="text-3xl mb-2">{w.icon}</div>
+              <div className="text-base font-semibold">{w.name}</div>
             </button>
           ))}
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30 shadow-md">
-                <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
-                <div className="space-y-3">
+              <div className="border border-slate-700 rounded-2xl p-6 bg-slate-700/30 shadow-lg">
+                <div className="font-semibold text-white text-lg mb-3 capitalize">{widget.type} Widget</div>
+                <div className="space-y-4">
                   <input
                     type="text"
                     placeholder="Widget Title"
                     value={widget.title || ''}
                     onChange={(e) => updateWidget(index, 'title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-white text-base"
                   />
                   <input
                     type="url"
                     placeholder="Embed URL (YouTube, Spotify, etc.)"
                     value={widget.url || ''}
                     onChange={(e) => updateWidget(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-white text-base"
                   />
                   {widget.type === 'custom' && (
                     <textarea
                       placeholder="Paste HTML or embed code"
                       value={widget.content || ''}
                       onChange={(e) => updateWidget(index, 'content', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                      rows={4}
+                      className="w-full px-4 py-3 bg-slate-600/50 border border-slate-600 rounded-xl text-white text-base font-mono"
                     />
                   )}
                 </div>
                 <button
                   onClick={() => removeWidget(index)}
-                  className="mt-3 text-red-400 text-sm"
+                  className="mt-4 text-red-400 text-base"
                 >
                   Remove Widget
                 </button>
@@ -645,7 +609,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             </DraggableItem>
           ))}
           {widgets.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
+            <div className="text-center py-12 text-slate-500 text-lg">
               No widgets added. Choose one above to get started.
             </div>
           )}
@@ -698,12 +662,12 @@ const ProfileBuilderTab = ({
   const renderSectionEditor = (section: LayoutSection, index: number) => {
     if (section.type === 'spacer') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">Spacer</span>
+        <div className="p-4 bg-slate-700/50 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white text-base font-semibold">Spacer</span>
             <button 
               onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
+              className="text-red-400 hover:text-red-300 text-sm"
             >
               Remove
             </button>
@@ -716,18 +680,18 @@ const ProfileBuilderTab = ({
             onChange={(e) => updateSection(section.id, { height: parseInt(e.target.value) })}
             className="w-full"
           />
-          <div className="text-xs text-gray-400 mt-1">{section.height || 20}px</div>
+          <div className="text-sm text-slate-400 mt-2">{section.height || 20}px</div>
         </div>
       );
     }
     if (section.type === 'custom') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">Custom HTML</span>
+        <div className="p-4 bg-slate-700/50 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white text-base font-semibold">Custom HTML</span>
             <button 
               onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
+              className="text-red-400 hover:text-red-300 text-sm"
             >
               Remove
             </button>
@@ -736,8 +700,8 @@ const ProfileBuilderTab = ({
             value={section.content || ''}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
             placeholder="Enter custom HTML"
-            className="w-full px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
-            rows={3}
+            className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded-xl text-white text-base"
+            rows={4}
           />
         </div>
       );
@@ -745,14 +709,14 @@ const ProfileBuilderTab = ({
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">
+        <div className="p-4 bg-slate-700/50 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white text-base font-semibold">
               Widget: {widget?.title || 'Unknown'}
             </span>
             <button 
               onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
+              className="text-red-400 hover:text-red-300 text-sm"
             >
               Remove
             </button>
@@ -760,7 +724,7 @@ const ProfileBuilderTab = ({
           <select
             value={section.widgetId || ''}
             onChange={(e) => updateSection(section.id, { widgetId: e.target.value })}
-            className="w-full bg-gray-600/50 border border-gray-600 rounded text-white text-sm p-1"
+            className="w-full bg-slate-600/50 border border-slate-600 rounded-xl text-white text-base p-3"
           >
             <option value="">Select Widget</option>
             {widgets.map(w => (
@@ -773,12 +737,12 @@ const ProfileBuilderTab = ({
       );
     }
     return (
-      <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
+      <div className="p-4 bg-slate-700/50 rounded-2xl shadow-lg">
         <div className="flex items-center justify-between">
-          <span className="text-white capitalize text-sm">{section.type}</span>
+          <span className="text-white capitalize text-base font-semibold">{section.type}</span>
           <button 
             onClick={() => removeSection(section.id)}
-            className="text-red-400 hover:text-red-300 text-xs"
+            className="text-red-400 hover:text-red-300 text-sm"
           >
             Remove
           </button>
@@ -787,45 +751,45 @@ const ProfileBuilderTab = ({
     );
   };
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
-        <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+    <div className="space-y-8">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-6 text-white">Profile Builder</h2>
+        <p className="text-slate-400 mb-6 text-lg">Drag to reorder. Click + to add sections.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <button
             onClick={() => addSection('bio')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
+            className="p-4 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white text-base font-semibold transition-shadow hover:shadow-lg"
           >
             📝 Bio
           </button>
           <button
             onClick={() => addSection('links')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
+            className="p-4 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white text-base font-semibold transition-shadow hover:shadow-lg"
           >
             🔗 Links
           </button>
           <button
             onClick={() => addSection('spacer', { height: 20 })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
+            className="p-4 bg-violet-600 hover:bg-violet-700 rounded-2xl text-white text-base font-semibold transition-shadow hover:shadow-lg"
           >
             ⬇️ Spacer
           </button>
           <button
             onClick={() => addSection('custom', { content: '' })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
+            className="p-4 bg-violet-600 hover:bg-violet-700 rounded-2xl text-white text-base font-semibold transition-shadow hover:shadow-lg"
           >
             ✏️ Custom
           </button>
         </div>
         {widgets.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
-            <div className="flex flex-wrap gap-2">
+          <div className="mb-8">
+            <h3 className="text-slate-300 text-base font-bold mb-3">Add Widgets</h3>
+            <div className="flex flex-wrap gap-3">
               {widgets.map(widget => (
                 <button
                   key={widget.id}
                   onClick={() => addSection('widget', { widgetId: widget.id })}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-shadow hover:shadow-md"
+                  className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-base rounded-xl font-semibold transition-shadow hover:shadow-lg"
                 >
                   + {widget.title || widget.type}
                 </button>
@@ -834,8 +798,8 @@ const ProfileBuilderTab = ({
           </div>
         )}
         <div>
-          <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
-          <div className="space-y-3">
+          <h3 className="text-slate-300 text-base font-bold mb-4">Your Layout</h3>
+          <div className="space-y-4">
             {layoutStructure.map((section, index) => (
               <DraggableItem 
                 key={section.id} 
@@ -847,24 +811,24 @@ const ProfileBuilderTab = ({
               </DraggableItem>
             ))}
             {layoutStructure.length === 0 && (
-              <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
+              <div className="text-slate-500 text-base py-6 text-center border-2 border-dashed border-slate-700 rounded-2xl">
                 Click + buttons above to add sections
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
-        <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px] shadow-inner">
+      <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl">
+        <h3 className="text-xl font-bold mb-6 text-white">Live Preview</h3>
+        <div className="bg-slate-900/50 rounded-2xl p-8 text-center relative overflow-hidden min-h-[600px] shadow-2xl">
           {user.background && (
             <div
-              className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
+              className="absolute inset-0 z-0 bg-cover bg-center opacity-70"
               style={{ backgroundImage: `url(${user.background})` }}
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80 z-10"></div>
-          <div className="relative z-20 space-y-6">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/70 z-10"></div>
+          <div className="relative z-20 space-y-8">
             {layoutStructure.map((section) => {
               if (section.type === 'bio') {
                 return (
@@ -873,32 +837,32 @@ const ProfileBuilderTab = ({
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-lg"
+                        className="w-40 h-40 rounded-full mx-auto mb-6 border-4 border-white/30 shadow-2xl"
                       />
                     ) : (
-                      <div className="w-32 h-32 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span className="text-4xl text-white font-bold">
+                      <div className="w-40 h-40 bg-gradient-to-r from-blue-500 to-violet-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                        <span className="text-5xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <h3 className="text-2xl font-bold text-white mb-2">{user.name}</h3>
+                    <h3 className="text-3xl font-bold text-white mb-3">{user.name}</h3>
                     {user.location && (
-                      <div className="flex items-center justify-center text-gray-200 mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="flex items-center justify-center text-slate-200 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span className="text-sm">{user.location}</span>
+                        <span className="text-base">{user.location}</span>
                       </div>
                     )}
-                    {user.bio && <p className="text-gray-200 max-w-md mx-auto text-sm leading-relaxed">{user.bio}</p>}
+                    {user.bio && <p className="text-slate-200 max-w-lg mx-auto text-base leading-relaxed">{user.bio}</p>}
                     {user.badges && user.badges.length > 0 && (
-                      <div className="flex flex-wrap justify-center gap-2 mt-4">
+                      <div className="flex flex-wrap justify-center gap-3 mt-6">
                         {user.badges.map(badge => (
                           <div key={badge.id} className="group relative">
-                            <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded-full shadow-md" />
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                            <img src={badge.icon} alt={badge.name} className="w-10 h-10 rounded-full shadow-md" />
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block bg-slate-800 text-white text-sm rounded py-2 px-3 whitespace-nowrap shadow-lg">
                               {badge.name}: {badge.description}
                             </div>
                           </div>
@@ -909,16 +873,8 @@ const ProfileBuilderTab = ({
                 );
               }
               if (section.type === 'links' && links.length > 0) {
-                const themeHoverMap = {
-                  indigo: 'hover:bg-indigo-700/50',
-                  purple: 'hover:bg-purple-700/50',
-                  green: 'hover:bg-emerald-700/50',
-                  red: 'hover:bg-rose-700/50',
-                  halloween: 'hover:bg-orange-700/50',
-                } as const;
-                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-700/50';
                 return (
-                  <div key={section.id} className="space-y-3 mt-6">
+                  <div key={section.id} className="space-y-4 mt-8">
                     {links
                       .filter(link => link.url && link.title)
                       .map((link, idx) => (
@@ -927,9 +883,9 @@ const ProfileBuilderTab = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`flex items-center w-full py-3 px-4 rounded-full text-sm text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-md`}
+                          className="flex items-center w-full py-4 px-6 rounded-2xl text-base text-white backdrop-blur-md border border-white/20 hover:bg-blue-700/30 transition-all hover:shadow-xl"
                         >
-                          {link.icon && <img src={link.icon} alt="" className="w-5 h-5 mr-3" />}
+                          {link.icon && <img src={link.icon} alt="" className="w-6 h-6 mr-4" />}
                           {link.title}
                         </a>
                       ))}
@@ -940,10 +896,10 @@ const ProfileBuilderTab = ({
                 const widget = widgets.find(w => w.id === section.widgetId);
                 if (!widget) return null;
                 return (
-                  <div key={section.id} className="bg-white/10 rounded-xl p-4 text-left shadow-md">
-                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                  <div key={section.id} className="bg-white/10 rounded-2xl p-6 text-left shadow-xl">
+                    {widget.title && <h4 className="text-white font-semibold text-lg mb-3">{widget.title}</h4>}
                     {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                      <div className="aspect-video bg-slate-800 rounded-2xl overflow-hidden">
                         <iframe
                           src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                           frameBorder="0"
@@ -953,7 +909,7 @@ const ProfileBuilderTab = ({
                         ></iframe>
                       </div>
                     ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                      <div className="aspect-video bg-slate-800 rounded-2xl overflow-hidden">
                         <iframe
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           frameBorder="0"
@@ -963,18 +919,18 @@ const ProfileBuilderTab = ({
                         ></iframe>
                       </div>
                     ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                      <div className="bg-slate-800 rounded-2xl p-6">
+                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-base">
                           🐦 View Twitter Feed
                         </a>
                       </div>
                     ) : widget.type === 'custom' && widget.content ? (
                       <div
-                        className="text-gray-300 text-sm"
+                        className="text-slate-300 text-base"
                         dangerouslySetInnerHTML={{ __html: widget.content }}
                       />
                     ) : (
-                      <div className="text-gray-400 text-sm italic">
+                      <div className="text-slate-400 text-base italic">
                         {widget.type === 'spotify' && '🎵 Spotify embed'}
                         {widget.type === 'youtube' && '📺 YouTube video'}
                         {widget.type === 'twitter' && '🐦 Twitter feed'}
@@ -991,7 +947,7 @@ const ProfileBuilderTab = ({
                 return (
                   <div 
                     key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg shadow-md"
+                    className="bg-white/5 p-6 rounded-2xl shadow-xl"
                     dangerouslySetInnerHTML={{ __html: section.content }}
                   />
                 );
@@ -1025,7 +981,6 @@ export default function Dashboard() {
     isEmailVerified: true,
     plan: 'free',
     profileViews: 0,
-    theme: 'indigo',
     badges: [],
     email: '',
   });
@@ -1065,7 +1020,6 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
-          theme: (data.user.theme as User['theme']) || 'indigo',
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
         });
@@ -1159,7 +1113,6 @@ export default function Dashboard() {
             location: user.location?.trim().substring(0, 100) || '',
             background: user.background?.trim() || '',
             plan: user.plan || 'free',
-            theme: user.theme || 'indigo',
             layoutStructure,
             email: user.email,
           },
@@ -1187,7 +1140,6 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder', icon: '🛠️' },
     { id: 'links', name: 'Links', icon: '🔗' },
     { id: 'widgets', name: 'Widgets', icon: '🧩' },
-    { id: 'themes', name: 'Themes', icon: '🌈' },
     { id: 'analytics', name: 'Analytics', icon: '📊' },
     { id: 'news', name: 'News', icon: '📰' },
     { id: 'badges', name: 'Badges', icon: '🏅' },
@@ -1195,65 +1147,65 @@ export default function Dashboard() {
   ];
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-black">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-black py-12">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+        <div className="mb-12">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">Your BioLink Dashboard</h1>
-              <p className="text-gray-400 mt-2">
+              <h1 className="text-4xl font-bold text-white">Your BioLink Dashboard</h1>
+              <p className="text-slate-400 mt-3 text-lg">
                 Customize your bio link page at{' '}
                 <a
                   href={getBioLinkUrl(user.username)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
+                  className="font-mono text-blue-400 hover:text-blue-300 hover:underline"
                 >
                   thebiolink.lol/{user.username}
                 </a>
               </p>
             </div>
-            <div className="flex gap-3 mt-4 sm:mt-0">
+            <div className="flex gap-4 mt-6 sm:mt-0">
               <button
                 onClick={handleLogout}
-                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700 shadow-md"
+                className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-4 rounded-2xl font-semibold transition-colors border border-slate-700 shadow-lg"
               >
                 Logout
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md"
+                className="bg-gradient-to-r from-blue-600 to-violet-600 text-white px-8 py-4 rounded-2xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-70 shadow-lg"
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
         </div>
-        <div className="border-b border-gray-700 mb-8 overflow-x-auto">
-          <nav className="flex space-x-6 pb-4">
+        <div className="border-b border-slate-700 mb-12 overflow-x-auto">
+          <nav className="flex space-x-8 pb-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+                className={`whitespace-nowrap py-3 px-2 border-b-2 font-semibold text-base flex items-center ${
                   activeTab === tab.id
-                    ? 'border-indigo-500 text-white'
-                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                    ? 'border-blue-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-300'
                 }`}
               >
-                <span className="mr-1">{tab.icon}</span> {tab.name}
+                <span className="mr-2 text-lg">{tab.icon}</span> {tab.name}
               </button>
             ))}
           </nav>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
@@ -1271,74 +1223,65 @@ export default function Dashboard() {
             )}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
-            {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
+            {activeTab === 'badges' && <BadgesTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
           </div>
           <div className="lg:col-span-1">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg sticky top-8">
-              <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
-              <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px] shadow-inner">
+            <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl sticky top-12">
+              <h2 className="text-2xl font-bold mb-6 text-white">Live Preview</h2>
+              <div className="bg-slate-900/50 rounded-2xl p-8 text-center relative overflow-hidden min-h-[600px] shadow-2xl">
                 {user.background && (
                   <div
-                    className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
+                    className="absolute inset-0 z-0 bg-cover bg-center opacity-70"
                     style={{ backgroundImage: `url(${user.background})` }}
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80 z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/70 z-10"></div>
                 <div className="relative z-20">
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-lg"
+                      className="w-40 h-40 rounded-full mx-auto mb-6 border-4 border-white/30 shadow-2xl"
                     />
                   ) : (
-                    <div className="w-32 h-32 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <span className="text-4xl text-white font-bold">
+                    <div className="w-40 h-40 bg-gradient-to-r from-blue-500 to-violet-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                      <span className="text-5xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
-                  <h3 className="text-2xl font-bold text-white mb-2">{user.name}</h3>
+                  <h3 className="text-3xl font-bold text-white mb-3">{user.name}</h3>
                   {user.location && (
-                    <div className="flex items-center justify-center text-gray-200 mb-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center justify-center text-slate-200 mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="text-sm">{user.location}</span>
+                      <span className="text-base">{user.location}</span>
                     </div>
                   )}
-                  {user.bio && <p className="text-gray-200 mb-4 max-w-md mx-auto text-sm leading-relaxed">{user.bio}</p>}
+                  {user.bio && <p className="text-slate-200 mb-6 max-w-lg mx-auto text-base leading-relaxed">{user.bio}</p>}
                   {user.badges && user.badges.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mb-6">
+                    <div className="flex flex-wrap justify-center gap-3 mb-8">
                       {user.badges.map(badge => (
                         <div key={badge.id} className="group relative">
-                          <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded-full shadow-md" />
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                          <img src={badge.icon} alt={badge.name} className="w-10 h-10 rounded-full shadow-md" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block bg-slate-800 text-white text-sm rounded py-2 px-3 whitespace-nowrap shadow-lg">
                             {badge.name}: {badge.description}
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
-                        const themeHoverMap = {
-                          indigo: 'hover:bg-indigo-700/50',
-                          purple: 'hover:bg-purple-700/50',
-                          green: 'hover:bg-emerald-700/50',
-                          red: 'hover:bg-rose-700/50',
-                          halloween: 'hover:bg-orange-700/50',
-                        } as const;
-                        const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-700/50';
                         return (
-                          <div key={section.id} className="space-y-3">
+                          <div key={section.id} className="space-y-4">
                             {links
                               .filter(link => link.url && link.title)
                               .map((link, idx) => (
@@ -1347,9 +1290,9 @@ export default function Dashboard() {
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`flex items-center w-full py-3 px-4 rounded-full text-sm text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-md`}
+                                  className="flex items-center w-full py-4 px-6 rounded-2xl text-base text-white backdrop-blur-md border border-white/20 hover:bg-blue-700/30 transition-all hover:shadow-xl"
                                 >
-                                  {link.icon && <img src={link.icon} alt="" className="w-5 h-5 mr-3" />}
+                                  {link.icon && <img src={link.icon} alt="" className="w-6 h-6 mr-4" />}
                                   {link.title}
                                 </a>
                               ))}
@@ -1360,9 +1303,9 @@ export default function Dashboard() {
                         const widget = widgets.find(w => w.id === section.widgetId);
                         if (!widget) return null;
                         return (
-                          <div key={section.id} className="bg-white/10 rounded-xl p-4 text-left shadow-md">
-                            {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                            <div className="text-gray-400 text-sm italic">
+                          <div key={section.id} className="bg-white/10 rounded-2xl p-6 text-left shadow-xl">
+                            {widget.title && <h4 className="text-white font-semibold text-lg mb-3">{widget.title}</h4>}
+                            <div className="text-slate-400 text-base italic">
                               {widget.type === 'spotify' && '🎵 Spotify embed'}
                               {widget.type === 'youtube' && '📺 YouTube video'}
                               {widget.type === 'twitter' && '🐦 Twitter feed'}
@@ -1378,7 +1321,7 @@ export default function Dashboard() {
                         return (
                           <div 
                             key={section.id} 
-                            className="bg-white/5 p-4 rounded-lg shadow-md"
+                            className="bg-white/5 p-6 rounded-2xl shadow-xl"
                             dangerouslySetInnerHTML={{ __html: section.content }}
                           />
                         );
@@ -1393,45 +1336,45 @@ export default function Dashboard() {
         </div>
         {message && (
           <div
-            className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg ${
+            className={`fixed bottom-8 right-8 p-6 rounded-2xl shadow-2xl ${
               message.type === 'success'
                 ? 'bg-green-900/80 text-green-200 border border-green-800'
                 : 'bg-red-900/80 text-red-200 border border-red-800'
-            } max-w-sm`}
+            } max-w-sm text-lg`}
           >
             {message.text}
           </div>
         )}
         {showGuidelinesModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-xl">
-              <h3 className="text-xl font-bold text-white mb-3">Profile Compliance Check</h3>
-              <p className="text-gray-300 mb-4">
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-6">
+            <div className="bg-slate-800 border border-slate-700 rounded-3xl p-8 w-full max-w-lg shadow-2xl">
+              <h3 className="text-2xl font-bold text-white mb-4">Profile Compliance Check</h3>
+              <p className="text-slate-300 mb-6 text-lg">
                 Please confirm your profile complies with our{' '}
                 <a
                   href="https://www.thebiolink.lol/community-guidelines"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:underline"
+                  className="text-blue-400 hover:underline"
                 >
                   Community Guidelines
                 </a>
                 .
               </p>
-              <p className="text-yellow-400 text-sm mb-4">
+              <p className="text-yellow-400 text-base mb-6">
                 ⚠️ Violations may result in account suspension.
               </p>
-              <div className="flex gap-3 justify-end">
+              <div className="flex gap-4 justify-end">
                 <button
                   onClick={() => setShowGuidelinesModal(false)}
-                  className="px-4 py-2 text-gray-300 hover:text-white"
+                  className="px-6 py-3 text-slate-300 hover:text-white text-lg"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmSave}
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md"
+                  className="bg-gradient-to-r from-blue-600 to-violet-600 text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-70 shadow-lg text-lg"
                 >
                   {isSaving ? 'Saving...' : 'I Comply – Save'}
                 </button>

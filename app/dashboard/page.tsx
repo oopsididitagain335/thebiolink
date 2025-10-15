@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// --- Interfaces (unchanged) ---
+// --- Interfaces ---
 interface Link {
   id: string;
   url: string;
@@ -65,7 +65,7 @@ interface NewsPost {
   }>;
 }
 
-// --- Constants (unchanged) ---
+// --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -95,7 +95,7 @@ const getBioLinkUrl = (username: string): string => {
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
 
-// --- DraggableItem (unchanged) ---
+// --- Draggable Component ---
 const DraggableItem = ({ 
   children,
   index,
@@ -127,14 +127,14 @@ const DraggableItem = ({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className="mb-4"
+      className="mb-3"
     >
       {children}
     </div>
   );
 };
 
-// --- Tab Components (unchanged logic, minor UI polish) ---
+// --- Tab Components (unchanged from your file) ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -144,28 +144,28 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   };
   if (!user.badges || user.badges.length === 0) {
     return (
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
-        <h2 className="text-xl font-semibold mb-2 text-white">Your Badges</h2>
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
         <p className="text-gray-400">You haven't earned any badges yet.</p>
       </div>
     );
   }
   return (
-    <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {user.badges.map(badge => (
           <div 
             key={badge.id} 
             className={`p-4 rounded-xl border ${
               badge.hidden 
-                ? 'border-gray-700 bg-gray-900/30 opacity-60' 
+                ? 'border-gray-700 bg-gray-900/30 opacity-50' 
                 : 'border-indigo-500 bg-indigo-900/20'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
-                <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded" />
+                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
                 <span className="text-white font-medium">{badge.name}</span>
               </div>
               <button
@@ -191,24 +191,32 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 };
 
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  useEffect(() => {
+    if (user.email) setEmail(user.email);
+  }, [user.email]);
+  const handleAccountSecurity = () => {
+    alert('Please set up your email and password for improved security.');
+  };
   const handleUpgrade = () => {
     window.location.href = '/pricing';
   };
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
         <p className="text-gray-400 mb-4">
           {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
         </p>
         <button
-          onClick={() => alert('Security setup coming soon.')}
+          onClick={handleAccountSecurity}
           className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm"
         >
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-purple-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
         <div className="flex items-start">
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -235,16 +243,16 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
 
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
-    <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-black/30 p-5 rounded-xl">
+        <div className="bg-gray-900/50 p-5 rounded-xl">
           <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
           <p className="text-3xl font-bold text-white">
             {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
           </p>
         </div>
-        <div className="bg-black/30 p-5 rounded-xl">
+        <div className="bg-gray-900/50 p-5 rounded-xl">
           <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
           <p className="text-3xl font-bold text-white">{links.length}</p>
         </div>
@@ -274,7 +282,7 @@ const NewsTab = () => {
     str.length > len ? str.substring(0, len) + '...' : str;
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
         {loading ? (
           <div className="flex justify-center py-8">
@@ -316,7 +324,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   ];
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
         <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -325,7 +333,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
               key={theme.id}
               onClick={() => setUser({ ...user, theme: theme.id as any })}
               className={`p-4 rounded-xl text-white flex flex-col items-center ${
-                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60 bg-white/10' : 'bg-gray-800/50'
+                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
               }`}
             >
               <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }}></div>
@@ -348,7 +356,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     : 'Free';
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -387,7 +395,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     }
   };
   return (
-    <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
       <div className="space-y-5">
         <div>
@@ -398,14 +406,14 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             value={user.name}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="John Doe"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
           <div className="flex">
-            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-black/30 text-gray-400">
+            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
               thebiolink.lol/
             </span>
             <input
@@ -414,7 +422,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               value={user.username}
               onChange={handleProfileChange}
               maxLength={30}
-              className="flex-1 min-w-0 px-4 py-3 bg-black/30 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="yourname"
             />
           </div>
@@ -430,7 +438,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             value={user.location || ''}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="e.g., Los Angeles, Tokyo, Berlin"
           />
         </div>
@@ -441,7 +449,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             name="avatar"
             value={user.avatar}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
@@ -452,7 +460,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             name="background"
             value={user.background}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="https://example.com/background.gif"
           />
           <p className="mt-2 text-xs text-gray-500">
@@ -467,7 +475,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
             onChange={handleProfileChange}
             maxLength={500}
             rows={3}
-            className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Tell people about yourself"
           />
         </div>
@@ -510,14 +518,14 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   };
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-semibold text-white">Link Manager</h2>
           <div className="flex flex-wrap gap-2">
             <select
               value={newLinkTitle}
               onChange={(e) => setNewLinkTitle(e.target.value)}
-              className="bg-black/30 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+              className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
             >
               <option value="">Custom Link</option>
               {FAMOUS_LINKS.map((link, i) => (
@@ -535,7 +543,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         <div className="space-y-4">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
-              <div className="border border-gray-700 rounded-xl p-4 bg-black/20">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
@@ -544,7 +552,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
                       value={link.title}
                       onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
                       maxLength={100}
-                      className="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                     />
                   </div>
                   <div>
@@ -553,7 +561,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
                       type="url"
                       value={link.url}
                       onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                      className="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -562,7 +570,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
                     type="text"
                     value={link.icon}
                     onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
-                    className="px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                    className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
                     placeholder="Icon URL (optional)"
                   />
                   <button
@@ -614,7 +622,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   };
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
         <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -622,7 +630,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              className="bg-black/30 hover:bg-black/40 p-3 rounded-lg text-center text-white"
+              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
             >
               <div className="text-2xl mb-1">{w.icon}</div>
               <div className="text-xs">{w.name}</div>
@@ -632,7 +640,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
-              <div className="border border-gray-700 rounded-xl p-4 bg-black/20">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
                 <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
                 <div className="space-y-3">
                   <input
@@ -640,14 +648,14 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
                     placeholder="Widget Title"
                     value={widget.title || ''}
                     onChange={(e) => updateWidget(index, 'title', e.target.value)}
-                    className="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                   />
                   <input
                     type="url"
                     placeholder="Embed URL (YouTube, Spotify, etc.)"
                     value={widget.url || ''}
                     onChange={(e) => updateWidget(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                   />
                   {widget.type === 'custom' && (
                     <textarea
@@ -655,7 +663,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
                       value={widget.content || ''}
                       onChange={(e) => updateWidget(index, 'content', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
                     />
                   )}
                 </div>
@@ -723,7 +731,7 @@ const ProfileBuilderTab = ({
   const renderSectionEditor = (section: LayoutSection, index: number) => {
     if (section.type === 'spacer') {
       return (
-        <div className="p-3 bg-black/20 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Spacer</span>
             <button 
@@ -747,7 +755,7 @@ const ProfileBuilderTab = ({
     }
     if (section.type === 'custom') {
       return (
-        <div className="p-3 bg-black/20 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Custom HTML</span>
             <button 
@@ -761,7 +769,7 @@ const ProfileBuilderTab = ({
             value={section.content || ''}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
             placeholder="Enter custom HTML"
-            className="w-full px-2 py-1 bg-black/30 border border-gray-600 rounded text-white text-sm"
+            className="w-full px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
             rows={3}
           />
         </div>
@@ -770,7 +778,7 @@ const ProfileBuilderTab = ({
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
-        <div className="p-3 bg-black/20 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">
               Widget: {widget?.title || 'Unknown'}
@@ -785,7 +793,7 @@ const ProfileBuilderTab = ({
           <select
             value={section.widgetId || ''}
             onChange={(e) => updateSection(section.id, { widgetId: e.target.value })}
-            className="w-full bg-black/30 border border-gray-600 rounded text-white text-sm p-1"
+            className="w-full bg-gray-600/50 border border-gray-600 rounded text-white text-sm p-1"
           >
             <option value="">Select Widget</option>
             {widgets.map(w => (
@@ -798,7 +806,7 @@ const ProfileBuilderTab = ({
       );
     }
     return (
-      <div className="p-3 bg-black/20 rounded-lg">
+      <div className="p-3 bg-gray-700/50 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-white capitalize text-sm">{section.type}</span>
           <button 
@@ -813,7 +821,7 @@ const ProfileBuilderTab = ({
   };
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur rounded-2xl p-6 border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
         <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
@@ -879,6 +887,140 @@ const ProfileBuilderTab = ({
           </div>
         </div>
       </div>
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
+        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+          {user.background && (
+            <div
+              className="absolute inset-0 z-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${user.background})` }}
+            />
+          )}
+          <div className="absolute inset-0 bg-black/70 z-10"></div>
+          <div className="relative z-20 space-y-4">
+            {layoutStructure.map((section) => {
+              if (section.type === 'bio') {
+                return (
+                  <div key={section.id} className="text-center">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                      />
+                    ) else (
+                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl text-white font-bold">
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                    {user.location && (
+                      <div className="flex items-center justify-center text-gray-300 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>{user.location}</span>
+                      </div>
+                    )}
+                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
+                  </div>
+                );
+              }
+              if (section.type === 'links' && links.length > 0) {
+                const themeHoverMap = {
+                  indigo: 'hover:bg-indigo-900/30',
+                  purple: 'hover:bg-purple-900/30',
+                  green: 'hover:bg-emerald-900/30',
+                  red: 'hover:bg-rose-900/30',
+                  halloween: 'hover:bg-orange-900/30',
+                } as const;
+                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
+                return (
+                  <div key={section.id} className="space-y-3">
+                    {links
+                      .filter(link => link.url && link.title)
+                      .map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
+                        >
+                          {link.title}
+                        </a>
+                      ))}
+                  </div>
+                );
+              }
+              if (section.type === 'widget') {
+                const widget = widgets.find(w => w.id === section.widgetId);
+                if (!widget) return null;
+                return (
+                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
+                    {widget.type === 'youtube' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'spotify' && widget.url ? (
+                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          frameBorder="0"
+                          allowTransparency={true}
+                          allow="encrypted-media"
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    ) : widget.type === 'twitter' && widget.url ? (
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                          🐦 View Twitter Feed
+                        </a>
+                      </div>
+                    ) : widget.type === 'custom' && widget.content ? (
+                      <div
+                        className="text-gray-300 text-sm"
+                        dangerouslySetInnerHTML={{ __html: widget.content }}
+                      />
+                    ) : (
+                      <div className="text-gray-400 text-sm italic">
+                        {widget.type === 'spotify' && '🎵 Spotify embed'}
+                        {widget.type === 'youtube' && '📺 YouTube video'}
+                        {widget.type === 'twitter' && '🐦 Twitter feed'}
+                        {!widget.type && 'Widget content'}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              if (section.type === 'spacer') {
+                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
+              }
+              if (section.type === 'custom' && section.content) {
+                return (
+                  <div 
+                    key={section.id} 
+                    className="bg-white/5 p-4 rounded-lg"
+                    dangerouslySetInnerHTML={{ __html: section.content }}
+                  />
+                );
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -892,7 +1034,7 @@ const getSpotifyId = (url: string): string => {
   return match ? `${match[1]}/${match[2]}` : '';
 };
 
-// --- MAIN DASHBOARD WITH NEW LAYOUT ---
+// --- MAIN DASHBOARD WITH COLLAPSIBLE SIDEBAR ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -921,6 +1063,7 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -1068,11 +1211,11 @@ export default function Dashboard() {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'customize', name: 'Profile', icon: '👤' },
-    { id: 'builder', name: 'Builder', icon: '🧩' },
+    { id: 'customize', name: 'Customize', icon: '🎨' },
+    { id: 'builder', name: 'Profile Builder', icon: '🧩' },
     { id: 'links', name: 'Links', icon: '🔗' },
     { id: 'widgets', name: 'Widgets', icon: '🪄' },
-    { id: 'themes', name: 'Theme', icon: '🎨' },
+    { id: 'themes', name: 'Themes', icon: '🌈' },
     { id: 'analytics', name: 'Analytics', icon: '📈' },
     { id: 'news', name: 'News', icon: '📰' },
     { id: 'badges', name: 'Badges', icon: '🏅' },
@@ -1081,151 +1224,167 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-100">
-      {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-black/80 backdrop-blur border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm">BL</div>
-            <h1 className="text-xl font-bold text-white">BioLink Studio</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex">
+      {/* Collapsible Sidebar */}
+      <aside
+        className={`bg-gray-900/90 backdrop-blur border-r border-gray-800 transition-all duration-300 flex flex-col ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}
+      >
+        <div className="p-4 flex items-center justify-between">
+          {!sidebarCollapsed && (
+            <h2 className="text-white font-bold">BioLink Studio</h2>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="text-gray-400 hover:text-white text-lg"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? '»' : '«'}
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4">
+          <ul className="space-y-1 px-3">
+            {tabs.map((tab) => (
+              <li key={tab.id}>
+                <button
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-indigo-900/50 text-indigo-200'
+                      : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  {!sidebarCollapsed && <span>{tab.name}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <header className="bg-gray-900/80 backdrop-blur border-b border-gray-800 p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="lg:hidden text-gray-300 hover:text-white text-xl mr-4"
+            aria-label="Toggle sidebar"
+          >
+            ☰
+          </button>
+          <div className="hidden lg:block">
+            <h1 className="text-xl font-bold text-white">Your BioLink Dashboard</h1>
+            <p className="text-gray-400 text-sm mt-1">
+              Editing: <span className="font-mono text-indigo-400">thebiolink.lol/{user.username}</span>
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400 hidden md:inline">
-              Editing: <span className="font-mono text-white">/{user.username || 'yourname'}</span>
-            </span>
+          <div className="flex gap-3">
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-sm rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-800 transition-colors"
+              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm border border-gray-700"
             >
               Logout
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-70"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-70"
             >
               {isSaving ? 'Saving...' : 'Publish'}
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Navigation */}
-          <aside className="lg:w-64 flex-shrink-0">
-            <nav className="bg-black/30 backdrop-blur rounded-2xl p-4 border border-gray-800">
-              <ul className="space-y-2">
-                {tabs.map((tab) => (
-                  <li key={tab.id}>
-                    <button
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-indigo-900/40 text-indigo-200 border border-indigo-700'
-                          : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-                      }`}
-                    >
-                      <span>{tab.icon}</span>
-                      <span>{tab.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </aside>
-
-          {/* Main Content + Preview */}
-          <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {/* Main Content Area */}
-            <main className="space-y-8">
-              {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
-              {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-              {activeTab === 'builder' && (
-                <ProfileBuilderTab 
-                  user={user} 
-                  setUser={setUser} 
-                  links={links} 
-                  setLinks={setLinks} 
-                  widgets={widgets} 
-                  setWidgets={setWidgets}
-                  layoutStructure={layoutStructure}
-                  setLayoutStructure={setLayoutStructure}
-                />
-              )}
-              {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
-              {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-              {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
-              {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
-              {activeTab === 'news' && <NewsTab />}
-              {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
-              {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
-            </main>
-
-            {/* Live Preview */}
-            <aside className="sticky top-24">
-              <div className="bg-black/30 backdrop-blur rounded-2xl p-6 border border-gray-800">
-                <h2 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
-                  👁️ Live Preview
-                </h2>
-                <div className="bg-black/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-                  {user.background && (
-                    <div
-                      className="absolute inset-0 z-0 bg-cover bg-center opacity-30"
-                      style={{ backgroundImage: `url(${user.background})` }}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/90 to-black/70 z-10"></div>
-                  <div className="relative z-20 space-y-5">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-20 h-20 rounded-full mx-auto ring-2 ring-white/20"
+        <main className="flex-1 p-4 sm:p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
+                {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
+                {activeTab === 'builder' && (
+                  <ProfileBuilderTab 
+                    user={user} 
+                    setUser={setUser} 
+                    links={links} 
+                    setLinks={setLinks} 
+                    widgets={widgets} 
+                    setWidgets={setWidgets}
+                    layoutStructure={layoutStructure}
+                    setLayoutStructure={setLayoutStructure}
+                  />
+                )}
+                {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
+                {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+                {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
+                {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
+                {activeTab === 'news' && <NewsTab />}
+                {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
+                {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
+              </div>
+              <div className="lg:col-span-1">
+                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-24">
+                  <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
+                  <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+                    {user.background && (
+                      <div
+                        className="absolute inset-0 z-0 bg-cover bg-center opacity-30"
+                        style={{ backgroundImage: `url(${user.background})` }}
                       />
-                    ) : (
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto">
-                        <span className="text-2xl font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
-                      </div>
                     )}
-                    <h3 className="text-xl font-bold text-white">{user.name || 'Your Name'}</h3>
-                    {user.location && (
-                      <div className="text-cyan-300 text-sm flex items-center justify-center gap-1">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                        {user.location}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/90 to-black/70 z-10"></div>
+                    <div className="relative z-20">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-20 h-20 rounded-full mx-auto ring-2 ring-white/20"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto">
+                          <span className="text-2xl font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <h3 className="text-xl font-bold text-white mt-4">{user.name || 'Your Name'}</h3>
+                      {user.location && (
+                        <div className="text-cyan-300 text-sm flex items-center justify-center gap-1 mt-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                          {user.location}
+                        </div>
+                      )}
+                      {user.bio && <p className="text-gray-300 text-sm max-w-xs mx-auto px-2 mt-2">{user.bio}</p>}
+                      
+                      <div className="space-y-3 mt-6 max-w-xs mx-auto">
+                        {layoutStructure
+                          .filter(s => s.type === 'links')
+                          .flatMap(() => 
+                            links
+                              .filter(link => link.url && link.title)
+                              .map((link, idx) => (
+                                <div
+                                  key={idx}
+                                  className="w-full py-2.5 px-4 rounded-lg text-sm text-white bg-white/5 border border-white/10"
+                                >
+                                  {link.title}
+                                </div>
+                              ))
+                          )}
                       </div>
-                    )}
-                    {user.bio && <p className="text-gray-300 text-sm max-w-xs mx-auto px-2">{user.bio}</p>}
-                    
-                    <div className="space-y-3 mt-4 max-w-xs mx-auto">
-                      {layoutStructure
-                        .filter(s => s.type === 'links')
-                        .flatMap(() => 
-                          links
-                            .filter(link => link.url && link.title)
-                            .map((link, idx) => (
-                              <div
-                                key={idx}
-                                className="w-full py-2.5 px-4 rounded-lg text-sm text-white bg-white/5 border border-white/10"
-                              >
-                                {link.title}
-                              </div>
-                            ))
-                        )}
                     </div>
                   </div>
                 </div>
               </div>
-            </aside>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Toast Message */}
@@ -1244,7 +1403,7 @@ export default function Dashboard() {
       {/* Guidelines Modal */}
       {showGuidelinesModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-3">Profile Compliance Check</h3>
             <p className="text-gray-300 mb-4">
               Please confirm your profile complies with our{' '}

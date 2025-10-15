@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -55,6 +54,15 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
+type Badge = {
+  id: string;
+  name: string;
+  icon: string;
+  awardedAt?: string;
+  earnedAt?: string;
+  hidden?: boolean;
+};
+
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
@@ -109,7 +117,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       background = '',
       backgroundVideo = '',
       backgroundAudio = '',
-      badges = [],
+      badges = [] as Badge[],
       links = [],
       widgets = [],
       layoutStructure = [
@@ -191,7 +199,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     <span
                       key={badge.id}
                       className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
-                      title={`Awarded: ${new Date(badge.awardedAt || badge.earnedAt).toLocaleDateString()}`}
+                      title={`Awarded: ${new Date(badge.awardedAt || badge.earnedAt || Date.now()).toLocaleDateString()}`}
                     >
                       {badge.icon && (
                         <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />

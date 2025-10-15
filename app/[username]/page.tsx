@@ -102,54 +102,69 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-          {/* ✅ Global CSS via standard <style> — works in Server Components */}
+          {/* Falling Ash */}
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-red-500/20 rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: '-10px',
+                  opacity: Math.random(),
+                  animation: `floatAsh ${15 + Math.random() * 20}s linear infinite`,
+                  animationDelay: `${Math.random() * 5}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Global Animations */}
           <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes floatGrave {
-              0%, 100% { transform: translateY(0) rotate(0deg); }
-              50% { transform: translateY(-8px) rotate(0.5deg); }
+            @keyframes floatAsh {
+              0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+              10% { opacity: ${0.3 + Math.random() * 0.4}; }
+              90% { opacity: ${0.2 + Math.random() * 0.3}; }
+              100% { transform: translateY(100vh) rotate(${360 * Math.random()}deg); opacity: 0; }
             }
           ` }} />
 
-          {/* Animated Graves */}
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute opacity-10"
-              style={{
-                left: `${10 + (i * 12) % 80}%`,
-                top: `${20 + (i % 4) * 20}%`,
-                animation: `floatGrave ${6 + i}s infinite ease-in-out`,
-                zIndex: 0,
-              }}
-            >
-              <svg width="36" height="50" viewBox="0 0 36 50" fill="currentColor">
-                <rect x="13" y="8" width="10" height="32" rx="2" />
-                <rect x="4" y="36" width="28" height="6" rx="1" />
-                <path d="M10 12 L26 12 L24 20 L12 20 Z" fill="currentColor" />
-              </svg>
-            </div>
-          ))}
+          {/* Fog & Atmosphere */}
+          <div className="absolute inset-0 bg-gradient-to-b from-red-900/3 to-black pointer-events-none z-0" />
 
-          <div className="max-w-md w-full bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-900/40 relative z-10">
-            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-red-500/10 rounded-full border border-red-500/30">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+          <div className="max-w-md w-full bg-gray-900/85 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-800/50 relative z-10">
+            {/* Personalized Tombstone */}
+            <div className="mb-6 relative">
+              <svg width="80" height="100" viewBox="0 0 80 100" className="text-red-900/20 mx-auto">
+                <rect x="30" y="15" width="20" height="60" rx="3" />
+                <rect x="15" y="65" width="50" height="10" rx="2" />
+                <path d="M25 25 L55 25 L52 40 L28 40 Z" fill="currentColor" />
               </svg>
+              <div className="absolute inset-0 flex items-center justify-center mt-8">
+                <span className="text-red-500/70 text-xs font-mono tracking-wider">@{username}</span>
+              </div>
             </div>
 
-            <h1 className="text-3xl font-extrabold text-red-400 mb-1 tracking-tight">BANNED</h1>
-            <p className="text-gray-300 mb-1">@{username}</p>
-            <p className="text-gray-500 text-sm mb-6">This account has been permanently banned.</p>
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-800 mb-2 tracking-tighter">
+              BANNED
+            </h1>
+            <p className="text-gray-400 text-sm mb-6">
+              This account violated our community standards.<br />
+              <span className="text-red-400/80">No appeals accepted.</span>
+            </p>
 
-            <div className="mb-6">
+            <div className="bg-black/30 rounded-xl p-4 mb-6 border border-red-900/30">
               <WhackTheBanHammerGame />
             </div>
 
             <a
               href="/"
-              className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-5 py-2.5 rounded-xl font-medium transition-all"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-red-700/30 to-red-900/30 hover:from-red-700/40 hover:to-red-900/40 backdrop-blur-sm border border-red-800/50 text-red-300 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
             >
-              Return Home
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Return to Safety
             </a>
           </div>
         </div>

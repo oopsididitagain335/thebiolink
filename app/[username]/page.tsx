@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
-import WhackTheBanHammerGame from './WhackTheBanHammerGame'; // ✅ Client Component imported safely
+import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -102,13 +102,15 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-          {/* Animated Graves */}
-          <style jsx global>{`
+          {/* ✅ Global CSS via standard <style> — works in Server Components */}
+          <style dangerouslySetInnerHTML={{ __html: `
             @keyframes floatGrave {
               0%, 100% { transform: translateY(0) rotate(0deg); }
               50% { transform: translateY(-8px) rotate(0.5deg); }
             }
-          `}</style>
+          ` }} />
+
+          {/* Animated Graves */}
           {[...Array(10)].map((_, i) => (
             <div
               key={i}

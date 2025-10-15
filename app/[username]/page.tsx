@@ -1,3 +1,88 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+function WhackTheBanHammerGame() {
+  const [hammers, setHammers] = useState<boolean[]>(Array(6).fill(false));
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(true);
+
+  useEffect(() => {
+    if (!gameActive) return;
+    const interval = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * 6);
+      setHammers((prev) => {
+        const newState = [...prev];
+        newState[randomIndex] = true;
+        return newState;
+      });
+
+      setTimeout(() => {
+        setHammers((prev) => {
+          const newState = [...prev];
+          newState[randomIndex] = false;
+          return newState;
+        });
+      }, 1200);
+    }, Math.random() * 700 + 800);
+
+    return () => clearInterval(interval);
+  }, [gameActive]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGameActive(false);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const whack = (index: number) => {
+    if (hammers[index]) {
+      setScore((s) => s + 1);
+      setHammers((prev) => {
+        const newState = [...prev];
+        newState[index] = false;
+        return newState;
+      });
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div className="text-xs text-gray-500 mb-2">
+        Score: <span className="font-bold text-red-400">{score}</span> |{' '}
+        {gameActive ? 'Time left: 15s' : 'Game Over'}
+      </div>
+      <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+        {hammers.map((visible, i) => (
+          <button
+            key={i}
+            onClick={() => whack(i)}
+            disabled={!gameActive}
+            className={`w-12 h-12 rounded-lg flex items-center justify-center text-white text-lg font-bold transition-transform ${
+              visible
+                ? 'bg-red-600 hover:bg-red-700 scale-110'
+                : 'bg-gray-800 cursor-default'
+            } ${!gameActive ? 'opacity-50 pointer-events-none' : ''}`}
+          >
+            {visible ? '🔨' : ''}
+          </button>
+        ))}
+      </div>
+      {!gameActive && score === 0 && (
+        <p className="text-xs text-gray-500 mt-2">Ban remains... forever.</p>
+      )}
+      {!gameActive && score > 0 && (
+        <p className="text-xs text-green-400 mt-2">Nice try. Still banned.</p>
+      )}
+    </div>
+  );
+}
+
+// ——————————————————————————————————————————————
+// SERVER COMPONENT BELOW
+// ——————————————————————————————————————————————
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -99,17 +184,54 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     if (userData.isBanned) {
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-red-800/50">
-            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-red-600/20 rounded-full animate-pulse">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+          {/* Animated Graves Background */}
+          <style jsx global>{`
+            @keyframes floatGrave {
+              0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.1; }
+              50% { transform: translateY(-8px) rotate(0.5deg); opacity: 0.15; }
+            }
+          `}</style>
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute opacity-10"
+              style={{
+                left: `${10 + (i * 12) % 80}%`,
+                top: `${20 + (i % 4) * 20}%`,
+                animation: `floatGrave ${6 + i}s infinite ease-in-out`,
+                zIndex: 0,
+              }}
+            >
+              <svg width="36" height="50" viewBox="0 0 36 50" fill="currentColor">
+                <rect x="13" y="8" width="10" height="32" rx="2" />
+                <rect x="4" y="36" width="28" height="6" rx="1" />
+                <path d="M10 12 L26 12 L24 20 L12 20 Z" fill="currentColor" />
+              </svg>
+            </div>
+          ))}
+
+          <div className="max-w-md w-full bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-900/40 relative z-10">
+            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center bg-red-500/10 rounded-full border border-red-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-white mb-2">Suspended</h1>
-            <p className="text-gray-400 mb-4">This profile has been restricted.</p>
-            <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
-              Explore Others
+
+            <h1 className="text-3xl font-extrabold text-red-400 mb-1 tracking-tight">BANNED</h1>
+            <p className="text-gray-300 mb-1">@{username}</p>
+            <p className="text-gray-500 text-sm mb-6">This account has been permanently banned.</p>
+
+            {/* Mini Game */}
+            <div className="mb-6">
+              <WhackTheBanHammerGame />
+            </div>
+
+            <a
+              href="/"
+              className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-5 py-2.5 rounded-xl font-medium transition-all"
+            >
+              Return Home
             </a>
           </div>
         </div>
@@ -136,7 +258,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       theme = 'indigo',
     } = userData;
 
-    // ✅ FILTER OUT HIDDEN BADGES
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
     const isValidGif = background && /\.gif$/i.test(background);
@@ -156,7 +277,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {/* Background */}
         {!isValidGif && !isValidBackgroundVideo && !isValidImage && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
@@ -185,13 +305,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         )}
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
 
-        {/* Overlay */}
         <div className="absolute inset-0 bg-black/60 z-10" />
 
-        {/* Main Content */}
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">
-            {/* Profile Card */}
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
               <div className="relative inline-block mb-4">
                 <Avatar name={name} avatar={avatar} />
@@ -199,7 +316,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
               <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
 
-              {/* ✅ ONLY VISIBLE BADGES RENDERED */}
               {visibleBadges.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
                   {visibleBadges.map((badge) => (
@@ -219,7 +335,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
               {bio && <TypingBio bio={bio} />}
 
-              {/* Location & Stats */}
               <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
                 {location && (
                   <div className="flex items-center gap-1">
@@ -234,7 +349,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 {links.length > 0 && <span>🔗 {links.length}</span>}
               </div>
 
-              {/* Special Profile Tag (e.g., "Founder") */}
               {getSpecialProfileTag(username) && (
                 <div className="mt-3 pt-3 border-t border-white/20">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
@@ -244,7 +358,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               )}
             </div>
 
-            {/* Links - Transparent Glass Buttons */}
             {sortedLinks.length > 0 && (
               <div className="space-y-2">
                 {sortedLinks.map((link) => (
@@ -268,7 +381,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </div>
             )}
 
-            {/* Widgets */}
             {sortedWidgets.length > 0 && (
               <div className="space-y-4">
                 {sortedWidgets.map((widget) => (
@@ -316,7 +428,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </div>
             )}
 
-            {/* Footer */}
             <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
               <p className="mb-1">Powered by The BioLink</p>
               <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
@@ -347,7 +458,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   try {
     const userData = await getUserByUsernameForMetadata(username);
     if (!userData || userData.isBanned) {
-      return { title: 'Not Found | The BioLink' };
+      return { title: 'Banned | The BioLink' };
     }
     return {
       title: `${userData.name || username} | The BioLink`,

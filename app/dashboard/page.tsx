@@ -23,7 +23,6 @@ interface Badge {
   description: string;
   icon: string;
   earnedAt: string;
-  hidden?: boolean;
 }
 interface User {
   _id: string;
@@ -129,48 +128,28 @@ const DraggableItem = ({
 };
 // --- Badges Tab ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const toggleBadgeVisibility = (badgeId: string) => {
-    const updatedBadges = user.badges?.map(badge => 
-      badge.id === badgeId ? { ...badge, hidden: !badge.hidden } : badge
-    ) || [];
-    setUser({ ...user, badges: updatedBadges });
-  };
   if (!user.badges || user.badges.length === 0) {
     return (
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
         <p className="text-gray-400">You haven't earned any badges yet.</p>
       </div>
     );
   }
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {user.badges.map(badge => (
           <div 
             key={badge.id} 
-            className={`p-4 rounded-xl border ${
-              badge.hidden 
-                ? 'border-gray-700 bg-gray-900/30 opacity-50' 
-                : 'border-indigo-500 bg-indigo-900/20'
-            }`}
+            className="p-4 rounded-xl border border-indigo-500 bg-indigo-900/20"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
                 <span className="text-white font-medium">{badge.name}</span>
               </div>
-              <button
-                onClick={() => toggleBadgeVisibility(badge.id)}
-                className={`px-2 py-1 text-xs rounded ${
-                  badge.hidden 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
-              >
-                {badge.hidden ? 'Show' : 'Hide'}
-              </button>
             </div>
             <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
             <p className="text-xs text-gray-500">
@@ -198,20 +177,20 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   return (
     <div className="space-y-6">
       {/* Account Security */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
         <p className="text-gray-400 mb-4">
           {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
         </p>
         <button
           onClick={handleAccountSecurity}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm"
+          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm transition-colors shadow-md"
         >
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
       {/* Upgrade to Premium */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6 shadow-lg">
         <div className="flex items-start">
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -225,7 +204,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
             </p>
             <button
               onClick={handleUpgrade}
-              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
             >
               Upgrade Now
             </button>
@@ -238,16 +217,16 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
 // --- Other Tabs ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
       <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900/50 p-5 rounded-xl">
+        <div className="bg-gray-900/50 p-5 rounded-xl shadow-md">
           <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
           <p className="text-3xl font-bold text-white">
             {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
           </p>
         </div>
-        <div className="bg-gray-900/50 p-5 rounded-xl">
+        <div className="bg-gray-900/50 p-5 rounded-xl shadow-md">
           <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
           <p className="text-3xl font-bold text-white">{links.length}</p>
         </div>
@@ -276,7 +255,7 @@ const NewsTab = () => {
     str.length > len ? str.substring(0, len) + '...' : str;
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
         {loading ? (
           <div className="flex justify-center py-8">
@@ -317,7 +296,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   ];
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
         <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -325,7 +304,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
             <button
               key={theme.id}
               onClick={() => setUser({ ...user, theme: theme.id as any })}
-              className={`p-4 rounded-xl text-white flex flex-col items-center ${
+              className={`p-4 rounded-xl text-white flex flex-col items-center transition-shadow hover:shadow-lg ${
                 user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
               }`}
             >
@@ -348,7 +327,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     : 'Free';
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -386,7 +365,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     }
   };
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
       <div className="space-y-5">
         <div>
@@ -508,7 +487,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-semibold text-white">Link Manager</h2>
           <div className="flex flex-wrap gap-2">
@@ -524,7 +503,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </select>
             <button
               onClick={addLink}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm shadow-md"
             >
               + Add Link
             </button>
@@ -533,7 +512,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         <div className="space-y-4">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30 shadow-md">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
@@ -611,7 +590,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
         <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -619,7 +598,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
+              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white transition-shadow hover:shadow-md"
             >
               <div className="text-2xl mb-1">{w.icon}</div>
               <div className="text-xs">{w.name}</div>
@@ -629,7 +608,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30 shadow-md">
                 <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
                 <div className="space-y-3">
                   <input
@@ -719,7 +698,7 @@ const ProfileBuilderTab = ({
   const renderSectionEditor = (section: LayoutSection, index: number) => {
     if (section.type === 'spacer') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Spacer</span>
             <button 
@@ -743,7 +722,7 @@ const ProfileBuilderTab = ({
     }
     if (section.type === 'custom') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Custom HTML</span>
             <button 
@@ -766,7 +745,7 @@ const ProfileBuilderTab = ({
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">
               Widget: {widget?.title || 'Unknown'}
@@ -794,7 +773,7 @@ const ProfileBuilderTab = ({
       );
     }
     return (
-      <div className="p-3 bg-gray-700/50 rounded-lg">
+      <div className="p-3 bg-gray-700/50 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
           <span className="text-white capitalize text-sm">{section.type}</span>
           <button 
@@ -809,31 +788,31 @@ const ProfileBuilderTab = ({
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
         <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           <button
             onClick={() => addSection('bio')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
           >
             📝 Bio
           </button>
           <button
             onClick={() => addSection('links')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
           >
             🔗 Links
           </button>
           <button
             onClick={() => addSection('spacer', { height: 20 })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
           >
             ⬇️ Spacer
           </button>
           <button
             onClick={() => addSection('custom', { content: '' })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm transition-shadow hover:shadow-md"
           >
             ✏️ Custom
           </button>
@@ -846,7 +825,7 @@ const ProfileBuilderTab = ({
                 <button
                   key={widget.id}
                   onClick={() => addSection('widget', { widgetId: widget.id })}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-shadow hover:shadow-md"
                 >
                   + {widget.title || widget.type}
                 </button>
@@ -875,17 +854,17 @@ const ProfileBuilderTab = ({
           </div>
         </div>
       </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg">
         <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px] shadow-inner">
           {user.background && (
             <div
-              className="absolute inset-0 z-0 bg-cover bg-center"
+              className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
               style={{ backgroundImage: `url(${user.background})` }}
             />
           )}
-          <div className="absolute inset-0 bg-black/70 z-10"></div>
-          <div className="relative z-20 space-y-4">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80 z-10"></div>
+          <div className="relative z-20 space-y-6">
             {layoutStructure.map((section) => {
               if (section.type === 'bio') {
                 return (
@@ -894,40 +873,52 @@ const ProfileBuilderTab = ({
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                        className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-lg"
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-white font-bold">
+                      <div className="w-32 h-32 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <span className="text-4xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                    <h3 className="text-2xl font-bold text-white mb-2">{user.name}</h3>
                     {user.location && (
-                      <div className="flex items-center justify-center text-gray-300 mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="flex items-center justify-center text-gray-200 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span>{user.location}</span>
+                        <span className="text-sm">{user.location}</span>
                       </div>
                     )}
-                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
+                    {user.bio && <p className="text-gray-200 max-w-md mx-auto text-sm leading-relaxed">{user.bio}</p>}
+                    {user.badges && user.badges.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-2 mt-4">
+                        {user.badges.map(badge => (
+                          <div key={badge.id} className="group relative">
+                            <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded-full shadow-md" />
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              {badge.name}: {badge.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               }
               if (section.type === 'links' && links.length > 0) {
                 const themeHoverMap = {
-                  indigo: 'hover:bg-indigo-900/30',
-                  purple: 'hover:bg-purple-900/30',
-                  green: 'hover:bg-emerald-900/30',
-                  red: 'hover:bg-rose-900/30',
-                  halloween: 'hover:bg-orange-900/30',
+                  indigo: 'hover:bg-indigo-700/50',
+                  purple: 'hover:bg-purple-700/50',
+                  green: 'hover:bg-emerald-700/50',
+                  red: 'hover:bg-rose-700/50',
+                  halloween: 'hover:bg-orange-700/50',
                 } as const;
-                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
+                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-700/50';
                 return (
-                  <div key={section.id} className="space-y-3">
+                  <div key={section.id} className="space-y-3 mt-6">
                     {links
                       .filter(link => link.url && link.title)
                       .map((link, idx) => (
@@ -936,8 +927,9 @@ const ProfileBuilderTab = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
+                          className={`flex items-center w-full py-3 px-4 rounded-full text-sm text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-md`}
                         >
+                          {link.icon && <img src={link.icon} alt="" className="w-5 h-5 mr-3" />}
                           {link.title}
                         </a>
                       ))}
@@ -948,7 +940,7 @@ const ProfileBuilderTab = ({
                 const widget = widgets.find(w => w.id === section.widgetId);
                 if (!widget) return null;
                 return (
-                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                  <div key={section.id} className="bg-white/10 rounded-xl p-4 text-left shadow-md">
                     {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                     {widget.type === 'youtube' && widget.url ? (
                       <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
@@ -999,7 +991,7 @@ const ProfileBuilderTab = ({
                 return (
                   <div 
                     key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg"
+                    className="bg-white/5 p-4 rounded-lg shadow-md"
                     dangerouslySetInnerHTML={{ __html: section.content }}
                   />
                 );
@@ -1190,20 +1182,20 @@ export default function Dashboard() {
     }
   };
   const tabs = [
-    { id: 'overview', name: 'Overview' },
-    { id: 'customize', name: 'Customize' },
-    { id: 'builder', name: 'Profile Builder' },
-    { id: 'links', name: 'Links' },
-    { id: 'widgets', name: 'Widgets' },
-    { id: 'themes', name: 'Themes' },
-    { id: 'analytics', name: 'Analytics' },
-    { id: 'news', name: 'News' },
-    { id: 'badges', name: 'Badges' },
-    { id: 'settings', name: 'Settings' },
+    { id: 'overview', name: 'Overview', icon: '🏠' },
+    { id: 'customize', name: 'Customize', icon: '🎨' },
+    { id: 'builder', name: 'Profile Builder', icon: '🛠️' },
+    { id: 'links', name: 'Links', icon: '🔗' },
+    { id: 'widgets', name: 'Widgets', icon: '🧩' },
+    { id: 'themes', name: 'Themes', icon: '🌈' },
+    { id: 'analytics', name: 'Analytics', icon: '📊' },
+    { id: 'news', name: 'News', icon: '📰' },
+    { id: 'badges', name: 'Badges', icon: '🏅' },
+    { id: 'settings', name: 'Settings', icon: '⚙️' },
   ];
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
         <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -1230,14 +1222,14 @@ export default function Dashboard() {
             <div className="flex gap-3 mt-4 sm:mt-0">
               <button
                 onClick={handleLogout}
-                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
+                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700 shadow-md"
               >
                 Logout
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md"
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -1250,13 +1242,13 @@ export default function Dashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-white'
                     : 'border-transparent text-gray-400 hover:text-gray-300'
                 }`}
               >
-                {tab.name}
+                <span className="mr-1">{tab.icon}</span> {tab.name}
               </button>
             ))}
           </nav>
@@ -1286,53 +1278,65 @@ export default function Dashboard() {
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
           </div>
           <div className="lg:col-span-1">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-lg sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
-              <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+              <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px] shadow-inner">
                 {user.background && (
                   <div
-                    className="absolute inset-0 z-0 bg-cover bg-center"
+                    className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
                     style={{ backgroundImage: `url(${user.background})` }}
                   />
                 )}
-                <div className="absolute inset-0 bg-black/70 z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80 z-10"></div>
                 <div className="relative z-20">
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                      className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-lg"
                     />
                   ) : (
-                    <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl text-white font-bold">
+                    <div className="w-32 h-32 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <span className="text-4xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
-                  <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">{user.name}</h3>
                   {user.location && (
-                    <div className="flex items-center justify-center text-gray-300 mb-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center justify-center text-gray-200 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>{user.location}</span>
+                      <span className="text-sm">{user.location}</span>
                     </div>
                   )}
-                  {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
+                  {user.bio && <p className="text-gray-200 mb-4 max-w-md mx-auto text-sm leading-relaxed">{user.bio}</p>}
+                  {user.badges && user.badges.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-6">
+                      {user.badges.map(badge => (
+                        <div key={badge.id} className="group relative">
+                          <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded-full shadow-md" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                            {badge.name}: {badge.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
                         const themeHoverMap = {
-                          indigo: 'hover:bg-indigo-900/30',
-                          purple: 'hover:bg-purple-900/30',
-                          green: 'hover:bg-emerald-900/30',
-                          red: 'hover:bg-rose-900/30',
-                          halloween: 'hover:bg-orange-900/30',
+                          indigo: 'hover:bg-indigo-700/50',
+                          purple: 'hover:bg-purple-700/50',
+                          green: 'hover:bg-emerald-700/50',
+                          red: 'hover:bg-rose-700/50',
+                          halloween: 'hover:bg-orange-700/50',
                         } as const;
-                        const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
+                        const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-700/50';
                         return (
                           <div key={section.id} className="space-y-3">
                             {links
@@ -1343,8 +1347,9 @@ export default function Dashboard() {
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
+                                  className={`flex items-center w-full py-3 px-4 rounded-full text-sm text-white backdrop-blur-md border border-white/20 ${hoverClass} transition-all hover:shadow-md`}
                                 >
+                                  {link.icon && <img src={link.icon} alt="" className="w-5 h-5 mr-3" />}
                                   {link.title}
                                 </a>
                               ))}
@@ -1355,7 +1360,7 @@ export default function Dashboard() {
                         const widget = widgets.find(w => w.id === section.widgetId);
                         if (!widget) return null;
                         return (
-                          <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+                          <div key={section.id} className="bg-white/10 rounded-xl p-4 text-left shadow-md">
                             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
                             <div className="text-gray-400 text-sm italic">
                               {widget.type === 'spotify' && '🎵 Spotify embed'}
@@ -1373,7 +1378,7 @@ export default function Dashboard() {
                         return (
                           <div 
                             key={section.id} 
-                            className="bg-white/5 p-4 rounded-lg"
+                            className="bg-white/5 p-4 rounded-lg shadow-md"
                             dangerouslySetInnerHTML={{ __html: section.content }}
                           />
                         );
@@ -1388,7 +1393,7 @@ export default function Dashboard() {
         </div>
         {message && (
           <div
-            className={`fixed bottom-6 right-6 p-4 rounded-xl ${
+            className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg ${
               message.type === 'success'
                 ? 'bg-green-900/80 text-green-200 border border-green-800'
                 : 'bg-red-900/80 text-red-200 border border-red-800'
@@ -1399,7 +1404,7 @@ export default function Dashboard() {
         )}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-xl">
               <h3 className="text-xl font-bold text-white mb-3">Profile Compliance Check</h3>
               <p className="text-gray-300 mb-4">
                 Please confirm your profile complies with our{' '}
@@ -1426,7 +1431,7 @@ export default function Dashboard() {
                 <button
                   onClick={confirmSave}
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md"
                 >
                   {isSaving ? 'Saving...' : 'I Comply – Save'}
                 </button>

@@ -80,10 +80,10 @@ const FAMOUS_LINKS = [
 ];
 
 const WIDGET_TYPES = [
-  { id: 'youtube', name: 'YouTube Video', icon: '📺' },
-  { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
-  { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
-  { id: 'custom', name: 'Custom HTML', icon: '</>' },
+  { id: 'youtube', name: 'YouTube Video' },
+  { id: 'spotify', name: 'Spotify Embed' },
+  { id: 'twitter', name: 'Twitter Feed' },
+  { id: 'custom', name: 'Custom HTML' },
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -109,7 +109,7 @@ const DraggableItem = ({
 }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', `${itemType}:${index}`);
-    e.currentTarget.classList.add('opacity-60');
+    e.currentTarget.classList.add('opacity-70');
   };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
@@ -127,14 +127,14 @@ const DraggableItem = ({
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className="mb-3"
+      className="mb-4"
     >
       {children}
     </div>
   );
 };
 
-// --- Tab Components ---
+// --- Tab Components (unchanged logic, refined styling) ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -144,43 +144,43 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   };
   if (!user.badges || user.badges.length === 0) {
     return (
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-        <p className="text-gray-400">You haven't earned any badges yet.</p>
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold text-white mb-2">Your Badges</h2>
+        <p className="text-slate-400">You haven't earned any badges yet.</p>
       </div>
     );
   }
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">Your Badges</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {user.badges.map(badge => (
           <div 
             key={badge.id} 
-            className={`p-4 rounded-xl border ${
+            className={`p-4 rounded-lg border ${
               badge.hidden 
-                ? 'border-gray-700 bg-gray-900/30 opacity-50' 
-                : 'border-indigo-500 bg-indigo-900/20'
+                ? 'border-slate-700 bg-slate-900/30 opacity-60' 
+                : 'border-indigo-600 bg-indigo-900/10'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
-                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
+                <img src={badge.icon} alt={badge.name} className="w-8 h-8 rounded" />
                 <span className="text-white font-medium">{badge.name}</span>
               </div>
               <button
                 onClick={() => toggleBadgeVisibility(badge.id)}
-                className={`px-2 py-1 text-xs rounded ${
+                className={`text-xs px-2 py-1 rounded ${
                   badge.hidden 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' 
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}
               >
                 {badge.hidden ? 'Show' : 'Hide'}
               </button>
             </div>
-            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-slate-300 text-sm mb-2">{badge.description}</p>
+            <p className="text-xs text-slate-500">
               Earned: {new Date(badge.earnedAt).toLocaleDateString()}
             </p>
           </div>
@@ -196,9 +196,9 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
-        <p className="text-gray-400 mb-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold text-white mb-3">Account Security</h2>
+        <p className="text-slate-400 mb-4">
           {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
         </p>
         <button
@@ -208,16 +208,16 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
+      <div className="rounded-xl border border-purple-700/50 bg-slate-800/40 p-6">
         <div className="flex items-start">
-          <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
-            <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-purple-500/10 p-2.5 rounded-lg mr-4">
+            <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975L10 15.5l1.07-3.292c.298-.921 1.603-.921 1.902 0l1.07 3.292c.298.921 1.603.921 1.902 0l3.292-.677a1 1 0 00.684-1.028l1.07-3.292a1 1 0 00-1.285-1.975l-3.292-.677a1 1 0 00-1.028.684L13.257 4.001z" />
             </svg>
           </div>
           <div>
             <h3 className="text-white font-medium">Upgrade to Premium</h3>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-slate-400 text-sm mt-1">
               Unlock custom domains, advanced analytics, priority support, and more.
             </p>
             <button
@@ -235,18 +235,18 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
 
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
-          <p className="text-3xl font-bold text-white">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">Profile Analytics</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="bg-slate-900/50 p-4 rounded-xl">
+          <h3 className="text-slate-400 text-sm font-medium mb-1">Profile Views</h3>
+          <p className="text-2xl font-bold text-white">
             {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
           </p>
         </div>
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
-          <p className="text-3xl font-bold text-white">{links.length}</p>
+        <div className="bg-slate-900/50 p-4 rounded-xl">
+          <h3 className="text-slate-400 text-sm font-medium mb-1">Total Links</h3>
+          <p className="text-2xl font-bold text-white">{links.length}</p>
         </div>
       </div>
     </div>
@@ -274,23 +274,23 @@ const NewsTab = () => {
     str.length > len ? str.substring(0, len) + '...' : str;
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Latest News</h2>
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-6">
+            <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : posts.length === 0 ? (
-          <p className="text-gray-400 text-center py-6">No news available.</p>
+          <p className="text-slate-400 text-center py-4">No news available.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {posts.slice(0, 5).map((post) => (
-              <div key={post.id} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
+              <div key={post.id} className="border-b border-slate-700 pb-3 last:border-0 last:pb-0">
                 <h3 className="text-white font-medium">{post.title}</h3>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-slate-400 text-xs mt-1">
                   {new Date(post.publishedAt).toLocaleDateString()} • {post.authorName}
                 </p>
-                <p className="text-gray-300 mt-2 text-sm">{truncate(post.content)}</p>
+                <p className="text-slate-300 mt-2 text-sm">{truncate(post.content)}</p>
               </div>
             ))}
           </div>
@@ -312,24 +312,24 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'purple', name: 'Purple', color: '#7c3aed' },
     { id: 'green', name: 'Green', color: '#10b981' },
     { id: 'red', name: 'Red', color: '#ef4444' },
-    { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
+    { id: 'halloween', name: 'Halloween', color: '#f97316' },
   ];
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
-        <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Profile Theme</h2>
+        <p className="text-slate-400 mb-5">Choose a background theme for your BioLink page.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {themes.map((theme) => (
             <button
               key={theme.id}
               onClick={() => setUser({ ...user, theme: theme.id as any })}
-              className={`p-4 rounded-xl text-white flex flex-col items-center ${
-                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
+              className={`p-3 rounded-lg text-white flex flex-col items-center ${
+                user.theme === theme.id ? 'ring-2 ring-white/40 bg-white/5' : 'bg-slate-700/50'
               }`}
             >
-              <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }}></div>
-              <span className="text-sm font-medium">{theme.name}</span>
+              <div className="w-8 h-8 rounded-full mb-1.5" style={{ backgroundColor: theme.color }}></div>
+              <span className="text-xs font-medium">{theme.name}</span>
             </button>
           ))}
         </div>
@@ -348,26 +348,26 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     : 'Free';
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Profile Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
+            <h3 className="text-slate-400 text-sm font-medium mb-1">Your BioLink</h3>
             <a
               href={bioLinkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
+              className="font-mono text-indigo-400 hover:underline break-all text-sm"
             >
               {bioLinkUrl}
             </a>
           </div>
           <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
+            <h3 className="text-slate-400 text-sm font-medium mb-1">Stats</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
             </div>
           </div>
         </div>
@@ -387,25 +387,25 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     }
   };
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
-      <div className="space-y-5">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+      <h2 className="text-lg font-semibold text-white mb-5">Profile Settings</h2>
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Full Name</label>
           <input
             type="text"
             name="name"
             value={user.name}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="John Doe"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
           <div className="flex">
-            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
+            <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-slate-600 bg-slate-700/50 text-slate-400 text-sm">
               thebiolink.lol/
             </span>
             <input
@@ -414,60 +414,60 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               value={user.username}
               onChange={handleProfileChange}
               maxLength={30}
-              className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 min-w-0 px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-r-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="yourname"
             />
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-1.5 text-xs text-slate-500">
             Letters, numbers, underscores, hyphens only (3–30 chars)
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Location (optional)</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Location (optional)</label>
           <input
             type="text"
             name="location"
             value={user.location || ''}
             onChange={handleProfileChange}
             maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="e.g., Los Angeles, Tokyo, Berlin"
+            className="w-full px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="e.g., Los Angeles"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Avatar URL</label>
           <input
             type="url"
             name="avatar"
             value={user.avatar}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="https://example.com/avatar.jpg"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Background GIF/Video URL</label>
           <input
             type="url"
             name="background"
             value={user.background}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="https://example.com/background.gif"
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-1.5 text-xs text-slate-500">
             Supports .gif, .mp4, .webm
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">Bio</label>
           <textarea
             name="bio"
             value={user.bio}
             onChange={handleProfileChange}
             maxLength={500}
             rows={3}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Tell people about yourself"
           />
         </div>
@@ -510,14 +510,14 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h2 className="text-xl font-semibold text-white">Link Manager</h2>
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
+          <h2 className="text-lg font-semibold text-white">Link Manager</h2>
           <div className="flex flex-wrap gap-2">
             <select
               value={newLinkTitle}
               onChange={(e) => setNewLinkTitle(e.target.value)}
-              className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+              className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
             >
               <option value="">Custom Link</option>
               {FAMOUS_LINKS.map((link, i) => (
@@ -535,25 +535,25 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         <div className="space-y-4">
           {links.map((link, index) => (
             <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="border border-slate-700 rounded-lg p-4 bg-slate-700/30">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Title</label>
                     <input
                       type="text"
                       value={link.title}
                       onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
                       maxLength={100}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-white placeholder-slate-400 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">URL</label>
                     <input
                       type="url"
                       value={link.url}
                       onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-white placeholder-slate-400 text-sm"
                     />
                   </div>
                 </div>
@@ -562,12 +562,12 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
                     type="text"
                     value={link.icon}
                     onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
-                    className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                    className="px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-sm text-white placeholder-slate-400 flex-1 mr-2"
                     placeholder="Icon URL (optional)"
                   />
                   <button
                     onClick={() => removeLink(index)}
-                    className="text-red-400 hover:text-red-300 font-medium"
+                    className="text-red-400 hover:text-red-300 font-medium text-sm"
                   >
                     Remove
                   </button>
@@ -576,7 +576,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
             </DraggableItem>
           ))}
           {links.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-6 text-slate-500">
               <p>No links added yet</p>
             </div>
           )}
@@ -614,40 +614,39 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
-        <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold mb-4 text-white">Custom Widgets</h2>
+        <p className="text-slate-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
           {WIDGET_TYPES.map((w) => (
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
+              className="bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg text-center text-white text-sm"
             >
-              <div className="text-2xl mb-1">{w.icon}</div>
-              <div className="text-xs">{w.name}</div>
+              {w.name}
             </button>
           ))}
         </div>
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+              <div className="border border-slate-700 rounded-lg p-4 bg-slate-700/30">
                 <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <input
                     type="text"
                     placeholder="Widget Title"
                     value={widget.title || ''}
                     onChange={(e) => updateWidget(index, 'title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-white text-sm"
                   />
                   <input
                     type="url"
                     placeholder="Embed URL (YouTube, Spotify, etc.)"
                     value={widget.url || ''}
                     onChange={(e) => updateWidget(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                    className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-white text-sm"
                   />
                   {widget.type === 'custom' && (
                     <textarea
@@ -655,7 +654,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
                       value={widget.content || ''}
                       onChange={(e) => updateWidget(index, 'content', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                      className="w-full px-3 py-2 bg-slate-600/50 border border-slate-600 rounded text-white text-sm font-mono"
                     />
                   )}
                 </div>
@@ -669,7 +668,7 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             </DraggableItem>
           ))}
           {widgets.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
+            <div className="text-center py-5 text-slate-500">
               No widgets added. Choose one above to get started.
             </div>
           )}
@@ -723,7 +722,7 @@ const ProfileBuilderTab = ({
   const renderSectionEditor = (section: LayoutSection, index: number) => {
     if (section.type === 'spacer') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-slate-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Spacer</span>
             <button 
@@ -741,13 +740,13 @@ const ProfileBuilderTab = ({
             onChange={(e) => updateSection(section.id, { height: parseInt(e.target.value) })}
             className="w-full"
           />
-          <div className="text-xs text-gray-400 mt-1">{section.height || 20}px</div>
+          <div className="text-xs text-slate-400 mt-1">{section.height || 20}px</div>
         </div>
       );
     }
     if (section.type === 'custom') {
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-slate-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">Custom HTML</span>
             <button 
@@ -761,7 +760,7 @@ const ProfileBuilderTab = ({
             value={section.content || ''}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
             placeholder="Enter custom HTML"
-            className="w-full px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
+            className="w-full px-2 py-1 bg-slate-600/50 border border-slate-600 rounded text-white text-sm"
             rows={3}
           />
         </div>
@@ -770,7 +769,7 @@ const ProfileBuilderTab = ({
     if (section.type === 'widget') {
       const widget = widgets.find(w => w.id === section.widgetId);
       return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
+        <div className="p-3 bg-slate-700/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white text-sm">
               Widget: {widget?.title || 'Unknown'}
@@ -785,7 +784,7 @@ const ProfileBuilderTab = ({
           <select
             value={section.widgetId || ''}
             onChange={(e) => updateSection(section.id, { widgetId: e.target.value })}
-            className="w-full bg-gray-600/50 border border-gray-600 rounded text-white text-sm p-1"
+            className="w-full bg-slate-600/50 border border-slate-600 rounded text-white text-sm p-1"
           >
             <option value="">Select Widget</option>
             {widgets.map(w => (
@@ -798,7 +797,7 @@ const ProfileBuilderTab = ({
       );
     }
     return (
-      <div className="p-3 bg-gray-700/50 rounded-lg">
+      <div className="p-3 bg-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-white capitalize text-sm">{section.type}</span>
           <button 
@@ -813,44 +812,44 @@ const ProfileBuilderTab = ({
   };
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
-        <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
+        <h2 className="text-lg font-semibold mb-4 text-white">Profile Builder</h2>
+        <p className="text-slate-400 mb-4">Drag to reorder. Click + to add sections.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
           <button
             onClick={() => addSection('bio')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            📝 Bio
+            Bio
           </button>
           <button
             onClick={() => addSection('links')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
+            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
           >
-            🔗 Links
+            Links
           </button>
           <button
             onClick={() => addSection('spacer', { height: 20 })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+            className="p-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            ⬇️ Spacer
+            Spacer
           </button>
           <button
             onClick={() => addSection('custom', { content: '' })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+            className="p-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
           >
-            ✏️ Custom
+            Custom
           </button>
         </div>
         {widgets.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
+          <div className="mb-5">
+            <h3 className="text-slate-300 text-sm font-medium mb-2">Add Widgets</h3>
             <div className="flex flex-wrap gap-2">
               {widgets.map(widget => (
                 <button
                   key={widget.id}
                   onClick={() => addSection('widget', { widgetId: widget.id })}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
+                  className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded"
                 >
                   + {widget.title || widget.type}
                 </button>
@@ -859,7 +858,7 @@ const ProfileBuilderTab = ({
           </div>
         )}
         <div>
-          <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
+          <h3 className="text-slate-300 text-sm font-medium mb-3">Your Layout</h3>
           <div className="space-y-3">
             {layoutStructure.map((section, index) => (
               <DraggableItem 
@@ -872,23 +871,23 @@ const ProfileBuilderTab = ({
               </DraggableItem>
             ))}
             {layoutStructure.length === 0 && (
-              <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
+              <div className="text-slate-500 text-sm py-3 text-center border-2 border-dashed border-slate-700 rounded-lg">
                 Click + buttons above to add sections
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+        <div className="bg-slate-900/50 rounded-xl p-5 text-center relative overflow-hidden min-h-[480px]">
           {user.background && (
             <div
-              className="absolute inset-0 z-0 bg-cover bg-center"
+              className="absolute inset-0 z-0 bg-cover bg-center opacity-30"
               style={{ backgroundImage: `url(${user.background})` }}
             />
           )}
-          <div className="absolute inset-0 bg-black/70 z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/70 to-black/90 z-10"></div>
           <div className="relative z-20 space-y-4">
             {layoutStructure.map((section) => {
               if (section.type === 'bio') {
@@ -898,52 +897,46 @@ const ProfileBuilderTab = ({
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+                        className="w-20 h-20 rounded-full mx-auto mb-3 ring-1 ring-white/20"
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-white font-bold">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-3">
+                        <span className="text-xl font-bold text-white">
                           {user.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
+                    <h3 className="text-lg font-bold text-white">{user.name}</h3>
                     {user.location && (
-                      <div className="flex items-center justify-center text-gray-300 mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>{user.location}</span>
+                      <div className="text-cyan-300 text-sm flex items-center justify-center gap-1 mt-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                        {user.location}
                       </div>
                     )}
-                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
+                    {user.bio && <p className="text-slate-300 text-sm max-w-xs mx-auto px-1 mt-1">{user.bio}</p>}
                   </div>
                 );
               }
               if (section.type === 'links' && links.length > 0) {
-                const themeHoverMap = {
+                const themeClasses = {
                   indigo: 'hover:bg-indigo-900/30',
                   purple: 'hover:bg-purple-900/30',
                   green: 'hover:bg-emerald-900/30',
                   red: 'hover:bg-rose-900/30',
                   halloween: 'hover:bg-orange-900/30',
-                } as const;
-                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
+                };
+                const hoverClass = themeClasses[user.theme as keyof typeof themeClasses] || 'hover:bg-indigo-900/30';
                 return (
-                  <div key={section.id} className="space-y-3">
+                  <div key={section.id} className="space-y-2 max-w-xs mx-auto">
                     {links
                       .filter(link => link.url && link.title)
                       .map((link, idx) => (
-                        <a
+                        <div
                           key={idx}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
+                          className={`w-full py-2 px-3.5 rounded text-sm text-white ${hoverClass} bg-white/5`}
                         >
                           {link.title}
-                        </a>
+                        </div>
                       ))}
                   </div>
                 );
@@ -952,47 +945,14 @@ const ProfileBuilderTab = ({
                 const widget = widgets.find(w => w.id === section.widgetId);
                 if (!widget) return null;
                 return (
-                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
-                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                    {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                          frameBorder="0"
-                          allowTransparency={true}
-                          allow="encrypted-media"
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
-                        </a>
-                      </div>
-                    ) : widget.type === 'custom' && widget.content ? (
-                      <div
-                        className="text-gray-300 text-sm"
-                        dangerouslySetInnerHTML={{ __html: widget.content }}
-                      />
-                    ) : (
-                      <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && '🎵 Spotify embed'}
-                        {widget.type === 'youtube' && '📺 YouTube video'}
-                        {widget.type === 'twitter' && '🐦 Twitter feed'}
-                        {!widget.type && 'Widget content'}
-                      </div>
-                    )}
+                  <div key={section.id} className="bg-white/5 rounded p-3 text-left max-w-xs mx-auto">
+                    {widget.title && <h4 className="text-white font-medium text-sm mb-1">{widget.title}</h4>}
+                    <div className="text-slate-400 text-xs italic">
+                      {widget.type === 'spotify' && 'Spotify embed'}
+                      {widget.type === 'youtube' && 'YouTube video'}
+                      {widget.type === 'twitter' && 'Twitter feed'}
+                      {widget.type === 'custom' && 'Custom content'}
+                    </div>
                   </div>
                 );
               }
@@ -1003,7 +963,7 @@ const ProfileBuilderTab = ({
                 return (
                   <div 
                     key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg"
+                    className="bg-white/5 p-3 rounded text-xs max-w-xs mx-auto"
                     dangerouslySetInnerHTML={{ __html: section.content }}
                   />
                 );
@@ -1026,7 +986,7 @@ const getSpotifyId = (url: string): string => {
   return match ? `${match[1]}/${match[2]}` : '';
 };
 
-// --- MAIN DASHBOARD WITH COLLAPSIBLE SIDEBAR ---
+// --- MAIN DASHBOARD ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '',
@@ -1055,7 +1015,6 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -1202,234 +1161,208 @@ export default function Dashboard() {
   };
 
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'customize', name: 'Customize', icon: '🎨' },
-    { id: 'builder', name: 'Profile Builder', icon: '🧩' },
-    { id: 'links', name: 'Links', icon: '🔗' },
-    { id: 'widgets', name: 'Widgets', icon: '🪄' },
-    { id: 'themes', name: 'Themes', icon: '🌈' },
-    { id: 'analytics', name: 'Analytics', icon: '📈' },
-    { id: 'news', name: 'News', icon: '📰' },
-    { id: 'badges', name: 'Badges', icon: '🏅' },
-    { id: 'settings', name: 'Settings', icon: '⚙️' },
+    { id: 'overview', name: 'Overview' },
+    { id: 'customize', name: 'Customize' },
+    { id: 'builder', name: 'Profile Builder' },
+    { id: 'links', name: 'Links' },
+    { id: 'widgets', name: 'Widgets' },
+    { id: 'themes', name: 'Themes' },
+    { id: 'analytics', name: 'Analytics' },
+    { id: 'news', name: 'News' },
+    { id: 'badges', name: 'Badges' },
+    { id: 'settings', name: 'Settings' },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex">
-      {/* Collapsible Sidebar */}
-      <aside
-        className={`bg-gray-900/90 backdrop-blur border-r border-gray-800 transition-all duration-300 flex flex-col ${
-          sidebarCollapsed ? 'w-16' : 'w-64'
-        }`}
-      >
-        <div className="p-4 flex items-center justify-between">
-          {!sidebarCollapsed && (
-            <h2 className="text-white font-bold">BioLink Studio</h2>
-          )}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="text-gray-400 hover:text-white text-lg"
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? '»' : '«'}
-          </button>
-        </div>
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-3">
-            {tabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-indigo-900/50 text-indigo-200'
-                      : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  {!sidebarCollapsed && <span>{tab.name}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-gray-900/80 backdrop-blur border-b border-gray-800 p-4 flex items-center justify-between">
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="lg:hidden text-gray-300 hover:text-white text-xl mr-4"
-            aria-label="Toggle sidebar"
-          >
-            ☰
-          </button>
-          <div className="hidden lg:block">
-            <h1 className="text-xl font-bold text-white">Your BioLink Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-1">
-              Editing: <span className="font-mono text-indigo-400">thebiolink.lol/{user.username}</span>
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleLogout}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm border border-gray-700"
-            >
-              Logout
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-70"
-            >
-              {isSaving ? 'Saving...' : 'Publish'}
-            </button>
+    <div className="min-h-screen bg-slate-900 text-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Header */}
+        <header className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white">BioLink Dashboard</h1>
+              <p className="text-slate-400 mt-1 text-sm">
+                Editing: <span className="font-mono text-indigo-400">thebiolink.lol/{user.username}</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium"
+              >
+                Logout
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:opacity-90 disabled:opacity-70 text-sm"
+              >
+                {isSaving ? 'Saving...' : 'Publish'}
+              </button>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
-                {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-                {activeTab === 'builder' && (
-                  <ProfileBuilderTab 
-                    user={user} 
-                    setUser={setUser} 
-                    links={links} 
-                    setLinks={setLinks} 
-                    widgets={widgets} 
-                    setWidgets={setWidgets}
-                    layoutStructure={layoutStructure}
-                    setLayoutStructure={setLayoutStructure}
+        {/* Tab Navigation */}
+        <div className="border-b border-slate-700 mb-8">
+          <nav className="-mb-px flex overflow-x-auto pb-3 space-x-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`whitespace-nowrap py-2 px-1 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content + Preview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
+            {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
+            {activeTab === 'builder' && (
+              <ProfileBuilderTab 
+                user={user} 
+                setUser={setUser} 
+                links={links} 
+                setLinks={setLinks} 
+                widgets={widgets} 
+                setWidgets={setWidgets}
+                layoutStructure={layoutStructure}
+                setLayoutStructure={setLayoutStructure}
+              />
+            )}
+            {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
+            {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
+            {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
+            {activeTab === 'news' && <NewsTab />}
+            {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
+            {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
+          </div>
+
+          {/* Live Preview */}
+          <div className="lg:col-span-1">
+            <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-6 sticky top-8">
+              <h2 className="text-lg font-semibold mb-4 text-white">Live Preview</h2>
+              <div className="bg-slate-900/50 rounded-xl p-5 text-center relative overflow-hidden min-h-[480px]">
+                {user.background && (
+                  <div
+                    className="absolute inset-0 z-0 bg-cover bg-center opacity-20"
+                    style={{ backgroundImage: `url(${user.background})` }}
                   />
                 )}
-                {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
-                {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
-                {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
-                {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
-                {activeTab === 'news' && <NewsTab />}
-                {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
-                {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
-              </div>
-              <div className="lg:col-span-1">
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-24">
-                  <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
-                  <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-                    {user.background && (
-                      <div
-                        className="absolute inset-0 z-0 bg-cover bg-center opacity-30"
-                        style={{ backgroundImage: `url(${user.background})` }}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/90 to-black/70 z-10"></div>
-                    <div className="relative z-20">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-20 h-20 rounded-full mx-auto ring-2 ring-white/20"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto">
-                          <span className="text-2xl font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
-                        </div>
-                      )}
-                      <h3 className="text-xl font-bold text-white mt-4">{user.name || 'Your Name'}</h3>
-                      {user.location && (
-                        <div className="text-cyan-300 text-sm flex items-center justify-center gap-1 mt-1">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                          {user.location}
-                        </div>
-                      )}
-                      {user.bio && <p className="text-gray-300 text-sm max-w-xs mx-auto px-2 mt-2">{user.bio}</p>}
-                      
-                      <div className="space-y-3 mt-6 max-w-xs mx-auto">
-                        {layoutStructure
-                          .filter(s => s.type === 'links')
-                          .flatMap(() => 
-                            links
-                              .filter(link => link.url && link.title)
-                              .map((link, idx) => (
-                                <div
-                                  key={idx}
-                                  className="w-full py-2.5 px-4 rounded-lg text-sm text-white bg-white/5 border border-white/10"
-                                >
-                                  {link.title}
-                                </div>
-                              ))
-                          )}
-                      </div>
+                <div className="absolute inset-0 bg-black/80 z-10"></div>
+                <div className="relative z-20 space-y-4">
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-16 h-16 rounded-full mx-auto ring-1 ring-white/20"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto">
+                      <span className="text-lg font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
                     </div>
+                  )}
+                  <h3 className="text-base font-bold text-white">{user.name || 'Your Name'}</h3>
+                  {user.location && (
+                    <div className="text-cyan-300 text-xs flex items-center justify-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                      {user.location}
+                    </div>
+                  )}
+                  {user.bio && <p className="text-slate-300 text-xs max-w-[180px] mx-auto px-1">{user.bio}</p>}
+                  
+                  <div className="space-y-2 mt-4 max-w-[180px] mx-auto">
+                    {layoutStructure
+                      .filter(s => s.type === 'links')
+                      .flatMap(() => 
+                        links
+                          .filter(link => link.url && link.title)
+                          .map((link, idx) => (
+                            <div
+                              key={idx}
+                              className="w-full py-1.5 px-3 rounded text-xs text-white bg-white/5"
+                            >
+                              {link.title}
+                            </div>
+                          ))
+                      )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </main>
-      </div>
-
-      {/* Toast Message */}
-      {message && (
-        <div
-          className={`fixed bottom-6 right-6 p-4 rounded-xl max-w-sm z-50 ${
-            message.type === 'success'
-              ? 'bg-green-900/80 text-green-200 border border-green-800'
-              : 'bg-red-900/80 text-red-200 border border-red-800'
-          }`}
-        >
-          {message.text}
         </div>
-      )}
 
-      {/* Guidelines Modal */}
-      {showGuidelinesModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-3">Profile Compliance Check</h3>
-            <p className="text-gray-300 mb-4">
-              Please confirm your profile complies with our{' '}
-              <a
-                href="https://www.thebiolink.lol/community-guidelines"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:underline"
-              >
-                Community Guidelines
-              </a>
-              .
-            </p>
-            <p className="text-yellow-400 text-sm mb-4">
-              ⚠️ Violations may result in account suspension.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowGuidelinesModal(false)}
-                className="px-4 py-2 text-gray-300 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmSave}
-                disabled={isSaving}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
-              >
-                {isSaving ? 'Saving...' : 'I Comply – Save'}
-              </button>
+        {/* Toast Message */}
+        {message && (
+          <div
+            className={`fixed bottom-6 right-6 p-3.5 rounded-lg max-w-sm z-50 text-sm ${
+              message.type === 'success'
+                ? 'bg-green-900/80 text-green-200 border border-green-800'
+                : 'bg-red-900/80 text-red-200 border border-red-800'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {/* Guidelines Modal */}
+        {showGuidelinesModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-bold text-white mb-2">Profile Compliance Check</h3>
+              <p className="text-slate-300 mb-3 text-sm">
+                Please confirm your profile complies with our{' '}
+                <a
+                  href="https://www.thebiolink.lol/community-guidelines"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  Community Guidelines
+                </a>
+                .
+              </p>
+              <p className="text-yellow-400 text-xs mb-4">
+                ⚠️ Violations may result in account suspension.
+              </p>
+              <div className="flex gap-2.5 justify-end">
+                <button
+                  onClick={() => setShowGuidelinesModal(false)}
+                  className="px-3.5 py-2 text-slate-300 hover:text-white text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmSave}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3.5 py-2 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-70 text-sm"
+                >
+                  {isSaving ? 'Saving...' : 'I Comply – Save'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

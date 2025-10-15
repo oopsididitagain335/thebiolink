@@ -134,7 +134,7 @@ const DraggableItem = ({
   );
 };
 
-// --- Tab Components (unchanged from your file) ---
+// --- Tab Components ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -191,14 +191,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 };
 
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  useEffect(() => {
-    if (user.email) setEmail(user.email);
-  }, [user.email]);
-  const handleAccountSecurity = () => {
-    alert('Please set up your email and password for improved security.');
-  };
   const handleUpgrade = () => {
     window.location.href = '/pricing';
   };
@@ -210,7 +202,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
         </p>
         <button
-          onClick={handleAccountSecurity}
+          onClick={() => alert('Security setup coming soon.')}
           className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm"
         >
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
@@ -908,7 +900,7 @@ const ProfileBuilderTab = ({
                         alt={user.name}
                         className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                       />
-                    ) else (
+                    ) : (
                       <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}

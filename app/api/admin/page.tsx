@@ -1,3 +1,4 @@
+// app/admin/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,7 +16,6 @@ interface User {
     awardedAt: string;
   }>;
   isBanned: boolean;
-  bannedAt?: string;
   plan?: string;
   links?: Array<{
     id: string;
@@ -49,7 +49,12 @@ export default function AdminPanel() {
   const [newsForm, setNewsForm] = useState({ title: '', content: '', imageUrl: '' });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+  
+  // Password reset modal state
+  const [passwordModal, setPasswordModal] = useState<{ userId: string; username: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -99,34 +104,6 @@ export default function AdminPanel() {
     fetchData();
   }, [router]);
 
-  const handleResetPassword = async (userId: string) => {
-    setResettingPassword(userId);
-    try {
-      const res = await fetch('/api/admin/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // Show new password in alert (in real app, send via secure channel)
-        alert(`New password for user:\n\n${data.newPassword}\n\nShare securely!`);
-        setMessage({ type: 'success', text: 'Password reset successfully!' });
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to reset password' });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
-    } finally {
-      setResettingPassword(null);
-    }
-  };
-
-  // ... (keep your existing handler functions: handleCreateBadge, handleAddBadge, etc.)
-  // They remain unchanged — only UI is updated below
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -135,12 +112,151 @@ export default function AdminPanel() {
     );
   }
 
-  // Reuse your existing handler functions here (copy from your original code)
-  const handleCreateBadge = async () => { /* ... */ };
-  const handleAddBadge = async () => { /* ... */ };
-  const handleRemoveBadge = async (userId: string, badgeId: string) => { /* ... */ };
-  const handleBanUser = async (userId: string, action: 'ban' | 'unban') => { /* ... */ };
-  const handlePostNews = async () => { /* ... */ };
+  // --- Handlers ---
+  const handleCreateBadge = async () => {
+    if (!newBadge.name.trim() || !newBadge.icon.trim()) {
+      setMessage({ type: 'error', text: 'Badge name and icon URL are required.' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBadge)
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.id) {
+        setBadges([...badges, data]);
+        setNewBadge({ name: '', icon: '' });
+        setMessage({ type: 'success', text: 'Badge created successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to create badge.' });
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
+
+  const handleAddBadge = async () => {
+    if (!selectedUser || !selectedBadge) {
+      setMessage({ type: 'error', text: 'Please select both a user and a badge.' });
+      return;
+    }
+
+    const badgeToAdd = badges.find(b => b.id === selectedBadge);
+    if (!badgeToAdd) {
+      setMessage({ type: 'error', text: 'Selected badge not found.' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: selectedUser,
+          badge: badgeToAdd
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUsers(users.map(user =>
+          user.id === selectedUser
+            ? { ...user, badges: [...user.badges, { ...badgeToAdd, awardedAt: new Date().toISOString() }] }
+            : user
+        ));
+        setSelectedUser('');
+        setSelectedBadge('');
+        setMessage({ type: 'success', text: 'Badge assigned successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to assign badge.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
+
+  const handleRemoveBadge = async (userId: string, badgeId: string) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, badgeId })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUsers(users.map(user =>
+          user.id === userId
+            ? { ...user, badges: user.badges.filter(b => b.id !== badgeId) }
+            : user
+        ));
+        setMessage({ type: 'success', text: 'Badge removed successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to remove badge.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
+
+  const handleBanUser = async (userId: string, action: 'ban' | 'unban') => {
+    try {
+      const res = await fetch('/api/admin/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUsers(users.map(user =>
+          user.id === userId
+            ? { ...user, isBanned: action === 'ban' }
+            : user
+        ));
+        setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
+      } else {
+        setMessage({ type: 'error', text: data.error || `Failed to ${action} user.` });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
+
+  const handlePostNews = async () => {
+    if (!newsForm.title.trim() || !newsForm.content.trim()) {
+      setMessage({ type: 'error', text: 'Title and content are required.' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newsForm)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setNewsPosts([data, ...newsPosts]);
+        setNewsForm({ title: '', content: '', imageUrl: '' });
+        setMessage({ type: 'success', text: 'News post published successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to publish news.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 py-8">
@@ -394,7 +510,7 @@ export default function AdminPanel() {
                           </div>
                         ))}
                       </div>
-                    ) : (
+                    ) else (
                       <p className="text-sm text-gray-500">No badges</p>
                     )}
                   </div>
@@ -412,11 +528,10 @@ export default function AdminPanel() {
                       {user.isBanned ? 'Unban User' : 'Ban User'}
                     </button>
                     <button
-                      onClick={() => handleResetPassword(user.id)}
-                      disabled={resettingPassword === user.id}
-                      className="w-full py-2 text-sm font-medium rounded-md bg-amber-900/30 text-amber-300 hover:bg-amber-900/50 disabled:opacity-50"
+                      onClick={() => setPasswordModal({ userId: user.id, username: user.username })}
+                      className="w-full py-2 text-sm font-medium rounded-md bg-amber-900/30 text-amber-300 hover:bg-amber-900/50"
                     >
-                      {resettingPassword === user.id ? 'Resetting...' : 'Reset Password'}
+                      Set New Password
                     </button>
                   </div>
                 </div>
@@ -455,6 +570,95 @@ export default function AdminPanel() {
           )}
         </section>
       </div>
+
+      {/* Password Reset Modal */}
+      {passwordModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Set New Password for @{passwordModal.username}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={async () => {
+                  if (!newPassword || !confirmPassword) {
+                    setMessage({ type: 'error', text: 'Both fields are required' });
+                    return;
+                  }
+                  if (newPassword !== confirmPassword) {
+                    setMessage({ type: 'error', text: 'Passwords do not match' });
+                    return;
+                  }
+                  if (newPassword.length < 8) {
+                    setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
+                    return;
+                  }
+
+                  try {
+                    const res = await fetch('/api/admin/reset-password', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: passwordModal.userId,
+                        newPassword,
+                      }),
+                    });
+
+                    if (res.ok) {
+                      setMessage({ type: 'success', text: 'Password updated successfully!' });
+                      setPasswordModal(null);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                    } else {
+                      const data = await res.json();
+                      setMessage({ type: 'error', text: data.error || 'Failed to update password' });
+                    }
+                  } catch (err) {
+                    setMessage({ type: 'error', text: 'Network error' });
+                  }
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium"
+              >
+                Save Password
+              </button>
+              <button
+                onClick={() => {
+                  setPasswordModal(null);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

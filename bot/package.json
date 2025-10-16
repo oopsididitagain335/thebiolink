@@ -1,0 +1,21 @@
+{
+  "name": "biolink-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for BioLink account linking via !connect <code>",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["discord", "biolink", "oauth", "account-linking"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.15.0",
+    "mongodb": "^6.10.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

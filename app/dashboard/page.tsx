@@ -1049,7 +1049,54 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showTutorial, setShowTutorial] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
+
+  const tutorialSteps = [
+    {
+      title: 'Step 1: Customize Your Profile',
+      description: 'Switch to the "Customize" tab. Here, fill in your full name, username, location, avatar URL, background URL, and bio. These details make your profile personal and engaging.',
+      visual: '[Visual: Screenshot of Customize tab with fields highlighted]',
+      tab: 'customize',
+    },
+    {
+      title: 'Step 2: Choose a Theme',
+      description: 'Go to the "Themes" tab. Select a theme color that fits your brand or personality. Preview how it looks in the live preview panel.',
+      visual: '[Visual: Screenshot of Themes tab with theme options]',
+      tab: 'themes',
+    },
+    {
+      title: 'Step 3: Add Links',
+      description: 'Navigate to the "Links" tab. Add your social media or other links using the dropdown or custom option. Set titles, URLs, and optional icons. Drag to reorder them.',
+      visual: '[Visual: Screenshot of Links tab with add button and draggable items]',
+      tab: 'links',
+    },
+    {
+      title: 'Step 4: Add Widgets',
+      description: 'In the "Widgets" tab, choose and add embeds like YouTube videos, Spotify playlists, or custom HTML. Configure each widget with titles and URLs.',
+      visual: '[Visual: Screenshot of Widgets tab with widget types]',
+      tab: 'widgets',
+    },
+    {
+      title: 'Step 5: Build Your Layout',
+      description: 'Head to the "Profile Builder" tab. Add sections like bio, links, spacers, widgets, or custom content. Drag sections to arrange your profile layout. Watch the live preview update.',
+      visual: '[Visual: Screenshot of Profile Builder with sections and live preview]',
+      tab: 'builder',
+    },
+    {
+      title: 'Step 6: Review Analytics and Save',
+      description: 'Check the "Analytics" tab for profile views and stats. When ready, click "Save Changes" at the top. Confirm compliance and your profile is live!',
+      visual: '[Visual: Screenshot of Save button and Analytics tab]',
+      tab: 'analytics',
+    },
+  ];
+
+  useEffect(() => {
+    if (showTutorial) {
+      setActiveTab(tutorialSteps[currentStep].tab || 'overview');
+    }
+  }, [currentStep, showTutorial]);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1441,60 +1488,33 @@ export default function Dashboard() {
           </div>
         )}
         {showTutorial && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-lg overflow-y-auto max-h-[80vh]">
-              <h3 className="text-xl font-bold text-white mb-4">Visual Tutorial: Setting Up Your Profile</h3>
-              <p className="text-gray-300 mb-6">Follow these steps to set up your BioLink profile nicely. Each step includes visual guidance (imagine screenshots here for better visualization).</p>
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 1: Customize Your Profile</h4>
-                  <p className="text-gray-300 text-sm mb-2">Go to the 'Customize' tab. Add your name, username, avatar URL, bio, location, and background image/GIF.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Customize tab with fields highlighted]
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 2: Choose a Theme</h4>
-                  <p className="text-gray-300 text-sm mb-2">In the 'Themes' tab, select a color theme that matches your style.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Themes tab with theme options]
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 3: Add Links</h4>
-                  <p className="text-gray-300 text-sm mb-2">Switch to 'Links' tab. Add social media or custom links, choose icons, and reorder them by dragging.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Links tab with add button and draggable items]
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 4: Add Widgets</h4>
-                  <p className="text-gray-300 text-sm mb-2">In 'Widgets' tab, embed YouTube, Spotify, or custom content.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Widgets tab with widget types]
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 5: Build Your Layout</h4>
-                  <p className="text-gray-300 text-sm mb-2">Use 'Profile Builder' tab to add sections like bio, links, spacers, and widgets. Drag to reorder.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Profile Builder with sections and live preview]
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 6: Save and Preview</h4>
-                  <p className="text-gray-300 text-sm mb-2">Click 'Save Changes' and view your live profile. Check analytics for views.</p>
-                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
-                    [Visual: Screenshot of Save button and Analytics tab]
-                  </div>
-                </div>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-lg">
+              <h3 className="text-xl font-bold text-white mb-3">{tutorialSteps[currentStep].title}</h3>
+              <p className="text-gray-300 mb-4">{tutorialSteps[currentStep].description}</p>
+              <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm mb-6">
+                {tutorialSteps[currentStep].visual}
               </div>
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                  disabled={currentStep === 0}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50"
+                >
+                  Previous
+                </button>
                 <button
                   onClick={() => setShowTutorial(false)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
                 >
                   Close Tutorial
+                </button>
+                <button
+                  onClick={() => setCurrentStep(prev => Math.min(tutorialSteps.length - 1, prev + 1))}
+                  disabled={currentStep === tutorialSteps.length - 1}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
+                >
+                  Next
                 </button>
               </div>
             </div>

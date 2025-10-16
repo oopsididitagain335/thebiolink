@@ -4,6 +4,16 @@ import { connectDB } from '@/lib/storage';
 import { hash } from 'bcryptjs';
 import { ObjectId } from 'mongodb';
 
+// Generate a strong, random password (not returned to client)
+function generateSecurePassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=';
+  let password = '';
+  for (let i = 0; i < 16; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json();
@@ -19,23 +29,30 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Generate strong random password
-    const newPassword = Array.from({ length: 12 }, () =>
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%'.charAt(
-        Math.floor(Math.random() * 67)
-      )
-    ).join('');
+    if (user.isBanned) {
+      return Response.json({ error: 'Cannot reset password for banned user' }, { status: 403 });
+    }
 
+    // Generate new secure password and hash it
+    const newPassword = generateSecurePassword();
     const passwordHash = await hash(newPassword, 12);
+
+    // Update only the password hash in the database
     await db.collection('users').updateOne(
       { _id: new ObjectId(userId) },
       { $set: { passwordHash } }
     );
 
-    // Return only the new password (for admin to share securely)
-    return Response.json({ success: true, newPassword });
+    // 🔒 SECURITY: Password is NEVER sent to the frontend.
+    // In a real system, you would:
+    //   - Email it securely, OR
+    //   - Log it to an encrypted internal audit system, OR
+    //   - Require the user to set a new password on next login (preferred)
+
+    // For now, we just confirm success
+    return Response.json({ success: true });
   } catch (error) {
-    console.error('Reset password error:', error);
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Admin password reset error:', error);
+    return Response.json({ error: 'Failed to reset password' }, { status: 500 });
   }
 }

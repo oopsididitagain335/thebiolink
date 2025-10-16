@@ -1048,6 +1048,7 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showTutorial, setShowTutorial] = useState(false);
   const router = useRouter();
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1227,6 +1228,12 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
+              <button
+                onClick={() => setShowTutorial(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-green-700"
+              >
+                Start Profile Setup Tutorial
+              </button>
               <button
                 onClick={handleLogout}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
@@ -1428,6 +1435,66 @@ export default function Dashboard() {
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
                 >
                   {isSaving ? 'Saving...' : 'I Comply – Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showTutorial && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-lg overflow-y-auto max-h-[80vh]">
+              <h3 className="text-xl font-bold text-white mb-4">Visual Tutorial: Setting Up Your Profile</h3>
+              <p className="text-gray-300 mb-6">Follow these steps to set up your BioLink profile nicely. Each step includes visual guidance (imagine screenshots here for better visualization).</p>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 1: Customize Your Profile</h4>
+                  <p className="text-gray-300 text-sm mb-2">Go to the 'Customize' tab. Add your name, username, avatar URL, bio, location, and background image/GIF.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Customize tab with fields highlighted]
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 2: Choose a Theme</h4>
+                  <p className="text-gray-300 text-sm mb-2">In the 'Themes' tab, select a color theme that matches your style.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Themes tab with theme options]
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 3: Add Links</h4>
+                  <p className="text-gray-300 text-sm mb-2">Switch to 'Links' tab. Add social media or custom links, choose icons, and reorder them by dragging.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Links tab with add button and draggable items]
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 4: Add Widgets</h4>
+                  <p className="text-gray-300 text-sm mb-2">In 'Widgets' tab, embed YouTube, Spotify, or custom content.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Widgets tab with widget types]
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 5: Build Your Layout</h4>
+                  <p className="text-gray-300 text-sm mb-2">Use 'Profile Builder' tab to add sections like bio, links, spacers, and widgets. Drag to reorder.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Profile Builder with sections and live preview]
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-2">Step 6: Save and Preview</h4>
+                  <p className="text-gray-300 text-sm mb-2">Click 'Save Changes' and view your live profile. Check analytics for views.</p>
+                  <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm">
+                    [Visual: Screenshot of Save button and Analytics tab]
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowTutorial(false)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium"
+                >
+                  Close Tutorial
                 </button>
               </div>
             </div>

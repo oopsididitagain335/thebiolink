@@ -53,7 +53,7 @@ interface UserDoc {
     height?: number;
     content?: string;
   }>;
-  discordId?: string; // ←←← ADDED FOR DISCORD
+  discordId?: string;
 }
 
 interface LinkDoc {
@@ -103,8 +103,9 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
+// ✅ FIXED: _id is optional for insert
 interface DiscordCodeDoc {
-  _id: ObjectId;
+  _id?: ObjectId;
   code: string;
   userId: ObjectId;
   used: boolean;

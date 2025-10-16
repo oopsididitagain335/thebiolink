@@ -1,4 +1,5 @@
 services:
+  # Your existing Next.js web app
   - type: web
     name: thebiolink
     env: node
@@ -15,3 +16,17 @@ services:
       name: biolink-data
       mountPath: /var/data
       sizeGB: 1
+
+  # NEW: Discord Bot as Background Worker
+  - type: worker
+    name: discord-bot
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: "cd bot && npm install"
+    startCommand: "cd bot && node index.js"
+    envVars:
+      - key: NODE_VERSION
+        value: "22.16.0"
+      - key: DISCORD_BOT_TOKEN
+        sync: true  # You'll set this in Render dashboard

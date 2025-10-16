@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -977,7 +976,7 @@ const ProfileBuilderTab = ({
                         alt={user.name}
                         className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                       />
-                    ) else (
+                    ) : (
                       <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}
@@ -1442,7 +1441,7 @@ export default function Dashboard() {
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) else (
+                  ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}

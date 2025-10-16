@@ -28,7 +28,7 @@ interface UserDoc {
   passwordHash: string;
   avatar?: string;
   bio?: string;
-  location?: string; // ←←← ADDED
+  location?: string;
   background?: string;
   backgroundVideo?: string;
   backgroundAudio?: string;
@@ -53,6 +53,7 @@ interface UserDoc {
     height?: number;
     content?: string;
   }>;
+  discordId?: string; // ←←← ADDED FOR DISCORD
 }
 
 interface LinkDoc {
@@ -102,6 +103,17 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
+interface DiscordCodeDoc {
+  _id: ObjectId;
+  code: string;
+  userId: ObjectId;
+  used: boolean;
+  createdAt: Date;
+  expiresAt: Date;
+  discordId?: string;
+  usedAt?: Date;
+}
+
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -137,7 +149,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    location: user.location || '', // ←←← RETURN
+    location: user.location || '',
     background: user.background || '',
     backgroundVideo: user.backgroundVideo || '',
     backgroundAudio: user.backgroundAudio || '',
@@ -159,6 +171,7 @@ export async function getUserByUsername(username: string, clientId: string) {
       { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
+    discordId: user.discordId,
   };
 }
 
@@ -200,7 +213,7 @@ export async function getUserById(id: string) {
     username: user.username || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    location: user.location || '', // ←←← RETURN
+    location: user.location || '',
     background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     plan: user.plan || 'free',
@@ -220,6 +233,7 @@ export async function getUserById(id: string) {
     })).sort((a, b) => a.position - b.position),
     widgets,
     badges: user.badges || [],
+    discordId: user.discordId,
   };
 }
 
@@ -235,10 +249,11 @@ export async function getUserByEmail(email: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     bio: user.bio || '',
-    location: user.location || '', // ←←← RETURN
+    location: user.location || '',
     isEmailVerified: user.isEmailVerified,
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
+    discordId: user.discordId,
   };
 }
 
@@ -257,7 +272,7 @@ export async function createUser(email: string, password: string, username: stri
     name,
     passwordHash,
     background,
-    location: '', // ←←← INITIALIZE
+    location: '',
     ipAddress,
     badges: [],
     isEmailVerified: true,
@@ -278,7 +293,7 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     background,
-    location: '', // ←←← RETURN
+    location: '',
     badges: [],
     isEmailVerified: true,
     isBanned: false,
@@ -357,7 +372,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: updates.username?.trim().toLowerCase() || '',
     avatar: updates.avatar?.trim() || '',
     bio: updates.bio?.trim() || '',
-    location: updates.location?.trim().substring(0, 100) || '', // ←←← SAVE
+    location: updates.location?.trim().substring(0, 100) || '',
     background: updates.background?.trim() || '',
     plan: updates.plan || 'free',
     theme,
@@ -366,6 +381,7 @@ export async function updateUserProfile(userId: string, updates: any) {
       { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
+    discordId: updates.discordId,
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
@@ -495,10 +511,11 @@ export async function getAllUsers() {
       name: 1,
       avatar: 1,
       bio: 1,
-      location: 1, // ←←← INCLUDE IN ADMIN
+      location: 1,
       isBanned: 1,
       badges: 1,
       plan: 1,
+      discordId: 1,
     })
     .toArray();
 
@@ -508,10 +525,11 @@ export async function getAllUsers() {
     name: user.name || '',
     avatar: user.avatar || undefined,
     bio: user.bio || undefined,
-    location: user.location || undefined, // ←←← RETURN
+    location: user.location || undefined,
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
     badges: Array.isArray(user.badges) ? user.badges : [],
+    discordId: user.discordId,
   }));
 }
 
@@ -617,4 +635,21 @@ export async function getNewsPostById(id: string) {
     likes,
     comments: commentAuthors,
   };
+}
+
+// --- DISCORD LINKING ---
+export async function createDiscordLinkCode(userId: string): Promise<string> {
+  const db = await connectDB();
+  const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await db.collection<DiscordCodeDoc>('discord_codes').insertOne({
+    code,
+    userId: new ObjectId(userId),
+    used: false,
+    createdAt: new Date(),
+    expiresAt,
+  });
+
+  return code;
 }

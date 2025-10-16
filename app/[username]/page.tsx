@@ -44,7 +44,7 @@ function getYouTubeId(url: string): string {
 }
 
 function getSpotifyId(url: string): string {
-  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  const match = url.match(/spotify\.com\/(track|playlist|album|artist|episode|show)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 }
 
@@ -119,7 +119,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             ))}
           </div>
 
-          {/* Global Animations */}
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes floatAsh {
               0% { transform: translateY(0) rotate(0deg); opacity: 0; }
@@ -129,11 +128,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             }
           ` }} />
 
-          {/* Fog & Atmosphere */}
           <div className="absolute inset-0 bg-gradient-to-b from-red-900/3 to-black pointer-events-none z-0" />
 
           <div className="max-w-md w-full bg-gray-900/85 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-800/50 relative z-10">
-            {/* Personalized Tombstone */}
             <div className="mb-6 relative">
               <svg width="80" height="100" viewBox="0 0 80 100" className="text-red-900/20 mx-auto">
                 <rect x="30" y="15" width="20" height="60" rx="3" />
@@ -238,27 +235,29 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         )}
         {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
 
-        <div className="absolute inset-0 bg-black/60 z-10" />
+        <div className="absolute inset-0 bg-black/50 z-10" />
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
-          <div className="w-full max-w-md space-y-4">
-            <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
+          <div className="w-full max-w-md space-y-6">
+            <div className={`bg-white/8 backdrop-blur-xl rounded-2xl p-6 text-center shadow-xl border border-white/15 ${glow} transition-all duration-300 hover:shadow-2xl`}>
               <div className="relative inline-block mb-4">
-                <Avatar name={name} avatar={avatar} />
+                <Avatar name={name} avatar={avatar} size="xl" />
               </div>
 
-              <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-1">
+                {name || username}
+              </h1>
 
               {visibleBadges.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
+                <div className="flex flex-wrap justify-center gap-1.5 mt-2 mb-3">
                   {visibleBadges.map((badge) => (
                     <span
                       key={badge.id}
-                      className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
+                      className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2 py-1 rounded-full border border-white/10 backdrop-blur-sm"
                       title={`Awarded: ${new Date(badge.awardedAt ?? (('earnedAt' in badge) ? badge.earnedAt : undefined) ?? Date.now()).toLocaleDateString()}`}
                     >
                       {badge.icon && (
-                        <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />
+                        <img src={badge.icon} alt="" className="w-3 h-3 mr-1" />
                       )}
                       {badge.name}
                     </span>
@@ -266,12 +265,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 </div>
               )}
 
-              {bio && <TypingBio bio={bio} />}
+              {bio && <TypingBio bio={bio} className="text-gray-200 mt-2 mb-3 text-sm leading-relaxed" />}
 
-              <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
+              <div className="flex justify-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-300 mt-3">
                 {location && (
-                  <div className="flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -283,8 +282,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               </div>
 
               {getSpecialProfileTag(username) && (
-                <div className="mt-3 pt-3 border-t border-white/20">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
+                <div className="mt-4 pt-3 border-t border-white/15">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-600/30 to-pink-500/30 text-purple-100 backdrop-blur-sm border border-purple-500/20">
                     🏆 {getSpecialProfileTag(username)}
                   </span>
                 </div>
@@ -292,18 +291,18 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
 
             {sortedLinks.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {sortedLinks.map((link) => (
                   <a
                     key={link.id}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full py-3.5 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:shadow-lg hover:-translate-y-0.5"
+                    className="group block w-full py-3 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/8 hover:bg-white/15 backdrop-blur-md border border-white/10 hover:border-white/20 hover:shadow-lg hover:-translate-y-0.5"
                   >
                     {link.icon ? (
                       <div className="flex items-center justify-center gap-2">
-                        <img src={link.icon} alt="" className="w-5 h-5" />
+                        <img src={link.icon} alt="" className="w-4 h-4 opacity-90 group-hover:scale-105 transition-transform" />
                         <span>{link.title}</span>
                       </div>
                     ) : (
@@ -315,12 +314,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             )}
 
             {sortedWidgets.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {sortedWidgets.map((widget) => (
-                  <div key={widget.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
-                    {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
+                  <div key={widget.id} className="bg-white/8 backdrop-blur-lg rounded-xl p-4 border border-white/10 shadow-sm">
+                    {widget.title && <h3 className="text-lg font-semibold text-white mb-2.5">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url && (
-                      <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
+                      <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
                         <iframe
                           src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                           title={widget.title || 'YouTube video'}
@@ -332,14 +331,14 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       </div>
                     )}
                     {widget.type === 'spotify' && widget.url && (
-                      <div className="aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg">
+                      <div className="w-full max-w-xs mx-auto overflow-hidden rounded-xl">
                         <iframe
                           src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                           title={widget.title || 'Spotify embed'}
                           frameBorder="0"
                           allowTransparency
                           allow="encrypted-media"
-                          className="w-full h-full"
+                          className="w-full aspect-square"
                         ></iframe>
                       </div>
                     )}
@@ -348,22 +347,27 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                         href={widget.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block text-blue-300 hover:underline text-center mt-2"
+                        className="block text-blue-300 hover:text-blue-200 hover:underline text-center mt-2 font-medium"
                       >
                         View on Twitter
                       </a>
                     )}
                     {widget.type === 'custom' && widget.content && (
-                      <div dangerouslySetInnerHTML={{ __html: widget.content }} />
+                      <div
+                        className="prose prose-invert max-w-none text-gray-200 text-sm"
+                        dangerouslySetInnerHTML={{ __html: widget.content }}
+                      />
                     )}
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
+            <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-2">
               <p className="mb-1">Powered by The BioLink</p>
-              <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
+              <a href="/" className="text-indigo-300 hover:text-indigo-100 hover:underline transition-colors">
+                Create your own
+              </a>
             </div>
           </div>
         </div>

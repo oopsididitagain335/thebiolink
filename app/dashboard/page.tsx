@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,6 +41,7 @@ interface User {
   theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
+  discordId?: string; // ←←← ADDED
 }
 interface LayoutSection {
   id: string;
@@ -62,18 +64,15 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
-
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
@@ -118,7 +117,96 @@ const DraggableItem = ({
   );
 };
 
-// --- Badges Tab ---
+// --- DISCORD TAB ---
+const DiscordTab = ({ user }: { user: User }) => {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const generateCode = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/discord/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCode(data.code);
+        setMessage({ type: 'success', text: 'Code generated! Use it in Discord within 10 minutes.' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to generate code' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Network error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
+      
+      {user.discordId ? (
+        <div className="p-4 bg-green-900/20 border border-green-800 rounded-lg">
+          <div className="flex items-center">
+            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center mr-3">
+              <span className="text-white text-lg">✓</span>
+            </div>
+            <div>
+              <p className="text-green-300 font-medium">Discord Linked</p>
+              <p className="text-green-500 text-sm">Your account is connected to Discord.</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-gray-400 mb-4">
+            Link your Discord to unlock exclusive features and badges.
+          </p>
+          
+          {code ? (
+            <div className="mb-4 p-4 bg-indigo-900/30 border border-indigo-700 rounded-lg">
+              <p className="text-indigo-200 text-sm mb-2">Your code:</p>
+              <div className="flex items-center justify-between">
+                <code className="text-xl font-bold text-white bg-black/30 px-3 py-2 rounded">
+                  {code}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(code)}
+                  className="text-indigo-300 hover:text-white text-sm"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-indigo-400 text-xs mt-2">
+                Expires in 10 minutes. Use: <code className="bg-black/40 px-1 rounded">!connect {code}</code>
+              </p>
+            </div>
+          ) : (
+            <button
+              onClick={generateCode}
+              disabled={loading}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
+            >
+              {loading ? 'Generating...' : 'Generate Link Code'}
+            </button>
+          )}
+
+          {message && (
+            <div className={`mt-4 p-3 rounded ${message.type === 'success' ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'}`}>
+              {message.text}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// --- Other Tabs (unchanged) ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -174,7 +262,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
   );
 };
 
-// --- Settings Tab (FIXED SVG) ---
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -206,7 +293,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
         <div className="flex items-start">
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
-            {/* ✅ FIXED: Full, valid star SVG path */}
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
             </svg>
@@ -229,7 +315,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   );
 };
 
-// --- Other Tabs (unchanged, but included for completeness) ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -892,7 +977,7 @@ const ProfileBuilderTab = ({
                         alt={user.name}
                         className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                       />
-                    ) : (
+                    ) else (
                       <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-white font-bold">
                           {user.name.charAt(0).toUpperCase()}
@@ -1013,7 +1098,6 @@ const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
-
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -1035,6 +1119,7 @@ export default function Dashboard() {
     theme: 'indigo',
     badges: [],
     email: '',
+    discordId: undefined, // ←←← INIT
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1051,7 +1136,6 @@ export default function Dashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
-
   const tutorialSteps = [
     {
       title: 'Step 1: Customize Your Profile',
@@ -1090,13 +1174,11 @@ export default function Dashboard() {
       tab: 'analytics',
     },
   ];
-
   useEffect(() => {
     if (showTutorial) {
       setActiveTab(tutorialSteps[currentStep].tab || 'overview');
     }
   }, [currentStep, showTutorial]);
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1123,6 +1205,7 @@ export default function Dashboard() {
           theme: (data.user.theme as User['theme']) || 'indigo',
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
+          discordId: data.user.discordId,
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1217,6 +1300,7 @@ export default function Dashboard() {
             theme: user.theme || 'indigo',
             layoutStructure,
             email: user.email,
+            discordId: user.discordId,
           },
           links: linksToSend,
           widgets: widgetsToSend,
@@ -1246,6 +1330,7 @@ export default function Dashboard() {
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
+    { id: 'discord', name: 'Discord' }, // ←←← ADDED
     { id: 'settings', name: 'Settings' },
   ];
   if (loading) {
@@ -1336,6 +1421,7 @@ export default function Dashboard() {
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
+            {activeTab === 'discord' && <DiscordTab user={user} />} {/* ←←← RENDER */}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
           </div>
           <div className="lg:col-span-1">
@@ -1356,7 +1442,7 @@ export default function Dashboard() {
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) : (
+                  ) else (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}

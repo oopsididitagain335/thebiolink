@@ -1,4 +1,3 @@
-// app/api/admin/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -87,15 +86,15 @@ export default function AdminPanel() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   const handleCreateBadge = async () => {
-    if (!newBadge.name || !newBadge.icon) {
-      setMessage({ type: 'error', text: 'Name and icon are required' });
+    if (!newBadge.name.trim() || !newBadge.icon.trim()) {
+      setMessage({ type: 'error', text: 'Badge name and icon URL are required.' });
       return;
     }
 
@@ -113,7 +112,7 @@ export default function AdminPanel() {
         setNewBadge({ name: '', icon: '' });
         setMessage({ type: 'success', text: 'Badge created successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to create badge' });
+        setMessage({ type: 'error', text: data.error || 'Failed to create badge.' });
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -122,13 +121,13 @@ export default function AdminPanel() {
 
   const handleAddBadge = async () => {
     if (!selectedUser || !selectedBadge) {
-      setMessage({ type: 'error', text: 'Please select a user and badge' });
+      setMessage({ type: 'error', text: 'Please select both a user and a badge.' });
       return;
     }
 
     const badgeToAdd = badges.find(b => b.id === selectedBadge);
     if (!badgeToAdd) {
-      setMessage({ type: 'error', text: 'Badge not found' });
+      setMessage({ type: 'error', text: 'Selected badge not found.' });
       return;
     }
 
@@ -152,9 +151,9 @@ export default function AdminPanel() {
         ));
         setSelectedUser('');
         setSelectedBadge('');
-        setMessage({ type: 'success', text: 'Badge added successfully!' });
+        setMessage({ type: 'success', text: 'Badge assigned successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to add badge' });
+        setMessage({ type: 'error', text: data.error || 'Failed to assign badge.' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -179,7 +178,7 @@ export default function AdminPanel() {
         ));
         setMessage({ type: 'success', text: 'Badge removed successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to remove badge' });
+        setMessage({ type: 'error', text: data.error || 'Failed to remove badge.' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -204,7 +203,7 @@ export default function AdminPanel() {
         ));
         setMessage({ type: 'success', text: `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully!` });
       } else {
-        setMessage({ type: 'error', text: data.error || `Failed to ${action} user` });
+        setMessage({ type: 'error', text: data.error || `Failed to ${action} user.` });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -213,7 +212,7 @@ export default function AdminPanel() {
 
   const handlePostNews = async () => {
     if (!newsForm.title.trim() || !newsForm.content.trim()) {
-      setMessage({ type: 'error', text: 'Title and content are required' });
+      setMessage({ type: 'error', text: 'Title and content are required.' });
       return;
     }
 
@@ -229,9 +228,9 @@ export default function AdminPanel() {
       if (res.ok) {
         setNewsPosts([data, ...newsPosts]);
         setNewsForm({ title: '', content: '', imageUrl: '' });
-        setMessage({ type: 'success', text: 'News post published!' });
+        setMessage({ type: 'success', text: 'News post published successfully!' });
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to publish news' });
+        setMessage({ type: 'error', text: data.error || 'Failed to publish news.' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -239,109 +238,144 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <p className="text-gray-400 mt-2">Manage users, badges, and news</p>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="mt-4 sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors border border-gray-700"
-            >
-              Back to Dashboard
-            </button>
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-1">Manage users, badges, and site announcements</p>
           </div>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            ← Back to Dashboard
+          </button>
         </div>
 
+        {/* Global Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-900/30 text-green-300 border border-green-800' : 'bg-red-900/30 text-red-300 border border-red-800'} max-w-sm`}>
+          <div
+            className={`mb-6 p-4 rounded-md border ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border-green-200'
+                : 'bg-red-50 text-red-800 border-red-200'
+            }`}
+          >
             {message.text}
           </div>
         )}
 
-        {/* Post News Section */}
-        <div className="mb-8 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Post News</h2>
+        {/* News Section */}
+        <section className="mb-10 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Post Announcement</h2>
           <div className="space-y-4">
-            <input
-              type="text"
-              value={newsForm.title}
-              onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
-              placeholder="News Title"
-              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <input
-              type="url"
-              value={newsForm.imageUrl}
-              onChange={(e) => setNewsForm({ ...newsForm, imageUrl: e.target.value })}
-              placeholder="Image URL (optional)"
-              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <textarea
-              value={newsForm.content}
-              onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
-              placeholder="News Content"
-              rows={6}
-              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
-            />
+            <div>
+              <label htmlFor="news-title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
+              <input
+                id="news-title"
+                type="text"
+                value={newsForm.title}
+                onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., New Feature Launch"
+              />
+            </div>
+            <div>
+              <label htmlFor="news-image" className="block text-sm font-medium text-gray-700 mb-1">
+                Image URL (optional)
+              </label>
+              <input
+                id="news-image"
+                type="url"
+                value={newsForm.imageUrl}
+                onChange={(e) => setNewsForm({ ...newsForm, imageUrl: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            <div>
+              <label htmlFor="news-content" className="block text-sm font-medium text-gray-700 mb-1">
+                Content
+              </label>
+              <textarea
+                id="news-content"
+                value={newsForm.content}
+                onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                placeholder="Write your announcement..."
+              />
+            </div>
             <button
               onClick={handlePostNews}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-md font-medium transition-colors"
             >
-              Publish News
+              Publish Announcement
             </button>
           </div>
-        </div>
+        </section>
 
-        {/* Rest of admin panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold mb-4 text-white">Create New Badge</h2>
+        {/* Two-Column Admin Tools */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          {/* Create Badge */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Create New Badge</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Badge Name</label>
+                <label htmlFor="badge-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Badge Name
+                </label>
                 <input
+                  id="badge-name"
                   type="text"
                   value={newBadge.name}
                   onChange={(e) => setNewBadge({ ...newBadge, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Early Adopter"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Badge Icon URL</label>
+                <label htmlFor="badge-icon" className="block text-sm font-medium text-gray-700 mb-1">
+                  Icon URL
+                </label>
                 <input
+                  id="badge-icon"
                   type="url"
                   value={newBadge.icon}
                   onChange={(e) => setNewBadge({ ...newBadge, icon: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://example.com/badge.png"
                 />
               </div>
               <button
                 onClick={handleCreateBadge}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-md font-medium transition-colors"
               >
                 Create Badge
               </button>
             </div>
           </div>
 
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold mb-4 text-white">Add Badge to User</h2>
+          {/* Assign Badge */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Assign Badge to User</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Select User</label>
+                <label htmlFor="select-user" className="block text-sm font-medium text-gray-700 mb-1">
+                  Select User
+                </label>
                 <select
+                  id="select-user"
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Choose a user</option>
-                  {Array.isArray(users) && users.map((user) => (
+                  <option value="">— Choose a user —</option>
+                  {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </option>
@@ -349,14 +383,17 @@ export default function AdminPanel() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Select Badge</label>
+                <label htmlFor="select-badge" className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Badge
+                </label>
                 <select
+                  id="select-badge"
                   value={selectedBadge}
                   onChange={(e) => setSelectedBadge(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Choose a badge</option>
-                  {Array.isArray(badges) && badges.map((badge) => (
+                  <option value="">— Choose a badge —</option>
+                  {badges.map((badge) => (
                     <option key={badge.id} value={badge.id}>
                       {badge.name}
                     </option>
@@ -365,64 +402,78 @@ export default function AdminPanel() {
               </div>
               <button
                 onClick={handleAddBadge}
-                className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-md font-medium transition-colors"
               >
-                Add Badge to User
+                Assign Badge
               </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">All Users</h2>
-          {Array.isArray(users) && users.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Users List */}
+        <section className="mb-10">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">All Users ({users.length})</h2>
+          </div>
+          {users.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {users.map((user) => (
-                <div key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
+                <div
+                  key={user.id}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                      {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg font-semibold text-white">{user.name}</h3>
-                      <p className="text-gray-400 text-sm">{user.email}</p>
+                      <h3 className="font-medium text-gray-900">{user.name}</h3>
+                      <p className="text-sm text-gray-600 truncate">{user.email}</p>
                       {user.isBanned && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-300 mt-1">
+                        <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           Banned
                         </span>
                       )}
                     </div>
                   </div>
+
                   <div className="mt-4">
-                    <h4 className="text-md font-medium text-gray-300 mb-2">Badges</h4>
-                    {Array.isArray(user.badges) && user.badges.length > 0 ? (
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Badges ({user.badges.length})</h4>
+                    {user.badges.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {user.badges.map((badge) => (
-                          <div key={badge.id} className="relative group">
-                            <div className="flex items-center bg-gray-700/50 rounded-lg px-3 py-2">
-                              <img src={badge.icon} alt={badge.name} className="w-6 h-6 mr-2" />
-                              <span className="text-white text-sm">{badge.name}</span>
-                              <button 
-                                onClick={() => handleRemoveBadge(user.id, badge.id)}
-                                className="ml-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                ×
-                              </button>
-                            </div>
+                          <div
+                            key={badge.id}
+                            className="flex items-center bg-gray-100 rounded px-2 py-1 text-xs"
+                          >
+                            <img
+                              src={badge.icon}
+                              alt={badge.name}
+                              className="w-4 h-4 mr-1 rounded-sm"
+                            />
+                            <span className="text-gray-700">{badge.name}</span>
+                            <button
+                              onClick={() => handleRemoveBadge(user.id, badge.id)}
+                              className="ml-1 text-red-500 hover:text-red-700"
+                              aria-label={`Remove ${badge.name} badge`}
+                            >
+                              ×
+                            </button>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-sm">No badges</p>
+                      <p className="text-sm text-gray-500">No badges assigned</p>
                     )}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-700">
+
+                  <div className="mt-5 pt-4 border-t border-gray-100">
                     <button
                       onClick={() => handleBanUser(user.id, user.isBanned ? 'unban' : 'ban')}
-                      className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                      className={`w-full py-2 text-sm font-medium rounded-md ${
                         user.isBanned
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-red-600 hover:bg-red-700 text-white'
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
                       }`}
                     >
                       {user.isBanned ? 'Unban User' : 'Ban User'}
@@ -432,25 +483,37 @@ export default function AdminPanel() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No users loaded.</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <p className="text-gray-500">No users found.</p>
+            </div>
           )}
-        </div>
+        </section>
 
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">All Badges</h2>
-          {Array.isArray(badges) && badges.length > 0 ? (
+        {/* Badges Gallery */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">All Badges ({badges.length})</h2>
+          {badges.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {badges.map((badge) => (
-                <div key={badge.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 text-center">
-                  <img src={badge.icon} alt={badge.name} className="w-16 h-16 mx-auto mb-2 object-contain" />
-                  <p className="text-white font-medium">{badge.name}</p>
+                <div
+                  key={badge.id}
+                  className="bg-white rounded-lg border border-gray-200 p-4 text-center"
+                >
+                  <img
+                    src={badge.icon}
+                    alt={badge.name}
+                    className="w-12 h-12 mx-auto mb-2 object-contain"
+                  />
+                  <p className="text-sm font-medium text-gray-900">{badge.name}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No badges loaded.</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <p className="text-gray-500">No badges created yet.</p>
+            </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

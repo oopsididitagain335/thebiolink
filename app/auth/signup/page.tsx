@@ -3,42 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Suspense } from 'react';
 
-// --- Child component that uses useSearchParams ---
-function UsernamePrefiller({ onUsernameChange }: { onUsernameChange: (username: string) => void }) {
-  const searchParams = useSearchParams();
-  const usernameRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const raw = searchParams.get('username');
-    if (raw) {
-      const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (clean) {
-        onUsernameChange(clean);
-      }
-    }
-  }, [searchParams, onUsernameChange]);
-
-  // Optional: handle browser autofill by syncing input value
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (usernameRef.current) {
-        const currentVal = usernameRef.current.value;
-        const expectedVal = (usernameRef.current as any).expectedValue || '';
-        if (currentVal !== expectedVal) {
-          usernameRef.current.value = expectedVal;
-        }
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return null; // This component doesn't render anything visible
-}
-
-// --- Main Signup Form ---
-function SignupForm() {
+export default function SignupPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,16 +15,29 @@ function SignupForm() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const usernameRef = useRef<HTMLInputElement>(null);
 
-  const handleUsernameChange = (username: string) => {
-    if (username && username !== formData.username) {
-      setFormData((prev) => ({ ...prev, username }));
-      if (usernameRef.current) {
-        (usernameRef.current as any).expectedValue = username;
+  // Prefill username from URL query parameter
+  useEffect(() => {
+    const raw = searchParams.get('username');
+    if (raw) {
+      const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean && clean.length >= 3 && clean.length <= 20) {
+        setFormData((prev) => ({
+          ...prev,
+          username: clean
+        }));
       }
     }
-  };
+  }, [searchParams]);
+
+  // Sync input value to state (handles programmatic updates & autofill)
+  useEffect(() => {
+    if (usernameRef.current) {
+      usernameRef.current.value = formData.username;
+    }
+  }, [formData.username]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -68,7 +47,7 @@ function SignupForm() {
       finalValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
-    setFormData({ ...formData, [name]: finalValue });
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
     if (error) setError('');
     if (success) setSuccess('');
   };
@@ -79,26 +58,28 @@ function SignupForm() {
     setError('');
     setSuccess('');
 
-    if (!formData.name.trim()) {
+    const { name, email, username, password } = formData;
+
+    if (!name.trim()) {
       setError('Please enter your full name');
       setIsLoading(false);
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
       setError('Password must be at least 6 characters');
       setIsLoading(false);
       return;
     }
 
-    if (!/^[a-z0-9]+$/.test(formData.username)) {
-      setError('Username can only contain lowercase letters and numbers');
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.username.length < 3) {
-      setError('Username must be at least 3 characters');
+    if (!/^[a-z0-9]{3,20}$/.test(username)) {
+      setError('Username must be 3–20 lowercase letters or numbers');
       setIsLoading(false);
       return;
     }
@@ -107,7 +88,7 @@ function SignupForm() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ name, email, username, password })
       });
 
       const data = await response.json();
@@ -119,19 +100,12 @@ function SignupForm() {
         setError(data.error || 'Sign up failed. Please try again.');
       }
     } catch (err) {
+      console.error(err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Sync input value after state update
-  useEffect(() => {
-    if (usernameRef.current) {
-      usernameRef.current.value = formData.username;
-      (usernameRef.current as any).expectedValue = formData.username;
-    }
-  }, [formData.username]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
@@ -218,7 +192,7 @@ function SignupForm() {
                 />
               </div>
               <p className="mt-1.5 text-xs text-gray-500">
-                Only lowercase letters and numbers (3–20 chars)
+                Only lowercase letters and numbers (3–20 characters)
               </p>
               {formData.username && !/^[a-z0-9]{3,20}$/.test(formData.username) && (
                 <p className="mt-1 text-xs text-red-400">
@@ -242,9 +216,7 @@ function SignupForm() {
                 className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-700/70 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                 placeholder="••••••••"
               />
-              <p className="mt-1.5 text-xs text-gray-500">
-                At least 6 characters
-              </p>
+              <p className="mt-1.5 text-xs text-gray-500">At least 6 characters</p>
             </div>
 
             <button
@@ -267,20 +239,5 @@ function SignupForm() {
         </div>
       </div>
     </div>
-  );
-}
-
-// --- Main Page Export ---
-export default function SignupPage() {
-  return (
-    <Suspense fallback={null}>
-      <UsernamePrefiller onUsernameChange={(username) => {
-        // This will be handled inside SignupForm via state lifting
-        // But since we can't pass state up from here easily,
-        // we instead let UsernamePrefiller be a child of SignupForm
-        // So we refactor: move Suspense inside SignupForm
-      }} />
-      <SignupForm />
-    </Suspense>
   );
 }

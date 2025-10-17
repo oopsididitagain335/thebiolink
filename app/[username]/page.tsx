@@ -230,10 +230,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
-
-        {/* Audio (if any) */}
-        {userData.backgroundAudio && <audio autoPlay loop><source src={userData.backgroundAudio} type="audio/mpeg" /></audio>}
-
+        
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/60 z-10" />
 

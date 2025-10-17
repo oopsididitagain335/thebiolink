@@ -1,4 +1,6 @@
 // app/[username]/page.tsx
+'use client';
+import { useState, useEffect } from 'react';
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
@@ -8,6 +10,40 @@ import DOMPurify from 'dompurify';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+// Utility to generate QR code with logo
+const generateQRWithLogo = async (url: string): Promise<string> => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(url)}`;
+  const logoUrl = '/favicon.ico';
+
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return resolve(qrCodeUrl);
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const logo = new Image();
+      logo.crossOrigin = 'anonymous';
+      logo.onload = () => {
+        const logoSize = 60;
+        const x = (canvas.width - logoSize) / 2;
+        const y = (canvas.height - logoSize) / 2;
+        ctx.drawImage(logo, x, y, logoSize, logoSize);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      logo.onerror = () => resolve(qrCodeUrl);
+      logo.src = logoUrl;
+    };
+    img.onerror = () => resolve(qrCodeUrl);
+    img.src = qrCodeUrl;
+  });
+};
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -199,18 +235,30 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     };
     const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
+    const profileUrl = `https://thebiolink.lol/${username}`;
+    const [qrCode, setQrCode] = useState<string | null>(null);
+    const [showQR, setShowQR] = useState(false);
+
+    useEffect(() => {
+      if (showQR && !qrCode) {
+        generateQRWithLogo(profileUrl).then(setQrCode);
+      }
+    }, [showQR, qrCode, profileUrl]);
+
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
         {/* === BACKGROUND LOGIC === */}
         {hasBanner ? (
-          // ✅ BANNER MODE: only banner, no full background
-          <div className="absolute inset-0 z-0">
-            <img
-              src={profileBanner}
-              alt=""
-              className="w-full h-48 object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+          // ✅ BANNER MODE: centered, max-w-4xl, not full-width
+          <div className="absolute inset-0 z-0 flex justify-center">
+            <div className="w-full max-w-4xl">
+              <img
+                src={profileBanner}
+                alt=""
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+            </div>
           </div>
         ) : hasVideoBackground ? (
           <video
@@ -283,7 +331,33 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                   </span>
                 </div>
               )}
+
+              {/* QR Code Button */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowQR(!showQR)}
+                  className="text-indigo-300 hover:text-indigo-200 text-sm font-medium flex items-center justify-center gap-1 mx-auto"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9a1 1 0 011-1z" />
+                  </svg>
+                  {showQR ? 'Hide QR Code' : 'Share via QR Code'}
+                </button>
+              </div>
             </div>
+
+            {/* QR Code Modal */}
+            {showQR && qrCode && (
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center shadow-lg border border-white/20">
+                <h3 className="text-white font-medium mb-2">Scan to Visit</h3>
+                <img
+                  src={qrCode}
+                  alt="QR Code"
+                  className="w-48 h-48 mx-auto rounded-lg border border-white/20"
+                />
+                <p className="text-gray-400 text-xs mt-2">Opens {profileUrl}</p>
+              </div>
+            )}
 
             {/* Layout Sections */}
             {layoutStructure.map((section) => {

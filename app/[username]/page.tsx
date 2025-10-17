@@ -15,16 +15,6 @@ function getSpecialProfileTag(username: string): string | null {
   }
 }
 
-function getYouTubeId(url: string): string {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
-  return match ? match[1] : '';
-}
-
-function getSpotifyId(url: string): string {
-  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
-  return match ? `${match[1]}/${match[2]}` : '';
-}
-
 type LegacyBadge = {
   id: string;
   name: string;
@@ -158,7 +148,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-  // ✅ FIXED: Coerce to boolean to satisfy TypeScript
+  // ✅ Boolean coercion to satisfy TypeScript
   const hasBanner = !!profileBanner;
   const hasPageBackground = !!(
     pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground)
@@ -202,8 +192,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       hasVideoBackground={hasVideoBackground}
       profileUrl={profileUrl}
       specialTag={getSpecialProfileTag(username)}
-      getYouTubeId={getYouTubeId}
-      getSpotifyId={getSpotifyId}
+      // ❌ REMOVED: getYouTubeId, getSpotifyId
     />
   );
 }

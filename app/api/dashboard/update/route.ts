@@ -20,7 +20,8 @@ export async function PUT(request: NextRequest) {
       const username = (profile.username || '').trim().toLowerCase();
       const bio = (profile.bio || '').trim().substring(0, 500);
       const avatar = (profile.avatar || '').trim();
-      const background = (profile.background || '').trim();
+      const profileBanner = (profile.profileBanner || '').trim();
+      const pageBackground = (profile.pageBackground || '').trim();
       const location = profile.location ? profile.location.trim().substring(0, 100) : '';
 
       // 🔒 SECURITY: Do NOT allow email or plan changes from frontend
@@ -29,10 +30,12 @@ export async function PUT(request: NextRequest) {
         username,
         bio,
         avatar,
-        background,
+        profileBanner,
+        pageBackground,
         location,
         theme,
         layoutStructure: profile.layoutStructure,
+        discordId: profile.discordId,
       };
 
       await updateUserProfile(user._id, updateData);

@@ -1,12 +1,13 @@
 // app/[username]/page.tsx
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
+import DOMPurify from 'dompurify';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -174,11 +175,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const {
       name = '',
       avatar = '',
+      profileBanner = '',
+      pageBackground = '',
       bio = '',
       location = '',
-      background = '',
-      backgroundVideo = '',
-      backgroundAudio = '',
       badges = [] as (LegacyBadge | Badge)[],
       links = [],
       widgets = [],
@@ -193,9 +193,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-    const isValidGif = background && /\.gif$/i.test(background);
-    const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
-    const isValidImage = background && /\.(png|jpg|jpeg|webp)$/i.test(background);
+    const hasPageBackground = pageBackground && /\.(png|jpg|jpeg|webp|gif)$/i.test(pageBackground);
+    const hasVideoBackground = pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground);
+
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
@@ -210,40 +210,49 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {!isValidGif && !isValidBackgroundVideo && !isValidImage && (
+        {/* Full Page Background */}
+        {!hasPageBackground && !hasVideoBackground && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
-        {isValidBackgroundVideo && (
+        {hasVideoBackground && (
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={backgroundVideo}
+            src={pageBackground}
             autoPlay
             loop
             muted
             playsInline
           />
         )}
-        {isValidImage && !isValidBackgroundVideo && (
+        {hasPageBackground && !hasVideoBackground && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${background})` }}
+            style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
-        {isValidGif && (
-          <img
-            className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={background}
-            alt="Animated background"
-          />
-        )}
-        {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
 
+        {/* Audio (if any) */}
+        {userData.backgroundAudio && <audio autoPlay loop><source src={userData.backgroundAudio} type="audio/mpeg" /></audio>}
+
+        {/* Overlay */}
         <div className="absolute inset-0 bg-black/60 z-10" />
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">
+            {/* Profile Banner */}
+            {profileBanner && (
+              <div className="relative rounded-2xl overflow-hidden mb-4">
+                <img
+                  src={profileBanner}
+                  alt="Profile banner"
+                  className="w-full h-32 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              </div>
+            )}
+
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
-              <div className="relative inline-block mb-4">
+              <div className="relative inline-block mb-4 -mt-12">
                 <Avatar name={name} avatar={avatar} />
               </div>
 
@@ -291,33 +300,40 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               )}
             </div>
 
-            {sortedLinks.length > 0 && (
-              <div className="space-y-2">
-                {sortedLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full py-3.5 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:shadow-lg hover:-translate-y-0.5"
-                  >
-                    {link.icon ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <img src={link.icon} alt="" className="w-5 h-5" />
-                        <span>{link.title}</span>
-                      </div>
-                    ) : (
-                      link.title
-                    )}
-                  </a>
-                ))}
-              </div>
-            )}
+            {/* Render Layout Sections */}
+            {layoutStructure.map((section) => {
+              if (section.type === 'bio') return null; // already shown above
 
-            {sortedWidgets.length > 0 && (
-              <div className="space-y-4">
-                {sortedWidgets.map((widget) => (
-                  <div key={widget.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
+              if (section.type === 'links' && sortedLinks.length > 0) {
+                return (
+                  <div key={section.id} className="space-y-2">
+                    {sortedLinks.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full py-3.5 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        {link.icon ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <img src={link.icon} alt="" className="w-5 h-5" />
+                            <span>{link.title}</span>
+                          </div>
+                        ) : (
+                          link.title
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                );
+              }
+
+              if (section.type === 'widget') {
+                const widget = sortedWidgets.find(w => w.id === section.widgetId);
+                if (!widget) return null;
+                return (
+                  <div key={section.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
                     {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
                     {widget.type === 'youtube' && widget.url && (
                       <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
@@ -354,12 +370,32 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       </a>
                     )}
                     {widget.type === 'custom' && widget.content && (
-                      <div dangerouslySetInnerHTML={{ __html: widget.content }} />
+                      <div
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }}
+                        className="prose prose-invert max-w-none"
+                      />
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
+
+              if (section.type === 'spacer') {
+                return <div key={section.id} style={{ height: `${section.height}px` }} />;
+              }
+
+              if (section.type === 'custom' && section.content) {
+                return (
+                  <div
+                    key={section.id}
+                    className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
+                    className="prose prose-invert max-w-none"
+                  />
+                );
+              }
+
+              return null;
+            })}
 
             <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
               <p className="mb-1">Powered by The BioLink</p>

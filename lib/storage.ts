@@ -26,10 +26,12 @@ interface UserDoc {
   username: string;
   name: string;
   passwordHash: string;
-  avatar?: string;
+  avatar?: string;          // ← Profile Avatar (circular)
+  profileBanner?: string;   // ← NEW: Top banner image
+  pageBackground?: string;  // ← NEW: Full-page background (image/video)
   bio?: string;
   location?: string;
-  background?: string;
+  background?: string; // ← Kept for backward compatibility (now deprecated)
   backgroundVideo?: string;
   backgroundAudio?: string;
   badges: Array<{
@@ -103,7 +105,6 @@ interface ProfileVisitDoc {
   visitedAt: Date;
 }
 
-// ✅ FIXED: _id is optional for insert
 interface DiscordCodeDoc {
   _id?: ObjectId;
   code: string;
@@ -149,11 +150,10 @@ export async function getUserByUsername(username: string, clientId: string) {
     username: user.username,
     name: user.name || '',
     avatar: user.avatar || '',
+    profileBanner: user.profileBanner || '',
+    pageBackground: user.pageBackground || user.background || '', // fallback to old `background`
     bio: user.bio || '',
     location: user.location || '',
-    background: user.background || '',
-    backgroundVideo: user.backgroundVideo || '',
-    backgroundAudio: user.backgroundAudio || '',
     badges: user.badges || [],
     isBanned: user.isBanned || false,
     profileViews: user.profileViews || 0,
@@ -213,9 +213,10 @@ export async function getUserById(id: string) {
     name: user.name || '',
     username: user.username || '',
     avatar: user.avatar || '',
+    profileBanner: user.profileBanner || '',
+    pageBackground: user.pageBackground || user.background || '',
     bio: user.bio || '',
     location: user.location || '',
-    background: user.background || '',
     isEmailVerified: user.isEmailVerified,
     plan: user.plan || 'free',
     profileViews: user.profileViews || 0,
@@ -249,6 +250,8 @@ export async function getUserByEmail(email: string) {
     username: user.username,
     name: user.name || '',
     avatar: user.avatar || '',
+    profileBanner: user.profileBanner || '',
+    pageBackground: user.pageBackground || user.background || '',
     bio: user.bio || '',
     location: user.location || '',
     isEmailVerified: user.isEmailVerified,
@@ -258,7 +261,7 @@ export async function getUserByEmail(email: string) {
   };
 }
 
-export async function createUser(email: string, password: string, username: string, name: string, background: string = '', ipAddress: string) {
+export async function createUser(email: string, password: string, username: string, name: string, ipAddress: string) {
   const db = await connectDB();
   const existingEmail = await db.collection('users').findOne({ email });
   if (existingEmail) throw new Error('Email already registered');
@@ -272,7 +275,9 @@ export async function createUser(email: string, password: string, username: stri
     username,
     name,
     passwordHash,
-    background,
+    avatar: '',
+    profileBanner: '',
+    pageBackground: '',
     location: '',
     ipAddress,
     badges: [],
@@ -293,7 +298,9 @@ export async function createUser(email: string, password: string, username: stri
     email,
     username,
     name,
-    background,
+    avatar: '',
+    profileBanner: '',
+    pageBackground: '',
     location: '',
     badges: [],
     isEmailVerified: true,
@@ -369,12 +376,13 @@ export async function updateUserProfile(userId: string, updates: any) {
   const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
 
   const clean = {
-    name: updates.name?.trim() || '',
-    username: updates.username?.trim().toLowerCase() || '',
-    avatar: updates.avatar?.trim() || '',
-    bio: updates.bio?.trim() || '',
-    location: updates.location?.trim().substring(0, 100) || '',
-    background: updates.background?.trim() || '',
+    name: (updates.name || '').trim().substring(0, 100),
+    username: (updates.username || '').trim().toLowerCase(),
+    avatar: (updates.avatar || '').trim(),
+    profileBanner: (updates.profileBanner || '').trim(),
+    pageBackground: (updates.pageBackground || updates.background || '').trim(),
+    bio: (updates.bio || '').trim().substring(0, 500),
+    location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',
     theme,
     layoutStructure: updates.layoutStructure || [
@@ -511,6 +519,8 @@ export async function getAllUsers() {
       username: 1,
       name: 1,
       avatar: 1,
+      profileBanner: 1,
+      pageBackground: 1,
       bio: 1,
       location: 1,
       isBanned: 1,
@@ -525,6 +535,8 @@ export async function getAllUsers() {
     username: user.username,
     name: user.name || '',
     avatar: user.avatar || undefined,
+    profileBanner: user.profileBanner || undefined,
+    pageBackground: user.pageBackground || undefined,
     bio: user.bio || undefined,
     location: user.location || undefined,
     isBanned: user.isBanned || false,

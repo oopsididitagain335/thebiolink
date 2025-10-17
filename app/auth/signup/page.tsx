@@ -1,5 +1,8 @@
 'use client';
 
+// ✅ Opt out of static rendering
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -15,24 +18,19 @@ export default function SignupPage() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // Now safe — page is not prerendered
   const usernameRef = useRef<HTMLInputElement>(null);
 
-  // Prefill username from URL query parameter
   useEffect(() => {
     const raw = searchParams.get('username');
     if (raw) {
       const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (clean && clean.length >= 3 && clean.length <= 20) {
-        setFormData((prev) => ({
-          ...prev,
-          username: clean
-        }));
+        setFormData((prev) => ({ ...prev, username: clean }));
       }
     }
   }, [searchParams]);
 
-  // Sync input value to state (handles programmatic updates & autofill)
   useEffect(() => {
     if (usernameRef.current) {
       usernameRef.current.value = formData.username;

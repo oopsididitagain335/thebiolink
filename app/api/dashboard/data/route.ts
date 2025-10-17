@@ -1,3 +1,4 @@
+// app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getUserById } from '@/lib/storage';
@@ -22,17 +23,20 @@ export async function GET(request: NextRequest) {
         name: userData.name,
         username: userData.username,
         avatar: userData.avatar,
+        profileBanner: userData.profileBanner || '',   // ✅ NEW
+        pageBackground: userData.pageBackground || '', // ✅ NEW (replaces background)
         bio: userData.bio,
         location: userData.location || '',
-        background: userData.background || '',
-        backgroundVideo: (userData as any).backgroundVideo || '', // safe access
-        backgroundAudio: (userData as any).backgroundAudio || '', // safe access
+        // ❌ Remove these deprecated fields:
+        // background: ...,
+        // backgroundVideo: ...,
+        // backgroundAudio: ...,
         isEmailVerified: userData.isEmailVerified,
         plan: userData.plan || 'free',
         profileViews: userData.profileViews || 0,
         theme: userData.theme || 'indigo',
         badges: Array.isArray(userData.badges) ? userData.badges : [],
-        email: user.email, // from secure session
+        email: user.email,
       },
       links: userData.links || [],
       widgets: userData.widgets || [],

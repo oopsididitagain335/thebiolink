@@ -1,6 +1,8 @@
+// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import DOMPurify from 'dompurify';
 
 // --- Interfaces ---
 interface Link {
@@ -30,17 +32,18 @@ interface User {
   _id: string;
   name: string;
   username: string;
-  avatar: string;
+  avatar: string;          // ← Profile Avatar
+  profileBanner: string;   // ← NEW: Profile Banner
+  pageBackground: string;  // ← NEW: Full-page background
   bio: string;
   location?: string;
-  background: string;
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
   theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
-  discordId?: string; // ←←← ADDED
+  discordId?: string;
 }
 interface LayoutSection {
   id: string;
@@ -63,15 +66,18 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
 ];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
@@ -116,12 +122,24 @@ const DraggableItem = ({
   );
 };
 
-// --- DISCORD TAB ---
+// --- Upload Helper ---
+const uploadToCloudinary = async (file: File, folder = 'biolink') => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folder);
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Upload failed');
+  return await res.json();
+};
+
+// --- Tabs ---
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   const generateCode = async () => {
     setLoading(true);
     setMessage(null);
@@ -143,11 +161,9 @@ const DiscordTab = ({ user }: { user: User }) => {
       setLoading(false);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
-      
       {user.discordId ? (
         <div className="p-4 bg-green-900/20 border border-green-800 rounded-lg">
           <div className="flex items-center">
@@ -165,7 +181,6 @@ const DiscordTab = ({ user }: { user: User }) => {
           <p className="text-gray-400 mb-4">
             Link your Discord to unlock exclusive features and badges.
           </p>
-          
           {code ? (
             <div className="mb-4 p-4 bg-indigo-900/30 border border-indigo-700 rounded-lg">
               <p className="text-indigo-200 text-sm mb-2">Your code:</p>
@@ -193,7 +208,6 @@ const DiscordTab = ({ user }: { user: User }) => {
               {loading ? 'Generating...' : 'Generate Link Code'}
             </button>
           )}
-
           {message && (
             <div className={`mt-4 p-3 rounded ${message.type === 'success' ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'}`}>
               {message.text}
@@ -205,7 +219,6 @@ const DiscordTab = ({ user }: { user: User }) => {
   );
 };
 
-// --- Other Tabs (unchanged) ---
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -275,7 +288,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
   };
   return (
     <div className="space-y-6">
-      {/* Account Security */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
         <p className="text-gray-400 mb-4">
@@ -288,12 +300,11 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
           {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
         </button>
       </div>
-      {/* Upgrade to Premium */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
         <div className="flex items-start">
           <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
             <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-.684 1.028l-3.292.677c-.921.192-1.583 1.086-1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
             </svg>
           </div>
           <div>
@@ -417,7 +428,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
-    ([user.name, user.username, user.avatar || user.bio, user.background].filter(Boolean).length / 4) * 100
+    ([user.name, user.username, user.avatar || user.bio, user.pageBackground].filter(Boolean).length / 4) * 100
   );
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
@@ -462,6 +473,23 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      let folder = 'biolink';
+      if (field === 'avatar') folder = 'avatars';
+      if (field === 'profileBanner') folder = 'banners';
+      if (field === 'pageBackground') folder = 'backgrounds';
+      
+      const { url } = await uploadToCloudinary(file, folder);
+      setUser({ ...user, [field]: url });
+    } catch (err) {
+      alert(`Failed to upload ${field}`);
+    }
+  };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -511,29 +539,79 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Avatar URL</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Avatar</label>
+          <div className="flex items-center gap-3">
+            {user.avatar && (
+              <img src={user.avatar} alt="Avatar preview" className="w-12 h-12 rounded-full object-cover" />
+            )}
+            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+              Upload Avatar
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'avatar')}
+                className="hidden"
+              />
+            </label>
+          </div>
           <input
             type="url"
             name="avatar"
             value={user.avatar}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="https://example.com/avatar.jpg"
+            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Or paste URL"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Background GIF/Video URL</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Profile Banner</label>
+          <div className="flex items-center gap-3">
+            {user.profileBanner && (
+              <img src={user.profileBanner} alt="Banner preview" className="w-24 h-8 object-cover rounded" />
+            )}
+            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+              Upload Banner
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'profileBanner')}
+                className="hidden"
+              />
+            </label>
+          </div>
           <input
             type="url"
-            name="background"
-            value={user.background}
+            name="profileBanner"
+            value={user.profileBanner}
             onChange={handleProfileChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="https://example.com/background.gif"
+            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Or paste URL (1200x300 recommended)"
           />
-          <p className="mt-2 text-xs text-gray-500">
-            Supports .gif, .mp4, .webm
-          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Page Background</label>
+          <div className="flex items-center gap-3">
+            {user.pageBackground && (
+              <div className="w-16 h-16 bg-cover bg-center rounded border border-gray-600" style={{ backgroundImage: `url(${user.pageBackground})` }} />
+            )}
+            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+              Upload Background
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => handleFileUpload(e, 'pageBackground')}
+                className="hidden"
+              />
+            </label>
+          </div>
+          <input
+            type="url"
+            name="pageBackground"
+            value={user.pageBackground}
+            onChange={handleProfileChange}
+            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Supports .jpg, .png, .gif, .mp4"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
@@ -958,14 +1036,37 @@ const ProfileBuilderTab = ({
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
         <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-          {user.background && (
-            <div
-              className="absolute inset-0 z-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${user.background})` }}
-            />
+          {/* Page Background */}
+          {user.pageBackground && (
+            /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
+              <video
+                className="absolute inset-0 z-0 object-cover w-full h-full"
+                src={user.pageBackground}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <div
+                className="absolute inset-0 z-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${user.pageBackground})` }}
+              />
+            )
           )}
           <div className="absolute inset-0 bg-black/70 z-10"></div>
           <div className="relative z-20 space-y-4">
+            {/* Profile Banner */}
+            {user.profileBanner && (
+              <div className="relative rounded-xl overflow-hidden mb-4">
+                <img
+                  src={user.profileBanner}
+                  alt="Profile banner"
+                  className="w-full h-32 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              </div>
+            )}
             {layoutStructure.map((section) => {
               if (section.type === 'bio') {
                 return (
@@ -1059,7 +1160,7 @@ const ProfileBuilderTab = ({
                     ) : widget.type === 'custom' && widget.content ? (
                       <div
                         className="text-gray-300 text-sm"
-                        dangerouslySetInnerHTML={{ __html: widget.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }}
                       />
                     ) : (
                       <div className="text-gray-400 text-sm italic">
@@ -1080,7 +1181,7 @@ const ProfileBuilderTab = ({
                   <div 
                     key={section.id} 
                     className="bg-white/5 p-4 rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
                   />
                 );
               }
@@ -1097,6 +1198,7 @@ const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
 };
+
 const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
@@ -1109,16 +1211,17 @@ export default function Dashboard() {
     name: '',
     username: '',
     avatar: '',
+    profileBanner: '',
+    pageBackground: '',
     bio: '',
     location: '',
-    background: '',
     isEmailVerified: true,
     plan: 'free',
     profileViews: 0,
     theme: 'indigo',
     badges: [],
     email: '',
-    discordId: undefined, // ←←← INIT
+    discordId: undefined,
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1132,52 +1235,8 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
-  const tutorialSteps = [
-    {
-      title: 'Step 1: Customize Your Profile',
-      description: 'Switch to the "Customize" tab. Here, fill in your full name, username, location, avatar URL, background URL, and bio. These details make your profile personal and engaging.',
-      visual: '[Visual: Screenshot of Customize tab with fields highlighted]',
-      tab: 'customize',
-    },
-    {
-      title: 'Step 2: Choose a Theme',
-      description: 'Go to the "Themes" tab. Select a theme color that fits your brand or personality. Preview how it looks in the live preview panel.',
-      visual: '[Visual: Screenshot of Themes tab with theme options]',
-      tab: 'themes',
-    },
-    {
-      title: 'Step 3: Add Links',
-      description: 'Navigate to the "Links" tab. Add your social media or other links using the dropdown or custom option. Set titles, URLs, and optional icons. Drag to reorder them.',
-      visual: '[Visual: Screenshot of Links tab with add button and draggable items]',
-      tab: 'links',
-    },
-    {
-      title: 'Step 4: Add Widgets',
-      description: 'In the "Widgets" tab, choose and add embeds like YouTube videos, Spotify playlists, or custom HTML. Configure each widget with titles and URLs.',
-      visual: '[Visual: Screenshot of Widgets tab with widget types]',
-      tab: 'widgets',
-    },
-    {
-      title: 'Step 5: Build Your Layout',
-      description: 'Head to the "Profile Builder" tab. Add sections like bio, links, spacers, widgets, or custom content. Drag sections to arrange your profile layout. Watch the live preview update.',
-      visual: '[Visual: Screenshot of Profile Builder with sections and live preview]',
-      tab: 'builder',
-    },
-    {
-      title: 'Step 6: Review Analytics and Save',
-      description: 'Check the "Analytics" tab for profile views and stats. When ready, click "Save Changes" at the top. Confirm compliance and your profile is live!',
-      visual: '[Visual: Screenshot of Save button and Analytics tab]',
-      tab: 'analytics',
-    },
-  ];
-  useEffect(() => {
-    if (showTutorial) {
-      setActiveTab(tutorialSteps[currentStep].tab || 'overview');
-    }
-  }, [currentStep, showTutorial]);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1195,9 +1254,10 @@ export default function Dashboard() {
           name: (data.user.name || '').substring(0, 100),
           username: safeUsername,
           avatar: (data.user.avatar || '').trim(),
+          profileBanner: (data.user.profileBanner || '').trim(),
+          pageBackground: (data.user.pageBackground || data.user.background || '').trim(),
           bio: (data.user.bio || '').substring(0, 500),
           location: (data.user.location || '').substring(0, 100),
-          background: (data.user.background || '').trim(),
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
@@ -1245,6 +1305,7 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1254,9 +1315,11 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
+
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
+
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1292,9 +1355,10 @@ export default function Dashboard() {
             name: user.name.trim().substring(0, 100),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
+            profileBanner: user.profileBanner?.trim() || '',
+            pageBackground: user.pageBackground?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             location: user.location?.trim().substring(0, 100) || '',
-            background: user.background?.trim() || '',
             plan: user.plan || 'free',
             theme: user.theme || 'indigo',
             layoutStructure,
@@ -1319,6 +1383,7 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
+
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1329,9 +1394,10 @@ export default function Dashboard() {
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
-    { id: 'discord', name: 'Discord' }, // ←←← ADDED
+    { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
   ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1339,6 +1405,7 @@ export default function Dashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1359,12 +1426,6 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3 mt-4 sm:mt-0">
-              <button
-                onClick={() => setShowTutorial(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-green-700"
-              >
-                Start Profile Setup Tutorial
-              </button>
               <button
                 onClick={handleLogout}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-colors border border-gray-700"
@@ -1420,21 +1481,44 @@ export default function Dashboard() {
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
-            {activeTab === 'discord' && <DiscordTab user={user} />} {/* ←←← RENDER */}
+            {activeTab === 'discord' && <DiscordTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
           </div>
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-                {user.background && (
-                  <div
-                    className="absolute inset-0 z-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${user.background})` }}
-                  />
+                {/* Page Background */}
+                {user.pageBackground && (
+                  /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
+                    <video
+                      className="absolute inset-0 z-0 object-cover w-full h-full"
+                      src={user.pageBackground}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <div
+                      className="absolute inset-0 z-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${user.pageBackground})` }}
+                    />
+                  )
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20">
+                  {/* Profile Banner */}
+                  {user.profileBanner && (
+                    <div className="relative rounded-xl overflow-hidden mb-4">
+                      <img
+                        src={user.profileBanner}
+                        alt="Profile banner"
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                    </div>
+                  )}
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -1512,7 +1596,7 @@ export default function Dashboard() {
                           <div 
                             key={section.id} 
                             className="bg-white/5 p-4 rounded-lg"
-                            dangerouslySetInnerHTML={{ __html: section.content }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
                           />
                         );
                       }
@@ -1567,39 +1651,6 @@ export default function Dashboard() {
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
                 >
                   {isSaving ? 'Saving...' : 'I Comply – Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {showTutorial && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-lg">
-              <h3 className="text-xl font-bold text-white mb-3">{tutorialSteps[currentStep].title}</h3>
-              <p className="text-gray-300 mb-4">{tutorialSteps[currentStep].description}</p>
-              <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-500 text-sm mb-6">
-                {tutorialSteps[currentStep].visual}
-              </div>
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-                  disabled={currentStep === 0}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setShowTutorial(false)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                >
-                  Close Tutorial
-                </button>
-                <button
-                  onClick={() => setCurrentStep(prev => Math.min(tutorialSteps.length - 1, prev + 1))}
-                  disabled={currentStep === tutorialSteps.length - 1}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
-                >
-                  Next
                 </button>
               </div>
             </div>

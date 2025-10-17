@@ -103,7 +103,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-          {/* Falling Ash */}
           <div className="absolute inset-0 pointer-events-none">
             {Array.from({ length: 20 }).map((_, i) => (
               <div
@@ -119,8 +118,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               />
             ))}
           </div>
-
-          {/* Global Animations */}
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes floatAsh {
               0% { transform: translateY(0) rotate(0deg); opacity: 0; }
@@ -129,12 +126,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               100% { transform: translateY(100vh) rotate(${360 * Math.random()}deg); opacity: 0; }
             }
           ` }} />
-
-          {/* Fog & Atmosphere */}
           <div className="absolute inset-0 bg-gradient-to-b from-red-900/3 to-black pointer-events-none z-0" />
-
           <div className="max-w-md w-full bg-gray-900/85 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-800/50 relative z-10">
-            {/* Personalized Tombstone */}
             <div className="mb-6 relative">
               <svg width="80" height="100" viewBox="0 0 80 100" className="text-red-900/20 mx-auto">
                 <rect x="30" y="15" width="20" height="60" rx="3" />
@@ -145,7 +138,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 <span className="text-red-500/70 text-xs font-mono tracking-wider">@{username}</span>
               </div>
             </div>
-
             <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-800 mb-2 tracking-tighter">
               BANNED
             </h1>
@@ -153,11 +145,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               This account violated our community standards.<br />
               <span className="text-red-400/80">No appeals accepted.</span>
             </p>
-
             <div className="bg-black/30 rounded-xl p-4 mb-6 border border-red-900/30">
               <WhackTheBanHammerGame />
             </div>
-
             <a
               href="/"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-red-700/30 to-red-900/30 hover:from-red-700/40 hover:to-red-900/40 backdrop-blur-sm border border-red-800/50 text-red-300 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
@@ -193,8 +183,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-    const hasPageBackground = pageBackground && /\.(png|jpg|jpeg|webp|gif)$/i.test(pageBackground);
+    const hasPageBackground = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground);
     const hasVideoBackground = pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground);
+    const hasBanner = !!profileBanner;
 
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -210,11 +201,19 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {/* Full Page Background */}
-        {!hasPageBackground && !hasVideoBackground && (
-          <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
-        )}
-        {hasVideoBackground && (
+        {/* === BACKGROUND LOGIC === */}
+        {hasBanner ? (
+          // ✅ BANNER MODE: static banner behind avatar
+          <div className="absolute inset-0 z-0">
+            <img
+              src={profileBanner}
+              alt="Profile banner"
+              className="w-full h-48 object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+          </div>
+        ) : hasVideoBackground ? (
+          // ✅ VIDEO BACKGROUND MODE
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
             src={pageBackground}
@@ -223,34 +222,27 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             muted
             playsInline
           />
-        )}
-        {hasPageBackground && !hasVideoBackground && (
+        ) : hasPageBackground ? (
+          // ✅ IMAGE BACKGROUND MODE
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
+        ) : (
+          // ✅ THEME GRADIENT
+          <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme) }} />
         )}
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/60 z-10" />
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">
-            {/* Profile Banner */}
-            {profileBanner && (
-              <div className="relative rounded-2xl overflow-hidden mb-4">
-                <img
-                  src={profileBanner}
-                  alt="Profile banner"
-                  className="w-full h-32 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-              </div>
-            )}
-
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
-              <div className="relative inline-block mb-4 -mt-12">
-                <Avatar name={name} avatar={avatar} />
+              {/* Avatar overlaid on banner */}
+              <div className="relative -mt-16 mb-4">
+                <div className="flex justify-center">
+                  <Avatar name={name} avatar={avatar} />
+                </div>
               </div>
 
               <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
@@ -299,7 +291,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
             {/* Render Layout Sections */}
             {layoutStructure.map((section) => {
-              if (section.type === 'bio') return null; // already shown above
+              if (section.type === 'bio') return null;
 
               if (section.type === 'links' && sortedLinks.length > 0) {
                 return (

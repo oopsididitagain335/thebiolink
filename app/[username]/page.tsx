@@ -230,7 +230,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
-        
+
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/60 z-10" />
 
@@ -368,8 +368,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                     )}
                     {widget.type === 'custom' && widget.content && (
                       <div
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }}
                         className="prose prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }}
                       />
                     )}
                   </div>
@@ -384,9 +384,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 return (
                   <div
                     key={section.id}
-                    className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20"
+                    className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20 prose prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
-                    className="prose prose-invert max-w-none"
                   />
                 );
               }

@@ -1,13 +1,27 @@
 'use client';
 
-// ✅ Opt out of static rendering
-export const dynamic = 'force-dynamic';
-
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// ✅ Opt out of static rendering
+export const dynamic = 'force-dynamic';
+
+// ===============================
+// Outer wrapper with Suspense
+// ===============================
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="text-white text-center p-6">Loading signup form...</div>}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+// ===============================
+// Inner client component
+// ===============================
+function SignupForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,8 +31,9 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
-  const searchParams = useSearchParams(); // Now safe — page is not prerendered
+  const searchParams = useSearchParams();
   const usernameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

@@ -183,9 +183,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
+    const hasBanner = !!profileBanner;
     const hasPageBackground = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground);
     const hasVideoBackground = pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground);
-    const hasBanner = !!profileBanner;
 
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -203,17 +203,16 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       <div className="min-h-screen relative overflow-hidden bg-black">
         {/* === BACKGROUND LOGIC === */}
         {hasBanner ? (
-          // ✅ BANNER MODE: static banner behind avatar
+          // ✅ BANNER MODE: only banner, no full background
           <div className="absolute inset-0 z-0">
             <img
               src={profileBanner}
-              alt="Profile banner"
+              alt=""
               className="w-full h-48 object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
           </div>
         ) : hasVideoBackground ? (
-          // ✅ VIDEO BACKGROUND MODE
           <video
             className="absolute inset-0 z-0 object-cover w-full h-full"
             src={pageBackground}
@@ -223,26 +222,23 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             playsInline
           />
         ) : hasPageBackground ? (
-          // ✅ IMAGE BACKGROUND MODE
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
         ) : (
-          // ✅ THEME GRADIENT
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme) }} />
         )}
 
         <div className="absolute inset-0 bg-black/40 z-10"></div>
 
-        <div className="relative z-20 flex justify-center p-4 min-h-screen">
+        <div className="relative z-20 flex justify-center p-4 pt-16 min-h-screen">
           <div className="w-full max-w-md space-y-4">
+            {/* Profile Card */}
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
-              {/* Avatar overlaid on banner */}
-              <div className="relative -mt-16 mb-4">
-                <div className="flex justify-center">
-                  <Avatar name={name} avatar={avatar} />
-                </div>
+              {/* Avatar (overlaps banner) */}
+              <div className="-mt-16 mb-4">
+                <Avatar name={name} avatar={avatar} />
               </div>
 
               <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
@@ -289,7 +285,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               )}
             </div>
 
-            {/* Render Layout Sections */}
+            {/* Layout Sections */}
             {layoutStructure.map((section) => {
               if (section.type === 'bio') return null;
 

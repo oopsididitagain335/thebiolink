@@ -6,7 +6,7 @@ import UserPageClient from './UserPageClient';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// 🧠 This is now a SERVER COMPONENT — no 'use client' here.
+// 🧠 Server Component — handles fetching + metadata
 export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
   const headersList = headers();

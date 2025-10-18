@@ -1,4 +1,3 @@
-// app/api/admin/users/route.ts
 import { NextRequest } from 'next/server';
 import {
   getAllUsers,
@@ -21,13 +20,14 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { userId, badge } = await req.json();
-    if (!userId || !badge?.id || !badge.name || !badge.icon) {
+    if (!userId || !badge?.id || !badge.name || !badge.description || !badge.icon) {
       return Response.json({ error: 'Invalid badge data' }, { status: 400 });
     }
 
     await addUserBadge(userId, {
       id: badge.id,
       name: badge.name,
+      description: badge.description,
       icon: badge.icon,
       awardedAt: new Date().toISOString(),
     });

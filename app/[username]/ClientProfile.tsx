@@ -1,9 +1,7 @@
 // app/[username]/ClientProfile.tsx
 'use client';
 
-import { useEffect } from 'react';
-import LazyLoadImage from 'react-lazy-load-image-component';
-import 'react-lazy-load-image-component/src/effects/blur.css';
+import { useEffect, useState } from 'react';
 
 interface Badge {
   id: string;
@@ -99,7 +97,10 @@ export default function ClientProfile({
   seoMeta,
   analyticsCode,
 }: ClientProfileProps) {
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    setIsClient(true);
     if (customCSS) {
       const style = document.createElement('style');
       style.textContent = customCSS;
@@ -111,7 +112,7 @@ export default function ClientProfile({
   }, [customCSS]);
 
   useEffect(() => {
-    if (customJS) {
+    if (customJS && isClient) {
       const script = document.createElement('script');
       script.textContent = customJS;
       document.body.appendChild(script);
@@ -119,10 +120,10 @@ export default function ClientProfile({
         document.body.removeChild(script);
       };
     }
-  }, [customJS]);
+  }, [customJS, isClient]);
 
   useEffect(() => {
-    if (analyticsCode) {
+    if (analyticsCode && isClient) {
       const script = document.createElement('script');
       script.textContent = analyticsCode;
       document.head.appendChild(script);
@@ -130,10 +131,11 @@ export default function ClientProfile({
         document.head.removeChild(script);
       };
     }
-  }, [analyticsCode]);
+  }, [analyticsCode, isClient]);
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Background */}
       {hasVideoBackground ? (
         <video
           autoPlay
@@ -154,6 +156,7 @@ export default function ClientProfile({
       )}
 
       <div className="relative max-w-2xl mx-auto px-4 py-12">
+        {/* Banner */}
         {hasBanner && (
           <div
             className="w-full h-32 md:h-48 rounded-xl mb-6 overflow-hidden"
@@ -161,12 +164,14 @@ export default function ClientProfile({
           />
         )}
 
+        {/* Avatar & Badges */}
         <div className="text-center mb-6">
           {avatar ? (
-            <LazyLoadImage
+            // ✅ SAFE: use native <img> with lazy loading
+            <img
               src={avatar}
               alt={name}
-              effect="blur"
+              loading="lazy"
               className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
             />
           ) : (
@@ -185,6 +190,7 @@ export default function ClientProfile({
             </span>
           )}
 
+          {/* Badges */}
           {visibleBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {visibleBadges.map((badge) => (
@@ -200,8 +206,10 @@ export default function ClientProfile({
           )}
         </div>
 
+        {/* Bio */}
         {bio && <p className="text-center text-gray-300 mb-6">{bio}</p>}
 
+        {/* Stats */}
         <div className="flex justify-center gap-4 text-sm text-gray-400 mb-8">
           <span>Level {level}</span>
           <span>•</span>
@@ -210,6 +218,7 @@ export default function ClientProfile({
           <span>{loginStreak} day streak</span>
         </div>
 
+        {/* Links */}
         <div className="space-y-3">
           {links.map((link) => (
             <a

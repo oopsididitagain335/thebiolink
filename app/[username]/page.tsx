@@ -31,10 +31,10 @@ type Badge = {
   hidden?: boolean;
 };
 
-export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
+export default async function UserPage({ params }: { params: Promise<{ username: string; subPath?: string[] }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
-  const subPath = resolvedParams.subPath ? resolvedParams.subPath.join('/') : ''; // Handle multi-page, assuming params has subPath array for dynamic segments
+  const subPath = resolvedParams.subPath ? resolvedParams.subPath.join('/') : '';
 
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
@@ -151,6 +151,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     xp = 0,
     level = 1,
     loginStreak = 0,
+    customCSS = '',
+    customJS = '',
+    seoMeta = { title: '', description: '', keywords: '' },
+    analyticsCode = '',
   } = userData;
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
@@ -197,6 +201,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       xp={xp}
       level={level}
       loginStreak={loginStreak}
+      customCSS={customCSS}
+      customJS={customJS}
+      seoMeta={seoMeta}
+      analyticsCode={analyticsCode}
     />
   );
 }

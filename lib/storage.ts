@@ -19,6 +19,43 @@ export async function connectDB() {
   return cachedDb;
 }
 
+// 🔧 Helper: Convert Tenor & Giphy URLs to direct media links
+function normalizeGifUrl(url: string): string {
+  if (!url) return '';
+
+  const cleanUrl = url.trim();
+
+  // Handle Tenor URLs
+  if (cleanUrl.includes('tenor.com/view/')) {
+    try {
+      // Extract ID from /view/ID pattern
+      const match = cleanUrl.match(/\/view\/([^/]+)$/);
+      if (match) {
+        const id = match[1];
+        return `https://media.tenor.com/${id}.gif`;
+      }
+    } catch (e) {
+      console.warn('Failed to normalize Tenor URL:', cleanUrl);
+    }
+  }
+
+  // Handle Giphy URLs
+  if (cleanUrl.includes('giphy.com/media/')) {
+    try {
+      const match = cleanUrl.match(/\/media\/([^/]+)/);
+      if (match) {
+        const id = match[1];
+        return `https://media.giphy.com/media/${id}/giphy.gif`;
+      }
+    } catch (e) {
+      console.warn('Failed to normalize Giphy URL:', cleanUrl);
+    }
+  }
+
+  // Return original if no conversion needed
+  return cleanUrl;
+}
+
 interface UserDoc {
   _id: ObjectId;
   email: string;
@@ -178,7 +215,7 @@ async function awardMonthlyBadge(user: UserDoc) {
 
     if (loginCount >= 15) {
       const badgeName = `Active ${previousMonth.toLocaleString('default', { month: 'long' })} ${previousMonth.getFullYear()}`;
-      const icon = 'https://example.com/monthly-badge-icon.png';
+      const icon = 'https://example.com/monthly-badge-icon.png  ';
       const newBadge = {
         id: `monthly-${prevMonthStr}`,
         name: badgeName,
@@ -585,12 +622,18 @@ export async function updateUserProfile(userId: string, updates: any) {
   const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
   const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
 
-  // Validate pageBackground URL
-  const pageBackground = updates.pageBackground?.trim();
+  // 🔧 Normalize and validate pageBackground URL
+  let pageBackground = updates.pageBackground?.trim() || '';
+
   if (pageBackground) {
+    // Convert Tenor/Giphy URLs to direct media links
+    pageBackground = normalizeGifUrl(pageBackground);
+
+    // Validate extension
     const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg)$/i;
     if (!validExtensions.test(pageBackground)) {
-      console.warn('Invalid background URL format:', pageBackground);
+      console.warn('Invalid background URL format after normalization:', pageBackground);
+      pageBackground = ''; // Clear invalid URL
     }
   }
 
@@ -599,7 +642,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
     profileBanner: (updates.profileBanner || '').trim(),
-    pageBackground,
+    pageBackground, // ✅ Now normalized!
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',

@@ -56,6 +56,13 @@ interface UserDoc {
     content?: string;
   }>;
   discordId?: string;
+  // XP System
+  xp: number;
+  level: number;
+  loginStreak: number;
+  lastLogin: Date;
+  loginHistory: Date[];
+  lastMonthlyBadge: string; // "YYYY-MM"
 }
 
 interface LinkDoc {
@@ -129,6 +136,10 @@ async function getUserWidgets(userId: ObjectId) {
   })).sort((a, b) => a.position - b.position);
 }
 
+export const calculateLevel = (xp: number): number => {
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+};
+
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -142,23 +153,108 @@ export async function getUserByUsername(username: string, clientId: string) {
     }
   }
 
-  const links = await db.collection<LinkDoc>('links').find({ userId: user._id }).toArray();
-  const widgets = await getUserWidgets(user._id);
+  // Daily XP & Streak Logic
+  const now = new Date();
+  const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
+  const isSameDay = lastLogin && 
+    lastLogin.getFullYear() === now.getFullYear() &&
+    lastLogin.getMonth() === now.getMonth() &&
+    lastLogin.getDate() === now.getDate();
+    
+  let updatedUser = user;
+  if (!isSameDay) {
+    let streak = 1;
+    if (lastLogin) {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (
+        lastLogin.getFullYear() === yesterday.getFullYear() &&
+        lastLogin.getMonth() === yesterday.getMonth() &&
+        lastLogin.getDate() === yesterday.getDate()
+      ) {
+        streak = (user.loginStreak || 0) + 1;
+      }
+    }
+    
+    const baseXP = 50;
+    const streakBonus = 10 * Math.min(streak, 30);
+    const totalXP = baseXP + streakBonus;
+    const newXP = (user.xp || 0) + totalXP;
+    const newLevel = calculateLevel(newXP);
+    
+    await db.collection('users').updateOne(
+      { _id: user._id },
+      {
+        $inc: { xp: totalXP },
+        $set: { 
+          lastLogin: now,
+          loginStreak: streak,
+          level: newLevel
+        },
+        $push: { loginHistory: now }
+      }
+    );
+    
+    updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+    
+    // Monthly Badge
+    const lastBadgeMonth = updatedUser.lastMonthlyBadge;
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthStr = `${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (lastBadgeMonth !== prevMonthStr) {
+      const loginCount = (updatedUser.loginHistory || []).filter(date => {
+        const d = new Date(date);
+        return d.getFullYear() === previousMonth.getFullYear() && 
+               d.getMonth() === previousMonth.getMonth();
+      }).length;
+      
+      if (loginCount >= 15) {
+        const badgeName = `Active ${previousMonth.toLocaleString('default', { month: 'long' })} ${previousMonth.getFullYear()}`;
+        const icon = 'https://example.com/monthly-badge-icon.png'; // Replace with actual icon URL
+        const newBadge = {
+          id: `monthly-${prevMonthStr}`,
+          name: badgeName,
+          icon,
+          awardedAt: new Date().toISOString(),
+        };
+        
+        await db.collection('users').updateOne(
+          { _id: updatedUser._id },
+          { 
+            $push: { badges: newBadge },
+            $set: { lastMonthlyBadge: prevMonthStr }
+          }
+        );
+        
+        updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+      }
+    }
+  }
+
+  const links = await db.collection<LinkDoc>('links').find({ userId: updatedUser._id }).toArray();
+  const widgets = await getUserWidgets(updatedUser._id);
 
   return {
-    _id: user._id.toString(),
-    username: user.username,
-    name: user.name || '',
-    avatar: user.avatar || '',
-    profileBanner: user.profileBanner || '',
-    pageBackground: user.pageBackground || user.background || '', // fallback to old `background`
-    bio: user.bio || '',
-    location: user.location || '',
-    badges: user.badges || [],
-    isBanned: user.isBanned || false,
-    profileViews: user.profileViews || 0,
-    plan: user.plan || 'free',
-    theme: user.theme || 'indigo',
+    _id: updatedUser._id.toString(),
+    username: updatedUser.username,
+    name: updatedUser.name || '',
+    avatar: updatedUser.avatar || '',
+    profileBanner: updatedUser.profileBanner || '',
+    pageBackground: updatedUser.pageBackground || updatedUser.background || '', // fallback to old `background`
+    bio: updatedUser.bio || '',
+    location: updatedUser.location || '',
+    badges: updatedUser.badges || [],
+    isBanned: updatedUser.isBanned || false,
+    profileViews: updatedUser.profileViews || 0,
+    plan: updatedUser.plan || 'free',
+    theme: updatedUser.theme || 'indigo',
+    xp: updatedUser.xp || 0,
+    level: updatedUser.level || 1,
+    loginStreak: updatedUser.loginStreak || 0,
+    lastLogin: updatedUser.lastLogin?.toISOString() || '',
+    loginHistory: (updatedUser.loginHistory || []).map(d => d.toISOString()),
+    lastMonthlyBadge: updatedUser.lastMonthlyBadge || '',
     links: links.map(l => ({
       id: l._id.toString(),
       url: l.url,
@@ -167,12 +263,12 @@ export async function getUserByUsername(username: string, clientId: string) {
       position: l.position || 0,
     })).sort((a, b) => a.position - b.position),
     widgets,
-    layoutStructure: user.layoutStructure || [
+    layoutStructure: updatedUser.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
       { id: 'links', type: 'links' }
     ],
-    discordId: user.discordId,
+    discordId: updatedUser.discordId,
   };
 }
 
@@ -188,7 +284,7 @@ export async function getUserByUsernameForMetadata(username: string) {
     bio: user.bio || '',
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
-    links: links.map((link: any) => ({
+    links: links.map((link: LinkDoc) => ({
       url: link.url || '',
       title: link.title || '',
     })),
@@ -221,6 +317,12 @@ export async function getUserById(id: string) {
     plan: user.plan || 'free',
     profileViews: user.profileViews || 0,
     theme: user.theme || 'indigo',
+    xp: user.xp || 0,
+    level: user.level || 1,
+    loginStreak: user.loginStreak || 0,
+    lastLogin: user.lastLogin?.toISOString() || '',
+    loginHistory: (user.loginHistory || []).map(d => d.toISOString()),
+    lastMonthlyBadge: user.lastMonthlyBadge || '',
     layoutStructure: user.layoutStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -269,6 +371,7 @@ export async function createUser(email: string, password: string, username: stri
   if (existingUsername) throw new Error('Username already taken');
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = new ObjectId();
+  const now = new Date();
   await db.collection('users').insertOne({
     _id: userId,
     email,
@@ -283,10 +386,16 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    createdAt: new Date(),
+    createdAt: now,
     profileViews: 0,
     plan: 'free',
     theme: 'indigo',
+    xp: 0,
+    level: 1,
+    loginStreak: 1,
+    lastLogin: now,
+    loginHistory: [now],
+    lastMonthlyBadge: '',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -305,10 +414,16 @@ export async function createUser(email: string, password: string, username: stri
     badges: [],
     isEmailVerified: true,
     isBanned: false,
-    createdAt: new Date().toISOString(),
+    createdAt: now.toISOString(),
     profileViews: 0,
     plan: 'free',
     theme: 'indigo',
+    xp: 0,
+    level: 1,
+    loginStreak: 1,
+    lastLogin: now.toISOString(),
+    loginHistory: [now.toISOString()],
+    lastMonthlyBadge: '',
     layoutStructure: [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 20 },
@@ -396,7 +511,24 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- NEWS FUNCTIONS ---
+export async function updateUserXP(userId: string, amount: number) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  const user = await db.collection<UserDoc>('users').findOne({ _id: uid });
+  if (!user) throw new Error('User not found');
+
+  const newXP = (user.xp || 0) + amount;
+  const newLevel = calculateLevel(newXP);
+
+  await db.collection('users').updateOne(
+    { _id: uid },
+    { $set: { xp: newXP, level: newLevel } }
+  );
+
+  return { xp: newXP, level: newLevel };
+}
+
+// NEWS FUNCTIONS
 export async function createNewsPost(
   title: string,
   content: string,
@@ -508,7 +640,7 @@ export async function addNewsInteraction(
   return getAllNewsPosts().then(posts => posts.find(p => p.id === postId));
 }
 
-// --- ADMIN PANEL FUNCTIONS ---
+// ADMIN PANEL FUNCTIONS
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db
@@ -650,7 +782,7 @@ export async function getNewsPostById(id: string) {
   };
 }
 
-// --- DISCORD LINKING ---
+// DISCORD LINKING
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();
   const code = Math.random().toString(36).substring(2, 10).toUpperCase();

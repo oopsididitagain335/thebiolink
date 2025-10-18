@@ -4,7 +4,6 @@ import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
 import Editor from '@monaco-editor/react';
-
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -66,12 +65,10 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
-
 // --- History Action Type ---
 type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
-
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -124,7 +121,6 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
-
 // --- FIXED REDUCER ---
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
@@ -136,8 +132,7 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
       return state;
   }
 };
-
-// --- Tabs (unchanged from your original) ---
+// --- Tabs ---
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -397,7 +392,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'green', name: 'Green', color: '#10b981' },
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
-  ];
+  ] as const;
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

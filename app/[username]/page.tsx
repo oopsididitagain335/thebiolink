@@ -1,3 +1,4 @@
+// app/[username]/page.tsx
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import ClientProfile from './ClientProfile';

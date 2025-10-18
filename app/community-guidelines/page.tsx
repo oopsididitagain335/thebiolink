@@ -1,3 +1,4 @@
+// app/community-guidelines/page.tsx
 import Link from 'next/link';
 
 export default function CommunityGuidelines() {
@@ -104,7 +105,7 @@ export default function CommunityGuidelines() {
             </div>
 
             <div className="mt-10 pt-6 border-t border-gray-700 text-center text-sm text-gray-500">
-              <p>© {new Date().getFullYear()} BioLink. All rights reserved.</p>
+              <p>© 2025 BioLink. All rights reserved.</p>
             </div>
           </div>
         </div>

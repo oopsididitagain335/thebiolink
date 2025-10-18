@@ -1,11 +1,15 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Enable React Strict Mode for better error detection
-  reactStrictMode: true,
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
-  // Webpack configuration to handle Monaco Editor and Web Workers
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    domains: ['res.cloudinary.com'],
+  },
+  experimental: {
+    webpackBuildWorker: true,
+  },
   webpack: (config, { isServer }) => {
-    // Prevent Web Worker issues with Monaco Editor on the client side
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -14,18 +18,26 @@ const nextConfig = {
         worker_threads: false,
       };
 
-      // Configure Webpack to handle Monaco Editor's Web Workers
+      // Add Monaco Editor Webpack Plugin
+      config.plugins.push(
+        new MonacoWebpackPlugin({
+          // Specify languages to include (add more as needed)
+          languages: ['json', 'javascript', 'typescript', 'css', 'html'],
+          filename: 'static/[name].worker.js',
+        })
+      );
+
+      // Handle worker files as assets
       config.module.rules.push({
-        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/]editor[\\\/]editor\.worker\.js/,
+        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/]editor[\\\/]editor\.worker\.js$/,
         type: 'asset/resource',
         generator: {
           filename: 'static/workers/[name][ext]',
         },
       });
 
-      // Ensure Monaco Editor's other workers are handled
       config.module.rules.push({
-        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/].*\.worker\.js/,
+        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/].*\.worker\.js$/,
         type: 'asset/resource',
         generator: {
           filename: 'static/workers/[name][ext]',
@@ -34,22 +46,6 @@ const nextConfig = {
     }
 
     return config;
-  },
-
-  // Enable async WebAssembly for better performance with Monaco Editor
-  experimental: {
-    webpackBuildWorker: true,
-  },
-
-  // Optional: Configure image optimization for Cloudinary (if used)
-  images: {
-    domains: ['res.cloudinary.com'],
-  },
-
-  // Optional: Add environment variables if needed
-  env: {
-    // Add any custom environment variables here
-    // Example: CLOUDINARY_URL: process.env.CLOUDINARY_URL,
   },
 };
 

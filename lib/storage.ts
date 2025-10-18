@@ -252,7 +252,7 @@ export async function getUserByUsername(username: string, clientId: string) {
           loginStreak: streak,
           level: newLevel
         },
-        $push: { loginHistory: now }
+        $push: { loginHistory: now } as PushOperator<UserDoc>
       }
     );
 
@@ -368,7 +368,7 @@ export async function getUserById(id: string) {
           loginStreak: streak,
           level: newLevel
         },
-        $push: { loginHistory: now }
+        $push: { loginHistory: now } as PushOperator<UserDoc>
       }
     );
 

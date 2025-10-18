@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { MongoClient, ObjectId, Db, PushOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -126,7 +127,7 @@ interface DiscordCodeDoc {
   used: boolean;
   createdAt: Date;
   expiresAt: Date;
-  discordId?: string;
+  discordDiscordId?: string;
   usedAt?: Date;
 }
 
@@ -381,7 +382,6 @@ export async function getUserById(id: string) {
     if (!freshUserAfterUpdate) throw new Error('User not found after login update');
     updatedUser = freshUserAfterUpdate;
 
-    // Award monthly badge if applicable
     await awardMonthlyBadge(updatedUser);
 
     const freshUserAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: user._id });
@@ -557,7 +557,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   await db.collection('widgets').deleteMany({ userId: uid });
   if (widgets.length > 0) {
     const valid = widgets
-      .filter(w => w.id && ['spotify','youtube','twitter','custom','form','ecommerce','api','calendar'].includes(w.type))
+      .filter(w => w.id && ['spotify', 'youtube', 'twitter', 'custom', 'form', 'ecommerce', 'api', 'calendar'].includes(w.type))
       .map((w, i) => ({
         _id: new ObjectId(),
         userId: uid,
@@ -592,7 +592,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
     profileBanner: (updates.profileBanner || '').trim(),
-    pageBackground: (updates.pageBackground || '').trim(),
+    pageBackground: (updates.pageBackground || '').trim(), // Supports GIFs, PNG, JPEG, WEBP, MP4, WebM, OGG
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',
@@ -612,7 +612,6 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// NEWS FUNCTIONS (unchanged, as per prompt focus)
 export async function createNewsPost(
   title: string,
   content: string,
@@ -724,7 +723,6 @@ export async function addNewsInteraction(
   return getAllNewsPosts().then(posts => posts.find(p => p.id === postId));
 }
 
-// ADMIN PANEL FUNCTIONS (unchanged, as per prompt focus)
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db
@@ -866,7 +864,6 @@ export async function getNewsPostById(id: string) {
   };
 }
 
-// DISCORD LINKING (unchanged)
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();
   const code = Math.random().toString(36).substring(2, 10).toUpperCase();

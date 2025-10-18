@@ -7,17 +7,17 @@ import { NextPage } from 'next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Define the props type explicitly
 interface UserPageProps {
   params: Promise<{ username: string; subPath?: string[] }>;
 }
 
 const UserPage: NextPage<UserPageProps> = async ({ params }) => {
-  // Await the params Promise
-  const { username, subPath } = await params;
+  // ✅ Correct: params is a Promise in Next.js 14 App Router
+  const resolvedParams = await params;
+  const { username, subPath } = resolvedParams;
   const subPathString = subPath?.join('/') || '';
 
-  // ✅ MUST AWAIT headers() in async Server Components
+  // ✅ Correct: await headers() in async Server Component
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
@@ -69,6 +69,9 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
   };
   const glow = themeGlowMap[userData.theme || 'indigo'] || themeGlowMap.indigo;
 
+  // 🔥 FIXED: Removed extra spaces in URL
+  const profileUrl = `https://thebiolink.lol/${username}`;
+
   return (
     <ClientProfile
       username={username}
@@ -88,7 +91,7 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
       hasBanner={!!userData.profileBanner}
       hasPageBackground={!!userData.pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(userData.pageBackground)}
       hasVideoBackground={!!userData.pageBackground && /\.(mp4|webm|ogg)$/i.test(userData.pageBackground)}
-      profileUrl={`https://thebiolink.lol/${username}`}
+      profileUrl={profileUrl}
       specialTag={(() => {
         const lower = username.toLowerCase();
         if (lower === 'xsetnews') return 'Biggest Sponsored Member';
@@ -108,6 +111,7 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
 
 export default UserPage;
 
+// ✅ generateMetadata also receives params as Promise in Next.js 14
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   try {

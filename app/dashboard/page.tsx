@@ -12,7 +12,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
@@ -21,7 +20,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface Badge {
   id: string;
   name: string;
@@ -30,7 +28,6 @@ interface Badge {
   earnedAt: string;
   hidden?: boolean;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -55,10 +52,9 @@ interface User {
   lastMonthlyBadge?: string;
   customCSS?: string;
   customJS?: string;
-  seoMeta: { title?: string; description?: string; keywords?: string }; // ✅ FIXED: seoMeta non-optional, fields optional
+  seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
@@ -100,11 +96,71 @@ const WIDGET_TYPES = [
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
 
+// ✅ NEW: 12+ Templates
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
-  { id: 'portfolio', name: 'Portfolio', config: [{ id: 'bio', type: 'bio' }, { id: 'column', type: 'column', children: [{ id: 'images', type: 'custom', content: 'Images' }] }] },
-  { id: 'ecommerce', name: 'E-Commerce', config: [{ id: 'bio', type: 'bio' }, { id: 'ecommerce', type: 'ecommerce' }] },
-  { id: 'blog', name: 'Blog', config: [{ id: 'bio', type: 'bio' }, { id: 'api', type: 'api', content: 'RSS Feed URL' }] },
+  { id: 'creator', name: 'Content Creator', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'links', type: 'links' },
+    { id: 'yt', type: 'widget', widgetId: 'yt1' },
+    { id: 'sp', type: 'widget', widgetId: 'sp1' },
+  ]},
+  { id: 'musician', name: 'Musician', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'spotify', type: 'widget', widgetId: 'sp1' },
+    { id: 'soundcloud', type: 'widget', widgetId: 'sc1' },
+    { id: 'merch', type: 'ecommerce' },
+  ]},
+  { id: 'gamer', name: 'Gamer', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'twitch', type: 'widget', widgetId: 'tw1' },
+    { id: 'youtube', type: 'widget', widgetId: 'yt1' },
+    { id: 'discord', type: 'links' },
+  ]},
+  { id: 'business', name: 'Business', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'contact', type: 'form' },
+    { id: 'calendar', type: 'calendar' },
+    { id: 'links', type: 'links' },
+  ]},
+  { id: 'artist', name: 'Digital Artist', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'gallery', type: 'column', children: [
+      { id: 'img1', type: 'custom', content: '<img src="https://via.placeholder.com/300" class="rounded-lg">' },
+    ]}
+  ]},
+  { id: 'student', name: 'Student', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'projects', type: 'widget', widgetId: 'proj1' },
+    { id: 'resume', type: 'links' },
+  ]},
+  { id: 'podcast', name: 'Podcast', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'episodes', type: 'api', content: '/api/podcast/feed' },
+    { id: 'subscribe', type: 'links' },
+  ]},
+  { id: 'ecommerce', name: 'E-Commerce', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'shop', type: 'ecommerce' },
+    { id: 'links', type: 'links' },
+  ]},
+  { id: 'portfolio', name: 'Portfolio', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'work', type: 'column', children: [
+      { id: 'proj1', type: 'custom', content: '<div>Project 1</div>' },
+      { id: 'proj2', type: 'custom', content: '<div>Project 2</div>' },
+    ]}
+  ]},
+  { id: 'influencer', name: 'Influencer', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'socials', type: 'links' },
+    { id: 'promo', type: 'custom', content: '<div>✨ Exclusive Content ✨</div>' },
+  ]},
+  { id: 'nonprofit', name: 'Non-Profit', config: [
+    { id: 'bio', type: 'bio' },
+    { id: 'donate', type: 'ecommerce' },
+    { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
+  ]},
 ];
 
 const CHALLENGES = [
@@ -147,11 +203,184 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
 };
 
 // --- Tabs ---
+
+// ✅ HELP CENTER TAB (guns.lol style)
+const HelpCenterTab = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Getting Started');
+
+  const categories = {
+    'Getting Started': [
+      { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
+      { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
+      { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
+      { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
+      { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
+    ],
+    'General': [
+      { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
+      { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
+      { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
+      { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
+      { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
+    ],
+    'How-To Guides': [
+      { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
+      { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
+      { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
+      { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
+    ],
+  };
+
+  const filteredArticles = Object.entries(categories).flatMap(([category, articles]) =>
+    articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-white">Help Center</h2>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search documentation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-80 px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-gray-900/30 p-4 rounded-lg">
+          <nav>
+            {Object.keys(categories).map((category) => (
+              <div key={category} className="mb-4">
+                <button
+                  onClick={() => setActiveCategory(category)}
+                  className={`w-full text-left py-2 px-3 rounded-md ${activeCategory === category ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+                >
+                  {category}
+                </button>
+                {activeCategory === category && (
+                  <ul className="mt-2 space-y-1">
+                    {categories[category].map((article) => (
+                      <li key={article.id}>
+                        <button
+                          onClick={() => {}}
+                          className="w-full text-left py-1 px-4 text-sm text-gray-400 hover:text-white"
+                        >
+                          {article.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Main Content */}
+        <div className="md:col-span-3">
+          <div className="bg-gray-900/30 p-6 rounded-lg">
+            <h3 className="text-2xl font-bold text-white mb-4">How can we help you?</h3>
+            <p className="text-gray-300 mb-6">
+              Need help? Start by searching for answers to common questions. Whether you're setting up your page, adding social media links, or exploring premium features, we've got you covered.
+            </p>
+
+            {searchQuery ? (
+              <div>
+                <h4 className="text-lg font-medium text-white mb-4">Search Results</h4>
+                {filteredArticles.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredArticles.map((article) => (
+                      <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
+                        <h5 className="text-white font-medium">{article.title}</h5>
+                        <p className="text-gray-400 mt-2">{article.content.substring(0, 100)}...</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No results found.</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <h4 className="text-lg font-medium text-white mb-4">Guides & Tutorials</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3" />
+                    </svg>
+                    Account Support
+                  </button>
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 15H12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v3M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                    </svg>
+                    How-To Guides
+                  </button>
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9M5 11V9m2 2a2 2 0 104 0 2 2 0 00-4 0z" />
+                    </svg>
+                    How To Upload Assets
+                  </button>
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    Premium Guides
+                  </button>
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 6v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                    Policies & Security
+                  </button>
+                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 17h.01M12 13h.01M12 21h.01M12 3h.01M12 7h.01M12 11h.01M12 15h.01M12 19h.01M12 5h.01" />
+                    </svg>
+                    Troubleshooting & Issues
+                  </button>
+                </div>
+
+                <h4 className="text-lg font-medium text-white mb-4">Popular Articles</h4>
+                <div className="space-y-4">
+                  {Object.entries(categories).flatMap(([category, articles]) =>
+                    articles.slice(0, 3).map((article) => (
+                      <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
+                        <h5 className="text-white font-medium">{article.title}</h5>
+                        <p className="text-gray-400 mt-2">{article.content.substring(0, 100)}...</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   const generateCode = async () => {
     setLoading(true);
     setMessage(null);
@@ -173,7 +402,6 @@ const DiscordTab = ({ user }: { user: User }) => {
       setLoading(false);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
@@ -239,7 +467,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
-
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -248,7 +475,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -292,19 +518,15 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
-
   const handleAccountSecurity = () => {
     alert('Please confirm your email and set a password for improved security.');
   };
-
   const handleUpgrade = () => {
     window.location.href = '/premium';
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -367,7 +589,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -382,7 +603,6 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -422,7 +642,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ] as const;
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -455,7 +674,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -496,7 +714,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -511,7 +728,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -684,7 +900,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -775,22 +990,18 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       }
     ]);
   };
-
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
-
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
-
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
     newWidgets.splice(to, 0, item);
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -892,15 +1103,12 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
-
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
-
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
-
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -912,14 +1120,12 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
-
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
-
   const renderPreview = () => {
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
@@ -934,7 +1140,6 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -968,7 +1173,6 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
@@ -1110,7 +1314,6 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
-
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1118,7 +1321,6 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
-
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -1165,7 +1367,6 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1179,7 +1380,6 @@ export default function Dashboard() {
               }))
             : []
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1192,7 +1392,6 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1205,7 +1404,6 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, [router]);
 
@@ -1237,13 +1435,11 @@ export default function Dashboard() {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
-
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
-
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1254,7 +1450,6 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
-
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -1263,7 +1458,6 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1290,7 +1484,6 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
-
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1327,6 +1520,7 @@ export default function Dashboard() {
     { id: 'badges', name: 'Badges' },
     { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
+    { id: 'help_center', name: 'Help Center' }, // ✅ Added Help Center Tab
   ];
 
   if (loading) {
@@ -1408,6 +1602,7 @@ export default function Dashboard() {
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
             {activeTab === 'discord' && <DiscordTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
+            {activeTab === 'help_center' && <HelpCenterTab />} {/* ✅ Help Center Tab */}
           </div>
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

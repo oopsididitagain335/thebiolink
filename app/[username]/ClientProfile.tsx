@@ -29,6 +29,7 @@ interface Badge {
   icon?: string;
   awardedAt?: string;
   earnedAt?: string;
+  hidden?: boolean;
 }
 
 interface LinkItem {
@@ -82,6 +83,10 @@ interface ClientProfileProps {
   xp: number;
   level: number;
   loginStreak: number;
+  customCSS: string;
+  customJS: string;
+  seoMeta: { title: string; description: string; keywords: string };
+  analyticsCode: string;
 }
 
 const getThemeBackground = (theme: string) => {
@@ -132,30 +137,7 @@ const generateQRWithLogo = async (url: string): Promise<string> => {
   });
 };
 
-export default function ClientProfile({
-  username,
-  name,
-  avatar,
-  profileBanner,
-  pageBackground,
-  bio,
-  location,
-  visibleBadges,
-  profileViews,
-  links,
-  widgets,
-  layoutStructure,
-  theme,
-  glow,
-  hasBanner,
-  hasPageBackground,
-  hasVideoBackground,
-  profileUrl,
-  specialTag,
-  xp,
-  level,
-  loginStreak,
-}: ClientProfileProps) {
+export default function ClientProfile(props: ClientProfileProps) {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
@@ -164,13 +146,23 @@ export default function ClientProfile({
 
   useEffect(() => {
     if (showQR && !qrCode) {
-      generateQRWithLogo(profileUrl).then(setQrCode);
+      generateQRWithLogo(props.profileUrl).then(setQrCode);
     }
-  }, [showQR, qrCode, profileUrl]);
+  }, [showQR, qrCode, props.profileUrl]);
+
+  useEffect(() => {
+    // Inject analytics code
+    if (props.analyticsCode) {
+      const script = document.createElement('script');
+      script.innerHTML = props.analyticsCode;
+      document.body.appendChild(script);
+      return () => document.body.removeChild(script);
+    }
+  }, [props.analyticsCode]);
 
   useEffect(() => {
     // Sandbox custom JS
-    layoutStructure.forEach((section) => {
+    props.layoutStructure.forEach((section) => {
       if (section.type === 'custom' && section.content?.includes('<script')) {
         const id = section.id;
         const script = document.createElement('script');
@@ -185,50 +177,67 @@ export default function ClientProfile({
       }
     });
 
+    // Global custom JS (premium)
+    if (props.customJS) {
+      const globalScript = document.createElement('script');
+      globalScript.text = props.customJS;
+      document.body.appendChild(globalScript);
+    }
+
     return () => {
       Object.values(scriptRefs.current).forEach(script => script.remove());
       scriptRefs.current = {};
     };
-  }, [layoutStructure]);
+  }, [props.layoutStructure, props.customJS]);
+
+  // Inject custom CSS
+  useEffect(() => {
+    if (props.customCSS) {
+      const style = document.createElement('style');
+      style.innerHTML = props.customCSS;
+      document.head.appendChild(style);
+      return () => document.head.removeChild(style);
+    }
+  }, [props.customCSS]);
 
   const renderSection = (section: LayoutSection) => {
     switch (section.type) {
       case 'bio':
         return (
-          <div key={section.id} className="text-center">
-            {avatar ? (
-              <LazyLoadImage src={avatar} alt={name} className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30" />
+          <div key={section.id} className="text-center" style={section.styling}>
+            {props.avatar ? (
+              <LazyLoadImage src={props.avatar} alt={props.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30" />
             ) : (
               <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl text-white font-bold">
-                  {name.charAt(0).toUpperCase()}
+                  {props.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
-            <h3 className="text-xl font-bold text-white mb-2">{name}</h3>
-            {location && (
+            <h3 className="text-xl font-bold text-white mb-2">{props.name}</h3>
+            {props.location && (
               <div className="flex items-center justify-center text-gray-300 mb-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>{location}</span>
+                <span>{props.location}</span>
               </div>
             )}
-            {bio && <TypingBio bio={bio} />}
+            {props.bio && <TypingBio bio={props.bio} />}
             <div className="flex items-center justify-center gap-2 mt-2">
-              <span className="text-yellow-400">Level {level}</span>
-              <span className="text-blue-400">Streak: {loginStreak} days</span>
+              <span className="text-yellow-400">Level {props.level}</span>
+              <span className="text-blue-400">Streak: {props.loginStreak} days</span>
               <div className="w-32 h-2 bg-gray-700 rounded">
-                <div style={{ width: `${(xp % 1000) / 10}%` }} className="h-full bg-green-500 rounded"></div>
+                <div style={{ width: `${(props.xp % 1000) / 10}%` }} className="h-full bg-green-500 rounded"></div>
               </div>
             </div>
           </div>
         );
       case 'links':
         return (
-          <div key={section.id} className="space-y-3">
-            {links.map((link) => (
+          <div key={section.id} className="space-y-3" style={section.styling}>
+            {props.links.map((link) => (
               <a
                 key={link.id}
                 href={link.url}
@@ -243,10 +252,10 @@ export default function ClientProfile({
           </div>
         );
       case 'widget':
-        const widget = widgets.find(w => w.id === section.widgetId);
+        const widget = props.widgets.find(w => w.id === section.widgetId);
         if (!widget) return null;
         return (
-          <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
+          <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left" style={section.styling}>
             {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
             {widget.type === 'youtube' && widget.url ? (
               <iframe
@@ -270,20 +279,39 @@ export default function ClientProfile({
               </a>
             ) : widget.type === 'custom' && widget.content ? (
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }} />
+            ) : widget.type === 'form' && widget.content ? (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                // Handle form submission, e.g., to Formspree
+              }}>
+                {/* Parse JSON content for fields */}
+                {JSON.parse(widget.content).map((field: any) => (
+                  <input key={field.id} type={field.type} placeholder={field.placeholder} className="block w-full mb-2" />
+                ))}
+                <button type="submit">Submit</button>
+              </form>
+            ) : widget.type === 'ecommerce' && widget.content ? (
+              <button onClick={async () => {
+                const stripe = await stripePromise;
+                // Handle Stripe checkout using widget.content (e.g., product ID)
+              }}>Buy Now</button>
+            ) : widget.type === 'api' && widget.url ? (
+              <div>Loading data from {widget.url}...</div> // Client-side fetch in useEffect
+            ) : widget.type === 'calendar' ? (
+              <div>Calendar Widget</div>
             ) : null}
           </div>
         );
       case 'spacer':
-        return <div key={section.id} style={{ height: `${section.height}px` }} />;
+        return <div key={section.id} style={{ height: `${section.height}px`, ...section.styling }} />;
       case 'custom':
         return <div key={section.id} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content || '') }} style={section.styling} />;
       case 'form':
         return (
           <form key={section.id} onSubmit={(e) => {
             e.preventDefault();
-            // Handle form submission, e.g., to Formspree
+            // Handle form submission
           }} style={section.styling}>
-            {/* Render form fields from content JSON */}
             {JSON.parse(section.content || '[]').map((field: any) => (
               <input key={field.id} type={field.type} placeholder={field.placeholder} className="block w-full mb-2" />
             ))}
@@ -302,7 +330,6 @@ export default function ClientProfile({
       case 'tab':
         return (
           <div key={section.id} className="tabs" style={section.styling}>
-            {/* Render tabs from children */}
             {section.children?.map(child => renderSection(child))}
           </div>
         );
@@ -324,9 +351,9 @@ export default function ClientProfile({
         return <div key={section.id} style={section.styling}>Calendar Widget</div>;
       case 'page':
         return (
-          <a key={section.id} href={`/${username}/${section.pagePath}`} onClick={(e) => {
+          <a key={section.id} href={`/${props.username}/${section.pagePath}`} onClick={(e) => {
             e.preventDefault();
-            router.push(`/${username}/${section.pagePath}`);
+            router.push(`/${props.username}/${section.pagePath}`);
           }} style={section.styling}>
             Go to {section.pagePath}
           </a>
@@ -338,36 +365,36 @@ export default function ClientProfile({
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
-      {hasBanner ? (
+      {props.hasBanner ? (
         <div className="absolute inset-0 z-0 flex justify-center">
           <div className="w-full max-w-4xl">
-            <LazyLoadImage src={profileBanner} alt="" className="w-full h-48 object-cover" />
+            <LazyLoadImage src={props.profileBanner} alt="" className="w-full h-48 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
           </div>
         </div>
-      ) : hasVideoBackground ? (
+      ) : props.hasVideoBackground ? (
         <video
           className="absolute inset-0 z-0 object-cover w-full h-full"
-          src={pageBackground}
+          src={props.pageBackground}
           autoPlay
           loop
           muted
           playsInline
         />
-      ) : hasPageBackground ? (
+      ) : props.hasPageBackground ? (
         <LazyLoadImage
           className="absolute inset-0 z-0 object-cover w-full h-full"
-          src={pageBackground}
+          src={props.pageBackground}
         />
       ) : (
-        <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme) }} />
+        <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(props.theme) }} />
       )}
 
       <div className="absolute inset-0 bg-black/40 z-10"></div>
 
       <div className="relative z-20 flex justify-center p-4 pt-16 min-h-screen">
         <div className="w-full max-w-md space-y-4">
-          {layoutStructure.map(renderSection)}
+          {props.layoutStructure.map(renderSection)}
 
           <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
             <p className="mb-1">Powered by The BioLink</p>

@@ -1,4 +1,3 @@
-```tsx
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import ClientProfile from './ClientProfile';
@@ -126,4 +125,3 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     return { title: 'Not Found | The BioLink' };
   }
 }
-```

@@ -1,13 +1,9 @@
 // app/dashboard/page.tsx
 'use client';
-
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
 import Editor from '@monaco-editor/react';
-import { Editor as TipTapEditor, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { loadStripe } from '@stripe/stripe-js';
 
 // --- Interfaces ---
 interface Link {
@@ -71,6 +67,11 @@ interface LayoutSection {
   styling?: { [key: string]: string };
 }
 
+// --- History Action Type ---
+type HistoryAction =
+  | { type: 'SAVE'; payload: LayoutSection[] }
+  | { type: 'UNDO' };
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -84,7 +85,6 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -95,31 +95,24 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
-
 const TEMPLATES = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'portfolio', name: 'Portfolio', config: [{ id: 'bio', type: 'bio' }, { id: 'column', type: 'column', children: [{ id: 'images', type: 'custom', content: 'Images' }] }] },
   { id: 'ecommerce', name: 'E-Commerce', config: [{ id: 'bio', type: 'bio' }, { id: 'ecommerce', type: 'ecommerce' }] },
   { id: 'blog', name: 'Blog', config: [{ id: 'bio', type: 'bio' }, { id: 'api', type: 'api', content: 'RSS Feed URL' }] },
 ];
-
 const CHALLENGES = [
   { id: 'updateProfile', name: 'Update your profile', xp: 50, completed: false },
   { id: 'addLink', name: 'Add a link', xp: 20, completed: false },
   { id: 'addWidget', name: 'Add a widget', xp: 30, completed: false },
-  // Weekly, etc.
 ];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
-
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
-
-// --- Upload Helper ---
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -132,19 +125,19 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   return await res.json();
 };
 
-// --- Version History Reducer ---
-const historyReducer = (state, action) => {
+// --- FIXED REDUCER ---
+const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
     case 'SAVE':
       return [...state, action.payload];
     case 'UNDO':
-      return state.slice(0, -1);
+      return state.length > 1 ? state.slice(0, -1) : state;
     default:
       return state;
   }
 };
 
-// --- Tabs ---
+// --- Tabs (unchanged from your original) ---
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -227,7 +220,6 @@ const DiscordTab = ({ user }: { user: User }) => {
     </div>
   );
 };
-
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -282,7 +274,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -333,7 +324,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
-
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -353,7 +343,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
-
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,7 +390,6 @@ const NewsTab = () => {
     </div>
   );
 };
-
 const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const themes = [
     { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
@@ -433,7 +421,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -471,7 +458,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -482,7 +468,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -491,14 +476,12 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       if (field === 'avatar') folder = 'avatars';
       if (field === 'profileBanner') folder = 'banners';
       if (field === 'pageBackground') folder = 'backgrounds';
-      
       const { url } = await uploadToCloudinary(file, folder);
       setUser({ ...user, [field]: url });
     } catch (err) {
       alert(`Failed to upload ${field}`);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -638,7 +621,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -697,46 +679,44 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         </div>
         <div className="space-y-4">
           {links.map((link, index) => (
-            <DraggableItem key={link.id} index={index} onMove={moveLink} itemType="link">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={link.title}
-                      onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
-                      maxLength={100}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
-                    <input
-                      type="url"
-                      value={link.url}
-                      onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
+            <div key={link.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
                   <input
                     type="text"
-                    value={link.icon}
-                    onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
-                    className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
-                    placeholder="Icon URL (optional)"
+                    value={link.title}
+                    onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
+                    maxLength={100}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                   />
-                  <button
-                    onClick={() => removeLink(index)}
-                    className="text-red-400 hover:text-red-300 font-medium"
-                  >
-                    Remove
-                  </button>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
+                  <input
+                    type="url"
+                    value={link.url}
+                    onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                  />
                 </div>
               </div>
-            </DraggableItem>
+              <div className="flex justify-between items-center">
+                <input
+                  type="text"
+                  value={link.icon}
+                  onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
+                  className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                  placeholder="Icon URL (optional)"
+                />
+                <button
+                  onClick={() => removeLink(index)}
+                  className="text-red-400 hover:text-red-300 font-medium"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
           ))}
           {links.length === 0 && (
             <div className="text-center py-8 text-gray-500">
@@ -748,7 +728,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
-
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -785,7 +764,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              disabled={w.id === 'custom' && user.plan !== 'premium'} // Example premium check
+              disabled={w.id === 'custom' && user.plan !== 'premium'}
               className={`bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white ${w.id === 'custom' && user.plan !== 'premium' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className="text-2xl mb-1">{w.icon}</div>
@@ -795,42 +774,40 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
         </div>
         <div className="space-y-4">
           {widgets.map((widget, index) => (
-            <DraggableItem key={widget.id} index={index} onMove={moveWidget} itemType="widget">
-              <div className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
-                <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Widget Title"
-                    value={widget.title || ''}
-                    onChange={(e) => updateWidget(index, 'title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+            <div key={widget.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+              <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Widget Title"
+                  value={widget.title || ''}
+                  onChange={(e) => updateWidget(index, 'title', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                />
+                <input
+                  type="url"
+                  placeholder="Embed URL (YouTube, Spotify, etc.)"
+                  value={widget.url || ''}
+                  onChange={(e) => updateWidget(index, 'url', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                />
+                {widget.type === 'custom' && (
+                  <textarea
+                    placeholder="Paste HTML or embed code"
+                    value={widget.content || ''}
+                    onChange={(e) => updateWidget(index, 'content', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
                   />
-                  <input
-                    type="url"
-                    placeholder="Embed URL (YouTube, Spotify, etc.)"
-                    value={widget.url || ''}
-                    onChange={(e) => updateWidget(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
-                  />
-                  {widget.type === 'custom' && (
-                    <textarea
-                      placeholder="Paste HTML or embed code"
-                      value={widget.content || ''}
-                      onChange={(e) => updateWidget(index, 'content', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
-                    />
-                  )}
-                </div>
-                <button
-                  onClick={() => removeWidget(index)}
-                  className="mt-3 text-red-400 text-sm"
-                >
-                  Remove Widget
-                </button>
+                )}
               </div>
-            </DraggableItem>
+              <button
+                onClick={() => removeWidget(index)}
+                className="mt-3 text-red-400 text-sm"
+              >
+                Remove Widget
+              </button>
+            </div>
           ))}
           {widgets.length === 0 && (
             <div className="text-center py-6 text-gray-500">
@@ -842,7 +819,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   );
 };
-
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
   return (
     <div className="space-y-6">
@@ -865,7 +841,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   );
 };
-
 const ProfileBuilderTab = ({ 
   layoutStructure, 
   setLayoutStructure,
@@ -878,15 +853,12 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
-
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
-
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
-
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -898,32 +870,26 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
-
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
-
   const renderPreview = () => {
-    // Simplified preview - in full implementation, use the same renderer as ClientProfile
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
       <div className={className} style={{ background: user.pageBackground }}>
-        {/* Render layoutStructure recursively */}
         {layoutStructure.map((section) => (
           <div key={section.id} style={section.styling}>
             {section.type === 'bio' && <div>Bio Section</div>}
             {section.type === 'page' && <div>Sub-page: {section.pagePath}</div>}
             {section.children && section.children.map(child => <div key={child.id}>{child.type}</div>)}
-            {/* Add more renderers */}
           </div>
         ))}
       </div>
     );
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -952,7 +918,6 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
-
 const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
@@ -986,7 +951,6 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
     </div>
   );
 };
-
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1001,7 +965,6 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
     </div>
   );
 };
-
 const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="space-y-6">
@@ -1030,7 +993,6 @@ const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) =>
     </div>
   );
 };
-
 const ProgressTab = ({ user, completeChallenge }: { user: User; completeChallenge: (id: string) => void }) => {
   const xpToNextLevel = (user.level! * user.level! * 100) - user.xp!;
   return (
@@ -1068,7 +1030,6 @@ const ProgressTab = ({ user, completeChallenge }: { user: User; completeChalleng
     </div>
   );
 };
-
 // --- Main Dashboard Component ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1111,7 +1072,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1190,7 +1150,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1200,15 +1159,12 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
-
   const completeChallenge = async (id: string) => {
-    // Call API to complete challenge and award XP
     try {
       await fetch('/api/dashboard/update', {
         method: 'PUT',
         body: JSON.stringify({ challengeId: id })
       });
-      // Refresh user data
       const res = await fetch('/api/dashboard/data');
       const data = await res.json();
       setUser(data.user);
@@ -1216,7 +1172,6 @@ export default function Dashboard() {
       console.error('Challenge error', error);
     }
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1284,7 +1239,9 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
+  const handleSave = () => {
+    setShowGuidelinesModal(true);
+  };
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1303,7 +1260,6 @@ export default function Dashboard() {
     { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1311,7 +1267,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1388,7 +1343,6 @@ export default function Dashboard() {
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-                {/* Page Background */}
                 {user.pageBackground && (
                   /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
                     <video
@@ -1408,7 +1362,6 @@ export default function Dashboard() {
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20 space-y-4">
-                  {/* Profile Banner */}
                   {user.profileBanner && (
                     <div className="relative rounded-xl overflow-hidden mb-4">
                       <img
@@ -1445,7 +1398,6 @@ export default function Dashboard() {
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
-                      // Simplified preview rendering
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
                         return (
@@ -1458,7 +1410,6 @@ export default function Dashboard() {
                           </div>
                         );
                       }
-                      // Add more preview logic
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>

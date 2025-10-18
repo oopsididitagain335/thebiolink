@@ -149,12 +149,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
   const hasBanner = !!profileBanner;
-  const hasPageBackground = !!(
-    pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground)
-  );
-  const hasVideoBackground = !!(
-    pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground)
-  );
+  const hasPageBackground = !!(pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground));
+  const hasVideoBackground = !!(pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground));
 
   const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));

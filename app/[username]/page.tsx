@@ -128,7 +128,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     );
   }
 
-  // For multi-page, filter layoutStructure based on subPath
   const currentPageStructure = subPath
     ? userData.layoutStructure.filter(s => s.pagePath === subPath)
     : userData.layoutStructure.filter(s => !s.pagePath || s.pagePath === 'home');
@@ -143,11 +142,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     badges = [] as (LegacyBadge | Badge)[],
     links = [],
     widgets = [],
-    layoutStructure = currentPageStructure || [
-      { id: 'bio', type: 'bio' },
-      { id: 'spacer-1', type: 'spacer', height: 24 },
-      { id: 'links', type: 'links' },
-    ],
+    layoutStructure = currentPageStructure,
     profileViews = 0,
     theme = 'indigo',
     xp = 0,
@@ -161,7 +156,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-  // ✅ FIXED: Support GIFs as background (treat like image)
   const hasBanner = !!profileBanner;
   const hasPageBackground = !!(pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground));
   const hasVideoBackground = !!(pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground));
@@ -178,7 +172,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   };
   const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
-  // ✅ FIXED: Removed extra spaces in URL
   const profileUrl = `https://thebiolink.lol/${username}`;
 
   return (
@@ -237,7 +230,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     if (!userData || userData.isBanned) {
       return { title: 'Banned | The BioLink' };
     }
-    const profileUrl = `https://thebiolink.lol/${username}`; // ✅ Clean URL
+    const profileUrl = `https://thebiolink.lol/${username}`;
     return {
       title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
       description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,

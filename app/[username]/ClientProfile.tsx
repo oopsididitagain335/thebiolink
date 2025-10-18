@@ -147,6 +147,7 @@ export default function ClientProfile({
           <source src={pageBackground} type="video/mp4" />
         </video>
       ) : hasPageBackground ? (
+        // ✅ Support GIFs (and all images) as background
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBackground})` }}
@@ -167,7 +168,6 @@ export default function ClientProfile({
         {/* Avatar & Badges */}
         <div className="text-center mb-6">
           {avatar ? (
-            // ✅ SAFE: use native <img> with lazy loading
             <img
               src={avatar}
               alt={name}
@@ -190,17 +190,22 @@ export default function ClientProfile({
             </span>
           )}
 
-          {/* Badges */}
+          {/* ✅ BADGES: Show name next to icon */}
           {visibleBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {visibleBadges.map((badge) => (
-                <img
+                <div
                   key={badge.id}
-                  src={badge.icon}
-                  alt={badge.name}
+                  className="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded-full border border-white/10"
                   title={badge.name}
-                  className="w-6 h-6 rounded-full border border-white/20"
-                />
+                >
+                  <img
+                    src={badge.icon}
+                    alt={badge.name}
+                    className="w-5 h-5 rounded-full"
+                  />
+                  <span className="text-xs text-gray-300">{badge.name}</span>
+                </div>
               ))}
             </div>
           )}

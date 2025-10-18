@@ -34,6 +34,7 @@ type Badge = {
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
+  const subPath = resolvedParams.subPath ? resolvedParams.subPath.join('/') : ''; // Handle multi-page, assuming params has subPath array for dynamic segments
 
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
@@ -127,6 +128,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     );
   }
 
+  // For multi-page, filter layoutStructure based on subPath
+  const currentPageStructure = subPath ? userData.layoutStructure.filter(s => s.pagePath === subPath) : userData.layoutStructure.filter(s => !s.pagePath || s.pagePath === 'home');
+
   const {
     name = '',
     avatar = '',
@@ -137,13 +141,16 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     badges = [] as (LegacyBadge | Badge)[],
     links = [],
     widgets = [],
-    layoutStructure = [
+    layoutStructure = currentPageStructure || [
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 24 },
       { id: 'links', type: 'links' },
     ],
     profileViews = 0,
     theme = 'indigo',
+    xp = 0,
+    level = 1,
+    loginStreak = 0,
   } = userData;
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
@@ -187,6 +194,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       hasVideoBackground={hasVideoBackground}
       profileUrl={profileUrl}
       specialTag={getSpecialProfileTag(username)}
+      xp={xp}
+      level={level}
+      loginStreak={loginStreak}
     />
   );
 }
@@ -200,6 +210,7 @@ async function getUserByUsernameForMetadata(username: string) {
       avatar: user.avatar,
       bio: user.bio,
       isBanned: user.isBanned,
+      level: user.level,
     };
   } catch {
     return null;
@@ -215,10 +226,10 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
       return { title: 'Banned | The BioLink' };
     }
     return {
-      title: `${userData.name || username} | The BioLink`,
+      title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
       description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
       openGraph: {
-        title: `${userData.name || username} | The BioLink`,
+        title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
         description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
         images: userData.avatar ? [userData.avatar] : [],
         url: `https://thebiolink.lol/${username}`,
@@ -226,7 +237,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${userData.name || username} | The BioLink`,
+        title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
         description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
         images: userData.avatar ? [userData.avatar] : [],
       },

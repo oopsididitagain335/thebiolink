@@ -6,6 +6,40 @@ import DOMPurify from 'dompurify';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 
+// ✅ Define helpers HERE — no need to pass as props
+const getYouTubeId = (url: string): string => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
+  return match ? match[1] : '';
+};
+
+const getSpotifyId = (url: string): string => {
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  return match ? `${match[1]}/${match[2]}` : '';
+};
+
+// ✅ Props interface — NO function props
+interface ClientProfileProps {
+  username: string;
+  name: string;
+  avatar: string;
+  profileBanner: string;
+  pageBackground: string;
+  bio: string;
+  location: string;
+  visibleBadges: Badge[];
+  profileViews: number;
+  links: LinkItem[];
+  widgets: Widget[];
+  layoutStructure: LayoutSection[];
+  theme: string;
+  glow: string;
+  hasBanner: boolean;
+  hasPageBackground: boolean;
+  hasVideoBackground: boolean;
+  profileUrl: string;
+  specialTag: string | null;
+}
+
 interface Badge {
   id: string;
   name: string;
@@ -37,30 +71,6 @@ interface LayoutSection {
   widgetId?: string;
   height?: number;
   content?: string;
-}
-
-interface ClientProfileProps {
-  username: string;
-  name: string;
-  avatar: string;
-  profileBanner: string;
-  pageBackground: string;
-  bio: string;
-  location: string;
-  visibleBadges: Badge[];
-  profileViews: number;
-  links: LinkItem[];
-  widgets: Widget[];
-  layoutStructure: LayoutSection[];
-  theme: string;
-  glow: string;
-  hasBanner: boolean;
-  hasPageBackground: boolean;
-  hasVideoBackground: boolean;
-  profileUrl: string;
-  specialTag: string | null;
-  getYouTubeId: (url: string) => string;
-  getSpotifyId: (url: string) => string;
 }
 
 const getThemeBackground = (theme: string) => {
@@ -131,8 +141,6 @@ export default function ClientProfile({
   hasVideoBackground,
   profileUrl,
   specialTag,
-  getYouTubeId,
-  getSpotifyId,
 }: ClientProfileProps) {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
@@ -284,6 +292,7 @@ export default function ClientProfile({
                   {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
                   {widget.type === 'youtube' && widget.url && (
                     <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
+                      {/* ✅ Fixed: removed extra spaces in URL */}
                       <iframe
                         src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                         title={widget.title || 'YouTube video'}
@@ -296,6 +305,7 @@ export default function ClientProfile({
                   )}
                   {widget.type === 'spotify' && widget.url && (
                     <div className="aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg">
+                      {/* ✅ Fixed: removed extra spaces in URL */}
                       <iframe
                         src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                         title={widget.title || 'Spotify embed'}

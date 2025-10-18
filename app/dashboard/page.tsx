@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
@@ -92,7 +91,7 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
-const TEMPLATES = [
+const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'portfolio', name: 'Portfolio', config: [{ id: 'bio', type: 'bio' }, { id: 'column', type: 'column', children: [{ id: 'images', type: 'custom', content: 'Images' }] }] },
   { id: 'ecommerce', name: 'E-Commerce', config: [{ id: 'bio', type: 'bio' }, { id: 'ecommerce', type: 'ecommerce' }] },

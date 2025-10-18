@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, Db } from 'mongodb';
+import { MongoClient, ObjectId, Db, PushOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 let cachedClient: MongoClient | null = null;
@@ -191,7 +191,7 @@ async function awardMonthlyBadge(user: UserDoc) {
       await db.collection('users').updateOne(
         { _id: user._id },
         {
-          $push: { badges: { $each: [newBadge] } },
+          $push: { badges: { $each: [newBadge] } } as PushOperator<UserDoc>,
           $set: { lastMonthlyBadge: prevMonthStr }
         }
       );
@@ -782,7 +782,7 @@ export async function addUserBadge(
   const userObjectId = new ObjectId(userId);
   await db.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
-    { $push: { badges: { $each: [badge] } } }
+    { $push: { badges: { $each: [badge] } } as PushOperator<UserDoc> }
   );
 }
 

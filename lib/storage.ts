@@ -191,7 +191,7 @@ async function awardMonthlyBadge(user: UserDoc) {
       await db.collection('users').updateOne(
         { _id: user._id },
         {
-          $push: { badges: newBadge },
+          $push: { badges: { $each: [newBadge] } },
           $set: { lastMonthlyBadge: prevMonthStr }
         }
       );

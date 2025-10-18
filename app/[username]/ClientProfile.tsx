@@ -1,4 +1,3 @@
-// app/[username]/ClientProfile.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -151,6 +150,7 @@ export default function ClientProfile({
   analyticsCode,
 }: ClientProfileProps) {
   const [isClient, setIsClient] = useState(false);
+  const [backgroundError, setBackgroundError] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -186,6 +186,20 @@ export default function ClientProfile({
     }
   }, [analyticsCode, isClient]);
 
+  // Debug background URL
+  useEffect(() => {
+    if (hasPageBackground && pageBackground) {
+      console.log('Attempting to load background:', pageBackground);
+      const img = new Image();
+      img.src = pageBackground;
+      img.onload = () => console.log('Background loaded successfully');
+      img.onerror = () => {
+        console.error('Failed to load background:', pageBackground);
+        setBackgroundError(true);
+      };
+    }
+  }, [hasPageBackground, pageBackground]);
+
   // Map widgetId to widget object
   const widgetMap = new Map(widgets.map(w => [w.id, w]));
 
@@ -199,17 +213,27 @@ export default function ClientProfile({
           loop
           playsInline
           className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
+          onError={() => {
+            console.error('Failed to load video background:', pageBackground);
+            setBackgroundError(true);
+          }}
         >
           <source src={pageBackground} type="video/mp4" />
         </video>
-      ) : hasPageBackground ? (
-        // ✅ Supports GIFs, JPG, PNG, WEBP
+      ) : hasPageBackground && !backgroundError ? (
+        // ✅ Enhanced GIF support with fallback
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBackground})` }}
         />
       ) : (
         <div className="fixed top-0 left-0 w-full h-full bg-gray-900 z-[-1]" />
+      )}
+
+      {backgroundError && (
+        <div className="fixed top-4 right-4 bg-red-500/80 text-white p-2 rounded">
+          Failed to load background image or video
+        </div>
       )}
 
       <div className="relative max-w-2xl mx-auto px-4 py-12">
@@ -246,7 +270,6 @@ export default function ClientProfile({
             </span>
           )}
 
-          {/* ✅ Badges with name + icon */}
           {visibleBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {visibleBadges.map((badge) => (
@@ -267,10 +290,8 @@ export default function ClientProfile({
           )}
         </div>
 
-        {/* Bio */}
         {bio && <p className="text-center text-gray-300 mb-6">{bio}</p>}
 
-        {/* Stats */}
         <div className="flex justify-center gap-4 text-sm text-gray-400 mb-8">
           <span>Level {level}</span>
           <span>•</span>
@@ -279,10 +300,9 @@ export default function ClientProfile({
           <span>{loginStreak} day streak</span>
         </div>
 
-        {/* ✅ FULL LAYOUT RENDERING */}
         <div className="space-y-6">
           {layoutStructure.map((section) => {
-            if (section.type === 'bio') return null; // already shown
+            if (section.type === 'bio') return null;
 
             if (section.type === 'links' && links.length > 0) {
               return (

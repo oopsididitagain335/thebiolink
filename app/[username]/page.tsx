@@ -1,4 +1,4 @@
-// app/[username]/page.tsx
+```tsx
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import ClientProfile from './ClientProfile';
@@ -13,12 +13,10 @@ interface UserPageProps {
 }
 
 const UserPage: NextPage<UserPageProps> = async ({ params }) => {
-  // ✅ Correct: params is a Promise in Next.js 14 App Router
   const resolvedParams = await params;
   const { username, subPath } = resolvedParams;
   const subPathString = subPath?.join('/') || '';
 
-  // ✅ Correct: await headers() in async Server Component
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
@@ -70,7 +68,6 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
   };
   const glow = themeGlowMap[userData.theme || 'indigo'] || themeGlowMap.indigo;
 
-  // 🔥 FIXED: Removed extra spaces in URL
   const profileUrl = `https://thebiolink.lol/${username}`;
 
   return (
@@ -112,7 +109,6 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
 
 export default UserPage;
 
-// ✅ generateMetadata also receives params as Promise in Next.js 14
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   try {
@@ -130,3 +126,4 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     return { title: 'Not Found | The BioLink' };
   }
 }
+```

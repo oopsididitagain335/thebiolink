@@ -256,11 +256,16 @@ export async function getUserByUsername(username: string, clientId: string) {
       }
     );
 
-    updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+    const freshUserAfterUpdate = await db.collection<UserDoc>('users').findOne({ _id: user._id });
+    if (!freshUserAfterUpdate) throw new Error('User not found after login update');
+    updatedUser = freshUserAfterUpdate;
 
     // Award monthly badge if applicable
     await awardMonthlyBadge(updatedUser);
-    updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+
+    const freshUserAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: user._id });
+    if (!freshUserAfterBadge) throw new Error('User not found after badge award');
+    updatedUser = freshUserAfterBadge;
   }
 
   const links = await db.collection<LinkDoc>('links').find({ userId: updatedUser._id }).toArray();
@@ -372,11 +377,16 @@ export async function getUserById(id: string) {
       }
     );
 
-    updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+    const freshUserAfterUpdate = await db.collection<UserDoc>('users').findOne({ _id: user._id });
+    if (!freshUserAfterUpdate) throw new Error('User not found after login update');
+    updatedUser = freshUserAfterUpdate;
 
     // Award monthly badge if applicable
     await awardMonthlyBadge(updatedUser);
-    updatedUser = await db.collection<UserDoc>('users').findOne({ _id: user._id })!;
+
+    const freshUserAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: user._id });
+    if (!freshUserAfterBadge) throw new Error('User not found after badge award');
+    updatedUser = freshUserAfterBadge;
   }
 
   const links = await db.collection<LinkDoc>('links').find({ userId: updatedUser._id }).toArray();

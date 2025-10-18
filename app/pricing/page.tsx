@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import Script from 'next/script';
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface Plan {
@@ -20,7 +20,7 @@ const PLANS: Plan[] = [
   { id: 'fwiend', name: 'Fwiend', price: 60, description: 'Support the project ❤️' },
 ];
 
-function PricingContent() {
+export default function PricingPage() {
   const searchParams = useSearchParams();
   const errorParam = searchParams?.get('error');
   const [error, setError] = useState<string | null>(null);
@@ -154,13 +154,5 @@ function PricingContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function PricingPage() {
-  return (
-    <Suspense fallback={<div className="text-center text-white mt-20">Loading...</div>}>
-      <PricingContent />
-    </Suspense>
   );
 }

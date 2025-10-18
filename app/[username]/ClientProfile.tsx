@@ -147,7 +147,7 @@ export default function ClientProfile({
           <source src={pageBackground} type="video/mp4" />
         </video>
       ) : hasPageBackground ? (
-        // ✅ Support GIFs (and all images) as background
+        // ✅ Supports GIFs, JPG, PNG, WEBP as background
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBackground})` }}
@@ -190,7 +190,7 @@ export default function ClientProfile({
             </span>
           )}
 
-          {/* ✅ BADGES: Show name next to icon */}
+          {/* ✅ Badges with name + icon */}
           {visibleBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {visibleBadges.map((badge) => (
@@ -223,7 +223,7 @@ export default function ClientProfile({
           <span>{loginStreak} day streak</span>
         </div>
 
-        {/* Links */}
+        {/* ✅ Links with icons */}
         <div className="space-y-3">
           {links.map((link) => (
             <a
@@ -231,9 +231,19 @@ export default function ClientProfile({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${glow} bg-white/5 hover:bg-white/10 border border-white/10`}
+              className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${glow} bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2`}
             >
-              {link.title}
+              {link.icon && (
+                <img
+                  src={link.icon}
+                  alt=""
+                  className="w-5 h-5 rounded"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+              <span>{link.title}</span>
             </a>
           ))}
         </div>

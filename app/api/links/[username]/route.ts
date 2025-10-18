@@ -18,12 +18,29 @@ const LinksUpdateSchema = z.array(
   })
 ).max(20);
 
+interface LinkItem {
+  id: string;
+  title: string;
+  url: string;
+  icon?: string;
+  position?: number;
+}
+
+interface UserMetadata {
+  name: string;
+  avatar: string;
+  bio: string;
+  isBanned: boolean;
+  level: number;
+  links: LinkItem[];
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
-  const data = await getUserByUsernameForMetadata(username);
+  const data = await getUserByUsernameForMetadata(username) as UserMetadata;
 
   if (!data) {
     return Response.json({ error: 'User not found' }, { status: 404 });

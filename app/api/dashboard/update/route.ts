@@ -2,8 +2,6 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets, updateUserXP } from '@/lib/storage';
-
-// ✅ FIX: DOMPurify in Node.js — use with JSDOM or ensure v3+
 import createDOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
 
@@ -21,21 +19,6 @@ interface LayoutSection {
   styling?: { [key: string]: string };
 }
 
-interface Challenge {
-  id: string;
-  xp: number;
-}
-
-interface User {
-  _id: string;
-  email: any;
-  username: any;
-  name: any;
-  avatar: any;
-  plan: string;
-}
-
-// ✅ REAL CHALLENGES WITH XP
 const CHALLENGES: Record<string, { xp: number }> = {
   updateProfile: { xp: 50 },
   addLink: { xp: 20 },
@@ -44,7 +27,7 @@ const CHALLENGES: Record<string, { xp: number }> = {
 };
 
 export async function PUT(request: NextRequest) {
-  const user = await getCurrentUser() as User;
+  const user = await getCurrentUser();
   if (!user || !user._id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -52,7 +35,6 @@ export async function PUT(request: NextRequest) {
   try {
     const { profile, links, widgets, challengeId } = await request.json();
 
-    // ✅ Handle challenge completion
     if (challengeId && CHALLENGES[challengeId]) {
       const xpAward = CHALLENGES[challengeId].xp;
       await updateUserXP(user._id, xpAward);
@@ -61,7 +43,6 @@ export async function PUT(request: NextRequest) {
 
     let totalXP = 0;
 
-    // ✅ Auto-award XP for meaningful updates
     if (profile && typeof profile === 'object') {
       const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
       const theme = validThemes.includes(profile.theme) ? profile.theme : 'indigo';
@@ -73,7 +54,6 @@ export async function PUT(request: NextRequest) {
       const pageBackground = (profile.pageBackground || '').trim();
       const location = profile.location ? profile.location.trim().substring(0, 100) : '';
 
-      // ✅ Sanitize safely in Node.js
       const customCSS = DOMPurify.sanitize(profile.customCSS || '');
       const customJS = user.plan === 'premium' ? DOMPurify.sanitize(profile.customJS || '', { ALLOWED_TAGS: [] }) : '';
       const analyticsCode = DOMPurify.sanitize(profile.analyticsCode || '');
@@ -104,7 +84,7 @@ export async function PUT(request: NextRequest) {
         .map(sanitizeLayout)
         .filter(Boolean) as LayoutSection[];
 
-      const updateData = {
+      await updateUserProfile(user._id, {
         name,
         username,
         bio,
@@ -119,10 +99,9 @@ export async function PUT(request: NextRequest) {
         seoMeta,
         analyticsCode,
         discordId: profile.discordId,
-      };
+      });
 
-      await updateUserProfile(user._id, updateData);
-      totalXP += 10; // base XP for saving
+      totalXP += 10;
     }
 
     if (Array.isArray(links) && links.length > 0) {

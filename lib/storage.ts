@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db, PushOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -127,7 +126,7 @@ interface DiscordCodeDoc {
   used: boolean;
   createdAt: Date;
   expiresAt: Date;
-  discordDiscordId?: string;
+  discordId?: string;
   usedAt?: Date;
 }
 
@@ -179,7 +178,7 @@ async function awardMonthlyBadge(user: UserDoc) {
 
     if (loginCount >= 15) {
       const badgeName = `Active ${previousMonth.toLocaleString('default', { month: 'long' })} ${previousMonth.getFullYear()}`;
-      const icon = 'https://example.com/monthly-badge-icon.png'; // Replace with dynamic icon if needed
+      const icon = 'https://example.com/monthly-badge-icon.png';
       const newBadge = {
         id: `monthly-${prevMonthStr}`,
         name: badgeName,
@@ -261,7 +260,6 @@ export async function getUserByUsername(username: string, clientId: string) {
     if (!freshUserAfterUpdate) throw new Error('User not found after login update');
     updatedUser = freshUserAfterUpdate;
 
-    // Award monthly badge if applicable
     await awardMonthlyBadge(updatedUser);
 
     const freshUserAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: user._id });
@@ -587,12 +585,21 @@ export async function updateUserProfile(userId: string, updates: any) {
   const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
   const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
 
+  // Validate pageBackground URL
+  const pageBackground = updates.pageBackground?.trim();
+  if (pageBackground) {
+    const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg)$/i;
+    if (!validExtensions.test(pageBackground)) {
+      console.warn('Invalid background URL format:', pageBackground);
+    }
+  }
+
   const clean = {
     name: (updates.name || '').trim().substring(0, 100),
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
     profileBanner: (updates.profileBanner || '').trim(),
-    pageBackground: (updates.pageBackground || '').trim(), // Supports GIFs, PNG, JPEG, WEBP, MP4, WebM, OGG
+    pageBackground,
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',
@@ -867,7 +874,7 @@ export async function getNewsPostById(id: string) {
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();
   const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await db.collection<DiscordCodeDoc>('discord_codes').insertOne({
     code,

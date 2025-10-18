@@ -7,11 +7,12 @@ import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function UserPage({ params }: any) {
-  const username = params.username;
+export default async function UserPage({ params }: { params: { username: string; subPath?: string[] } }) {
+  const { username } = params;
   const subPath = params.subPath?.join('/') || '';
 
-  const headersList = headers();
+  // ✅ MUST AWAIT headers() in async Server Components
+  const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
   let userData;
@@ -24,8 +25,12 @@ export default async function UserPage({ params }: any) {
 
   if (!userData) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <p className="text-white">Profile not found</p>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
+        <div className="text-center">
+          <h1 className="text-xl font-bold mb-2">Profile Not Found</h1>
+          <p>No BioLink exists for @{username}</p>
+          <a href="/" className="mt-4 inline-block text-indigo-400 hover:underline">Create yours</a>
+        </div>
       </div>
     );
   }
@@ -33,14 +38,30 @@ export default async function UserPage({ params }: any) {
   if (userData.isBanned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <WhackTheBanHammerGame />
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-red-500 mb-4">BANNED</h1>
+          <WhackTheBanHammerGame />
+          <a href="/" className="mt-6 inline-block text-red-400 hover:underline">Return home</a>
+        </div>
       </div>
     );
   }
 
-  // ... rest of your render logic with ClientProfile
-  const profileUrl = `https://thebiolink.lol/${username}`;
-  const visibleBadges = userData.badges?.filter((b: any) => !b.hidden) || [];
+  const currentPageStructure = subPath
+    ? userData.layoutStructure.filter((s: any) => s.pagePath === subPath)
+    : userData.layoutStructure.filter((s: any) => !s.pagePath || s.pagePath === 'home');
+
+  const visibleBadges = (userData.badges || []).filter((badge: any) => !badge.hidden);
+  const sortedLinks = [...(userData.links || [])].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+
+  const themeGlowMap: Record<string, string> = {
+    indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
+    purple: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
+    green: 'shadow-[0_0_20px_rgba(34,197,94,0.6)]',
+    red: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
+    halloween: 'shadow-[0_0_20px_rgba(234,88,12,0.6)]',
+  };
+  const glow = themeGlowMap[userData.theme || 'indigo'] || themeGlowMap.indigo;
 
   return (
     <ClientProfile
@@ -53,16 +74,21 @@ export default async function UserPage({ params }: any) {
       location={userData.location || ''}
       visibleBadges={visibleBadges}
       profileViews={userData.profileViews || 0}
-      links={userData.links || []}
+      links={sortedLinks}
       widgets={userData.widgets || []}
-      layoutStructure={userData.layoutStructure || []}
+      layoutStructure={currentPageStructure}
       theme={userData.theme || 'indigo'}
-      glow="shadow-[0_0_20px_rgba(99,102,241,0.6)]"
+      glow={glow}
       hasBanner={!!userData.profileBanner}
-      hasPageBackground={!!userData.pageBackground}
-      hasVideoBackground={false}
-      profileUrl={profileUrl}
-      specialTag={null}
+      hasPageBackground={!!userData.pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(userData.pageBackground)}
+      hasVideoBackground={!!userData.pageBackground && /\.(mp4|webm|ogg)$/i.test(userData.pageBackground)}
+      profileUrl={`https://thebiolink.lol/${username}`}
+      specialTag={(() => {
+        const lower = username.toLowerCase();
+        if (lower === 'xsetnews') return 'Biggest Sponsored Member';
+        if (lower === 'ceosolace') return 'Founder of BioLinkHQ';
+        return null;
+      })()}
       xp={userData.xp || 0}
       level={userData.level || 1}
       loginStreak={userData.loginStreak || 0}
@@ -72,4 +98,22 @@ export default async function UserPage({ params }: any) {
       analyticsCode={userData.analyticsCode || ''}
     />
   );
+}
+
+export async function generateMetadata({ params }: { params: { username: string } }) {
+  const { username } = params;
+  try {
+    const user = await getUserByUsername(username, '0.0.0.0');
+    if (!user || user.isBanned) {
+      return { title: 'Banned | The BioLink' };
+    }
+    const desc = user.bio?.substring(0, 160) || `Check out ${user.name || username}'s BioLink`;
+    return {
+      title: `${user.name || username} (Level ${user.level}) | The BioLink`,
+      description: desc,
+      openGraph: { title: `${user.name || username} | The BioLink`, description: desc },
+    };
+  } catch {
+    return { title: 'Not Found | The BioLink' };
+  }
 }

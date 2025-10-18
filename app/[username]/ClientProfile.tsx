@@ -22,7 +22,7 @@ interface LinkItem {
 
 interface WidgetItem {
   id: string;
-  type: string;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
@@ -68,6 +68,59 @@ interface ClientProfileProps {
   seoMeta: { title: string; description: string; keywords: string };
   analyticsCode?: string;
 }
+
+// Helper to render a single widget
+const renderWidget = (widget: WidgetItem) => {
+  const { type, url, content, title } = widget;
+
+  if (type === 'youtube' && url) {
+    const videoId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+    return videoId ? (
+      <iframe
+        width="100%"
+        height="315"
+        src={`https://www.youtube.com/embed/${videoId}`}
+        title={title || 'YouTube video'}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="rounded-lg"
+      />
+    ) : null;
+  }
+
+  if (type === 'spotify' && url) {
+    return (
+      <iframe
+        src={url.includes('embed') ? url : url.replace('open.spotify.com', 'open.spotify.com/embed')}
+        width="100%"
+        height="380"
+        allow="encrypted-media"
+        className="rounded-lg"
+      />
+    );
+  }
+
+  if (type === 'custom' && content) {
+    return (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: content,
+        }}
+        className="prose prose-invert max-w-none"
+      />
+    );
+  }
+
+  if (type === 'twitter' && url) {
+    return (
+      <blockquote className="twitter-tweet">
+        <a href={url}></a>
+      </blockquote>
+    );
+  }
+
+  return <div className="text-gray-400 italic">Unsupported widget type: {type}</div>;
+};
 
 export default function ClientProfile({
   username,
@@ -133,6 +186,9 @@ export default function ClientProfile({
     }
   }, [analyticsCode, isClient]);
 
+  // Map widgetId to widget object
+  const widgetMap = new Map(widgets.map(w => [w.id, w]));
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Background */}
@@ -147,7 +203,7 @@ export default function ClientProfile({
           <source src={pageBackground} type="video/mp4" />
         </video>
       ) : hasPageBackground ? (
-        // ✅ Supports GIFs, JPG, PNG, WEBP as background
+        // ✅ Supports GIFs, JPG, PNG, WEBP
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBackground})` }}
@@ -223,29 +279,67 @@ export default function ClientProfile({
           <span>{loginStreak} day streak</span>
         </div>
 
-        {/* ✅ Links with icons */}
-        <div className="space-y-3">
-          {links.map((link) => (
-            <a
-              key={link.id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${glow} bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2`}
-            >
-              {link.icon && (
-                <img
-                  src={link.icon}
-                  alt=""
-                  className="w-5 h-5 rounded"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
+        {/* ✅ FULL LAYOUT RENDERING */}
+        <div className="space-y-6">
+          {layoutStructure.map((section) => {
+            if (section.type === 'bio') return null; // already shown
+
+            if (section.type === 'links' && links.length > 0) {
+              return (
+                <div key={section.id} className="space-y-3">
+                  {links.map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${glow} bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2`}
+                    >
+                      {link.icon && (
+                        <img
+                          src={link.icon}
+                          alt=""
+                          className="w-5 h-5 rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span>{link.title}</span>
+                    </a>
+                  ))}
+                </div>
+              );
+            }
+
+            if (section.type === 'widget' && section.widgetId) {
+              const widget = widgetMap.get(section.widgetId);
+              if (widget) {
+                return (
+                  <div key={section.id} className="bg-gray-800/30 p-4 rounded-xl border border-gray-700">
+                    {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
+                    {renderWidget(widget)}
+                  </div>
+                );
+              }
+            }
+
+            if (section.type === 'spacer') {
+              return <div key={section.id} style={{ height: section.height || 24 }} />;
+            }
+
+            if (section.type === 'custom' && section.content) {
+              return (
+                <div
+                  key={section.id}
+                  dangerouslySetInnerHTML={{ __html: section.content }}
+                  className="prose prose-invert max-w-none"
                 />
-              )}
-              <span>{link.title}</span>
-            </a>
-          ))}
+              );
+            }
+
+            return null;
+          })}
         </div>
       </div>
     </div>

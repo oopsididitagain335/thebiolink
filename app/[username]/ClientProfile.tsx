@@ -73,7 +73,8 @@ const renderWidget = (widget: WidgetItem) => {
   const { type, url, content, title } = widget;
 
   if (type === 'youtube' && url) {
-    const videoId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+    const cleanUrl = url.trim();
+    const videoId = cleanUrl.split('v=')[1]?.split('&')[0] || cleanUrl.split('/').pop();
     return videoId ? (
       <iframe
         width="100%"
@@ -88,9 +89,13 @@ const renderWidget = (widget: WidgetItem) => {
   }
 
   if (type === 'spotify' && url) {
+    const cleanUrl = url.trim();
+    const embedUrl = cleanUrl.includes('embed')
+      ? cleanUrl
+      : cleanUrl.replace('open.spotify.com', 'open.spotify.com/embed');
     return (
       <iframe
-        src={url.includes('embed') ? url : url.replace('open.spotify.com', 'open.spotify.com/embed')}
+        src={embedUrl}
         width="100%"
         height="380"
         allow="encrypted-media"
@@ -113,7 +118,7 @@ const renderWidget = (widget: WidgetItem) => {
   if (type === 'twitter' && url) {
     return (
       <blockquote className="twitter-tweet">
-        <a href={url}></a>
+        <a href={url.trim()}></a>
       </blockquote>
     );
   }
@@ -126,7 +131,7 @@ export default function ClientProfile({
   name,
   avatar,
   profileBanner,
-  pageBackground,
+  pageBackground: rawPageBackground,
   bio,
   location,
   visibleBadges,
@@ -137,9 +142,7 @@ export default function ClientProfile({
   theme,
   glow,
   hasBanner,
-  hasPageBackground,
-  hasVideoBackground,
-  profileUrl,
+  profileUrl: rawProfileUrl,
   specialTag,
   xp,
   level,
@@ -152,6 +155,15 @@ export default function ClientProfile({
   const [isClient, setIsClient] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
 
+  // 🔧 Trim inputs to prevent whitespace issues
+  const pageBackground = rawPageBackground?.trim() || '';
+  const profileUrl = `https://thebiolink.lol/${username}`; // Fixed spacing
+
+  // Recompute flags from clean URL
+  const hasPageBackground = !!pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground);
+  const hasVideoBackground = !!pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground);
+  const isGifBackground = hasPageBackground && pageBackground.toLowerCase().endsWith('.gif');
+
   useEffect(() => {
     setIsClient(true);
     if (customCSS) {
@@ -159,7 +171,9 @@ export default function ClientProfile({
       style.textContent = customCSS;
       document.head.appendChild(style);
       return () => {
-        document.head.removeChild(style);
+        if (document.head.contains(style)) {
+          document.head.removeChild(style);
+        }
       };
     }
   }, [customCSS]);
@@ -170,7 +184,9 @@ export default function ClientProfile({
       script.textContent = customJS;
       document.body.appendChild(script);
       return () => {
-        document.body.removeChild(script);
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
       };
     }
   }, [customJS, isClient]);
@@ -181,31 +197,27 @@ export default function ClientProfile({
       script.textContent = analyticsCode;
       document.head.appendChild(script);
       return () => {
-        document.head.removeChild(script);
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
       };
     }
   }, [analyticsCode, isClient]);
 
-  // Debug background URL
+  // Optional: preload background for debugging
   useEffect(() => {
-    if (hasPageBackground && pageBackground) {
-      console.log('Attempting to load background:', pageBackground);
+    if (hasPageBackground && !isGifBackground && !hasVideoBackground) {
       const img = new Image();
       img.src = pageBackground;
-      img.onload = () => console.log('Background loaded successfully');
-      img.onerror = () => {
-        console.error('Failed to load background:', pageBackground);
-        setBackgroundError(true);
-      };
+      img.onerror = () => setBackgroundError(true);
     }
-  }, [hasPageBackground, pageBackground]);
+  }, [hasPageBackground, isGifBackground, hasVideoBackground, pageBackground]);
 
-  // Map widgetId to widget object
-  const widgetMap = new Map(widgets.map(w => [w.id, w]));
+  const widgetMap = new Map(widgets.map((w) => [w.id, w]));
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Background */}
+      {/* Background Layer */}
       {hasVideoBackground ? (
         <video
           autoPlay
@@ -213,15 +225,21 @@ export default function ClientProfile({
           loop
           playsInline
           className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
-          onError={() => {
-            console.error('Failed to load video background:', pageBackground);
-            setBackgroundError(true);
-          }}
+          onError={() => setBackgroundError(true)}
         >
           <source src={pageBackground} type="video/mp4" />
+          <source src={pageBackground} type="video/webm" />
         </video>
-      ) : hasPageBackground && !backgroundError ? (
-        // ✅ Enhanced GIF support with fallback
+      ) : isGifBackground ? (
+        <div className="fixed top-0 left-0 w-full h-full z-[-1] overflow-hidden">
+          <img
+            src={pageBackground}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => setBackgroundError(true)}
+          />
+        </div>
+      ) : hasPageBackground ? (
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBackground})` }}
@@ -231,21 +249,24 @@ export default function ClientProfile({
       )}
 
       {backgroundError && (
-        <div className="fixed top-4 right-4 bg-red-500/80 text-white p-2 rounded">
-          Failed to load background image or video
+        <div className="fixed top-4 right-4 bg-red-500/80 text-white text-xs px-2 py-1 rounded">
+          Background failed to load
         </div>
       )}
 
+      {/* Content */}
       <div className="relative max-w-2xl mx-auto px-4 py-12">
-        {/* Banner */}
         {hasBanner && (
           <div
             className="w-full h-32 md:h-48 rounded-xl mb-6 overflow-hidden"
-            style={{ backgroundImage: `url(${profileBanner})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            style={{
+              backgroundImage: `url(${profileBanner?.trim()})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
           />
         )}
 
-        {/* Avatar & Badges */}
         <div className="text-center mb-6">
           {avatar ? (
             <img
@@ -282,6 +303,9 @@ export default function ClientProfile({
                     src={badge.icon}
                     alt={badge.name}
                     className="w-5 h-5 rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                   <span className="text-xs text-gray-300">{badge.name}</span>
                 </div>

@@ -55,11 +55,7 @@ interface User {
   lastMonthlyBadge?: string;
   customCSS?: string;
   customJS?: string;
-  seoMeta?: {
-    title?: string;        // ✅ optional
-    description?: string;  // ✅ optional
-    keywords?: string;     // ✅ optional
-  };
+  seoMeta?: { title?: string; description?: string; keywords?: string }; // ✅ FIXED: all fields optional
   analyticsCode?: string;
 }
 

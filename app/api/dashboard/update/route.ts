@@ -21,6 +21,15 @@ interface Challenge {
   // Add other properties as needed, e.g., name: string;
 }
 
+interface User {
+  _id: string;
+  email: any;
+  username: any;
+  name: any;
+  avatar: any;
+  plan: string;
+}
+
 const CHALLENGES: Challenge[] = [
   // Define your challenges here with their IDs and XP rewards
   // Example:
@@ -31,7 +40,7 @@ const CHALLENGES: Challenge[] = [
 ];
 
 export async function PUT(request: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser() as User;
   if (!user || !user._id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }

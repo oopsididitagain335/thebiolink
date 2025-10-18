@@ -2,15 +2,23 @@
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 const nextConfig = {
+  // Enable React Strict Mode for better error detection
   reactStrictMode: true,
+
+  // Configure image optimization for Cloudinary
   images: {
     domains: ['res.cloudinary.com'],
   },
+
+  // Enable Webpack Build Worker for Monaco Editor
   experimental: {
     webpackBuildWorker: true,
   },
+
+  // Webpack configuration
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Fallback for server-side modules not needed on the client
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -21,28 +29,10 @@ const nextConfig = {
       // Add Monaco Editor Webpack Plugin
       config.plugins.push(
         new MonacoWebpackPlugin({
-          // Specify languages to include (add more as needed)
-          languages: ['json', 'javascript', 'typescript', 'css', 'html'],
-          filename: 'static/[name].worker.js',
+          languages: ['json', 'javascript', 'typescript', 'css', 'html'], // Languages used in your editors
+          filename: 'static/workers/[name].worker.js', // Output path for worker files
         })
       );
-
-      // Handle worker files as assets
-      config.module.rules.push({
-        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/]editor[\\\/]editor\.worker\.js$/,
-        type: 'asset/resource',
-        generator: {
-          filename: 'static/workers/[name][ext]',
-        },
-      });
-
-      config.module.rules.push({
-        test: /monaco-editor[\\\/]esm[\\\/]vs[\\\/].*\.worker\.js$/,
-        type: 'asset/resource',
-        generator: {
-          filename: 'static/workers/[name][ext]',
-        },
-      });
     }
 
     return config;

@@ -31,12 +31,16 @@ type Badge = {
   hidden?: boolean;
 };
 
-export default async function UserPage({ params }: { params: Promise<{ username: string; subPath?: string[] }> }) {
-  const resolvedParams = await params;
-  const { username } = resolvedParams;
-  const subPath = resolvedParams.subPath ? resolvedParams.subPath.join('/') : '';
+// ✅ Correct: params is NOT a Promise
+export default async function UserPage({
+  params,
+}: {
+  params: { username: string; subPath?: string[] };
+}) {
+  const { username } = params;
+  const subPath = params.subPath ? params.subPath.join('/') : '';
 
-  const headersList = await headers();
+  const headersList = headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
   let userData;
@@ -156,7 +160,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-  // ✅ Support GIFs as background
   const hasBanner = !!profileBanner;
   const hasPageBackground = !!(pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground));
   const hasVideoBackground = !!(pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground));
@@ -223,9 +226,8 @@ async function getUserByUsernameForMetadata(username: string) {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
-  const resolvedParams = await params;
-  const { username } = resolvedParams;
+export async function generateMetadata({ params }: { params: { username: string } }) {
+  const { username } = params;
   try {
     const userData = await getUserByUsernameForMetadata(username);
     if (!userData || userData.isBanned) {

@@ -3,6 +3,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
 import Editor from '@monaco-editor/react';
+
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -11,6 +12,7 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
@@ -19,6 +21,7 @@ interface Widget {
   url?: string;
   position: number;
 }
+
 interface Badge {
   id: string;
   name: string;
@@ -27,6 +30,7 @@ interface Badge {
   earnedAt: string;
   hidden?: boolean;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -51,9 +55,10 @@ interface User {
   lastMonthlyBadge?: string;
   customCSS?: string;
   customJS?: string;
-  seoMeta?: { title: string; description: string; keywords: string };
+  seoMeta?: { title?: string; description?: string; keywords?: string }; // ✅ Updated: fields are now optional
   analyticsCode?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
@@ -64,10 +69,12 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
+
 // --- History Action Type ---
 type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -81,6 +88,7 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -91,24 +99,29 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
+
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'portfolio', name: 'Portfolio', config: [{ id: 'bio', type: 'bio' }, { id: 'column', type: 'column', children: [{ id: 'images', type: 'custom', content: 'Images' }] }] },
   { id: 'ecommerce', name: 'E-Commerce', config: [{ id: 'bio', type: 'bio' }, { id: 'ecommerce', type: 'ecommerce' }] },
   { id: 'blog', name: 'Blog', config: [{ id: 'bio', type: 'bio' }, { id: 'api', type: 'api', content: 'RSS Feed URL' }] },
 ];
+
 const CHALLENGES = [
   { id: 'updateProfile', name: 'Update your profile', xp: 50, completed: false },
   { id: 'addLink', name: 'Add a link', xp: 20, completed: false },
   { id: 'addWidget', name: 'Add a widget', xp: 30, completed: false },
 ];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
+
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -120,6 +133,7 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
+
 // --- FIXED REDUCER ---
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
@@ -131,11 +145,13 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
       return state;
   }
 };
+
 // --- Tabs ---
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const generateCode = async () => {
     setLoading(true);
     setMessage(null);
@@ -157,6 +173,7 @@ const DiscordTab = ({ user }: { user: User }) => {
       setLoading(false);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
@@ -214,6 +231,7 @@ const DiscordTab = ({ user }: { user: User }) => {
     </div>
   );
 };
+
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -221,6 +239,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
+
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -229,6 +248,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -268,18 +288,23 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
+
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
+
   const handleAccountSecurity = () => {
     alert('Please confirm your email and set a password for improved security.');
   };
+
   const handleUpgrade = () => {
     window.location.href = '/premium';
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -318,6 +343,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
+
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -337,9 +363,11 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
+
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -354,6 +382,7 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -384,6 +413,7 @@ const NewsTab = () => {
     </div>
   );
 };
+
 const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const themes = [
     { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
@@ -392,6 +422,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ] as const;
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -415,6 +446,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
+
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -423,6 +455,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -452,6 +485,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -462,6 +496,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -476,6 +511,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -615,6 +651,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -647,6 +684,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -722,6 +760,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
+
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -736,18 +775,22 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       }
     ]);
   };
+
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
+
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
+
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
     newWidgets.splice(to, 0, item);
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -813,6 +856,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   );
 };
+
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
   return (
     <div className="space-y-6">
@@ -835,6 +879,7 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   );
 };
+
 const ProfileBuilderTab = ({ 
   layoutStructure, 
   setLayoutStructure,
@@ -847,12 +892,15 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
+
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
+
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -864,12 +912,14 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
+
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
+
   const renderPreview = () => {
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
@@ -884,6 +934,7 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -912,10 +963,12 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
+
 const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
@@ -945,6 +998,7 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
     </div>
   );
 };
+
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -959,6 +1013,7 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
     </div>
   );
 };
+
 const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="space-y-6">
@@ -987,6 +1042,7 @@ const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) =>
     </div>
   );
 };
+
 const ProgressTab = ({ user, completeChallenge }: { user: User; completeChallenge: (id: string) => void }) => {
   const xpToNextLevel = (user.level! * user.level! * 100) - user.xp!;
   return (
@@ -1024,6 +1080,7 @@ const ProgressTab = ({ user, completeChallenge }: { user: User; completeChalleng
     </div>
   );
 };
+
 // --- Main Dashboard Component ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1053,6 +1110,7 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
+
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1060,12 +1118,14 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
+
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1105,6 +1165,7 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
+
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1118,6 +1179,7 @@ export default function Dashboard() {
               }))
             : []
         );
+
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1130,6 +1192,7 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
+
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1142,8 +1205,10 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchUserData();
   }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1153,6 +1218,7 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
+
   const completeChallenge = async (id: string) => {
     try {
       await fetch('/api/dashboard/update', {
@@ -1166,15 +1232,18 @@ export default function Dashboard() {
       console.error('Challenge error', error);
     }
   };
+
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
+
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
+
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1185,6 +1254,7 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
+
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -1193,6 +1263,7 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
+
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1219,6 +1290,7 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
+
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1233,9 +1305,11 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
+
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
+
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1254,6 +1328,7 @@ export default function Dashboard() {
     { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
   ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1261,6 +1336,7 @@ export default function Dashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

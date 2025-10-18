@@ -2,7 +2,10 @@
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
-import Editor from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Editor with SSR disabled
+const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.Editor), { ssr: false });
 
 // --- Interfaces ---
 interface Link {
@@ -1564,7 +1567,7 @@ export default function Dashboard() {
             <div>
               <h1 className="text-3xl font-bold text-white">Your BioLink Dashboard</h1>
               <p className="text-gray-400 mt-2">
-                Customize your bio link page at{' '}
+                Customize your bio link page page at{' '}
                 <a
                   href={getBioLinkUrl(user.username)}
                   target="_blank"

@@ -156,6 +156,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
+  // ✅ Support GIFs as background
   const hasBanner = !!profileBanner;
   const hasPageBackground = !!(pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground));
   const hasVideoBackground = !!(pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground));

@@ -148,7 +148,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-  // ✅ Boolean coercion to satisfy TypeScript
   const hasBanner = !!profileBanner;
   const hasPageBackground = !!(
     pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground)
@@ -192,12 +191,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       hasVideoBackground={hasVideoBackground}
       profileUrl={profileUrl}
       specialTag={getSpecialProfileTag(username)}
-      // ❌ REMOVED: getYouTubeId, getSpotifyId
     />
   );
 }
 
-// For generateMetadata only
 async function getUserByUsernameForMetadata(username: string) {
   try {
     const user = await getUserByUsername(username, '0.0.0.0');

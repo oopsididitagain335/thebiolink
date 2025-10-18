@@ -1,15 +1,21 @@
-// app/[username]/page.tsx
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import ClientProfile from './ClientProfile';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
+import { NextPage } from 'next';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function UserPage({ params }: { params: { username: string; subPath?: string[] } }) {
-  const { username } = params;
-  const subPath = params.subPath?.join('/') || '';
+// Define the props type explicitly
+interface UserPageProps {
+  params: Promise<{ username: string; subPath?: string[] }>;
+}
+
+const UserPage: NextPage<UserPageProps> = async ({ params }) => {
+  // Await the params Promise
+  const { username, subPath } = await params;
+  const subPathString = subPath?.join('/') || '';
 
   // ✅ MUST AWAIT headers() in async Server Components
   const headersList = await headers();
@@ -47,8 +53,8 @@ export default async function UserPage({ params }: { params: { username: string;
     );
   }
 
-  const currentPageStructure = subPath
-    ? userData.layoutStructure.filter((s: any) => s.pagePath === subPath)
+  const currentPageStructure = subPathString
+    ? userData.layoutStructure.filter((s: any) => s.pagePath === subPathString)
     : userData.layoutStructure.filter((s: any) => !s.pagePath || s.pagePath === 'home');
 
   const visibleBadges = (userData.badges || []).filter((badge: any) => !badge.hidden);
@@ -98,10 +104,12 @@ export default async function UserPage({ params }: { params: { username: string;
       analyticsCode={userData.analyticsCode || ''}
     />
   );
-}
+};
 
-export async function generateMetadata({ params }: { params: { username: string } }) {
-  const { username } = params;
+export default UserPage;
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
   try {
     const user = await getUserByUsername(username, '0.0.0.0');
     if (!user || user.isBanned) {

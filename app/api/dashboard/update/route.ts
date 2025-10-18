@@ -4,6 +4,32 @@ import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets, updateUserXP } from '@/lib/storage';
 import DOMPurify from 'dompurify';
 
+interface LayoutSection {
+  id: string;
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
+  widgetId?: string;
+  height?: number;
+  content?: string;
+  children?: LayoutSection[];
+  pagePath?: string;
+  styling?: { [key: string]: string };
+}
+
+interface Challenge {
+  id: string;
+  xp: number;
+  // Add other properties as needed, e.g., name: string;
+}
+
+const CHALLENGES: Challenge[] = [
+  // Define your challenges here with their IDs and XP rewards
+  // Example:
+  // { id: 'profile_complete', xp: 100 },
+  // { id: 'add_first_link', xp: 50 },
+  // { id: 'customize_theme', xp: 200 },
+  // Add more as per your application's challenges
+];
+
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || !user._id) {

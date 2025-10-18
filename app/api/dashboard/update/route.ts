@@ -26,8 +26,18 @@ const CHALLENGES: Record<string, { xp: number }> = {
   completeProfile: { xp: 100 },
 };
 
+// ✅ FIXED: User interface includes `plan`
+interface User {
+  _id: string;
+  email?: string;
+  username?: string;
+  name?: string;
+  avatar?: string;
+  plan?: string; // ✅ Now declared
+}
+
 export async function PUT(request: NextRequest) {
-  const user = await getCurrentUser();
+  const user = (await getCurrentUser()) as User;
   if (!user || !user._id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }

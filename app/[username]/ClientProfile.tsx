@@ -137,12 +137,22 @@ const generateQRWithLogo = async (url: string): Promise<string> => {
   });
 };
 
+function ApiSection({ section }: { section: LayoutSection }) {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    fetch(section.content || '')
+      .then(res => res.json())
+      .then(setData);
+  }, [section.content]);
+  return <div key={section.id} style={section.styling}>{JSON.stringify(data)}</div>;
+}
+
 export default function ClientProfile(props: ClientProfileProps) {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
   const router = useRouter();
-  const scriptRefs = useRef<{ [id: string]: HTMLScriptElement }>({});
+  const iframeRefs = useRef<{ [id: string]: HTMLIFrameElement }>({});
 
   useEffect(() => {
     if (showQR && !qrCode) {
@@ -151,12 +161,13 @@ export default function ClientProfile(props: ClientProfileProps) {
   }, [showQR, qrCode, props.profileUrl]);
 
   useEffect(() => {
-    // Inject analytics code
     if (props.analyticsCode) {
       const script = document.createElement('script');
       script.innerHTML = props.analyticsCode;
       document.body.appendChild(script);
-      return () => document.body.removeChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
     }
   }, [props.analyticsCode]);
 
@@ -165,28 +176,33 @@ export default function ClientProfile(props: ClientProfileProps) {
     props.layoutStructure.forEach((section) => {
       if (section.type === 'custom' && section.content?.includes('<script')) {
         const id = section.id;
-        const script = document.createElement('script');
-        script.text = section.content.match(/<script>([\s\S]*?)<\/script>/)?.[1] || '';
-        scriptRefs.current[id] = script;
+        const scriptText = section.content.match(/<script>([\s\S]*?)<\/script>/)?.[1] || '';
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
+        iframeRefs.current[id] = iframe;
         (iframe.contentWindow as any).document.open();
-        (iframe.contentWindow as any).document.write('<script>' + script.text + '</script>');
+        (iframe.contentWindow as any).document.write('<script>' + scriptText + '</script>');
         (iframe.contentWindow as any).document.close();
       }
     });
 
     // Global custom JS (premium)
+    let globalScript: HTMLScriptElement | null = null;
     if (props.customJS) {
-      const globalScript = document.createElement('script');
+      globalScript = document.createElement('script');
       globalScript.text = props.customJS;
       document.body.appendChild(globalScript);
     }
 
     return () => {
-      Object.values(scriptRefs.current).forEach(script => script.remove());
-      scriptRefs.current = {};
+      Object.values(iframeRefs.current).forEach(iframe => {
+        document.body.removeChild(iframe);
+      });
+      iframeRefs.current = {};
+      if (globalScript) {
+        document.body.removeChild(globalScript);
+      }
     };
   }, [props.layoutStructure, props.customJS]);
 
@@ -196,7 +212,9 @@ export default function ClientProfile(props: ClientProfileProps) {
       const style = document.createElement('style');
       style.innerHTML = props.customCSS;
       document.head.appendChild(style);
-      return () => document.head.removeChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
     }
   }, [props.customCSS]);
 
@@ -340,13 +358,7 @@ export default function ClientProfile(props: ClientProfileProps) {
           </div>
         );
       case 'api':
-        const [data, setData] = useState(null);
-        useEffect(() => {
-          fetch(section.content || '')
-            .then(res => res.json())
-            .then(setData);
-        }, []);
-        return <div key={section.id} style={section.styling}>{JSON.stringify(data)}</div>;
+        return <ApiSection section={section} />;
       case 'calendar':
         return <div key={section.id} style={section.styling}>Calendar Widget</div>;
       case 'page':

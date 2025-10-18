@@ -6,7 +6,6 @@ import DOMPurify from 'dompurify';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 
-// ✅ Define helpers HERE — no need to pass as props
 const getYouTubeId = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
@@ -16,29 +15,6 @@ const getSpotifyId = (url: string): string => {
   const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
   return match ? `${match[1]}/${match[2]}` : '';
 };
-
-// ✅ Props interface — NO function props
-interface ClientProfileProps {
-  username: string;
-  name: string;
-  avatar: string;
-  profileBanner: string;
-  pageBackground: string;
-  bio: string;
-  location: string;
-  visibleBadges: Badge[];
-  profileViews: number;
-  links: LinkItem[];
-  widgets: Widget[];
-  layoutStructure: LayoutSection[];
-  theme: string;
-  glow: string;
-  hasBanner: boolean;
-  hasPageBackground: boolean;
-  hasVideoBackground: boolean;
-  profileUrl: string;
-  specialTag: string | null;
-}
 
 interface Badge {
   id: string;
@@ -71,6 +47,28 @@ interface LayoutSection {
   widgetId?: string;
   height?: number;
   content?: string;
+}
+
+interface ClientProfileProps {
+  username: string;
+  name: string;
+  avatar: string;
+  profileBanner: string;
+  pageBackground: string;
+  bio: string;
+  location: string;
+  visibleBadges: Badge[];
+  profileViews: number;
+  links: LinkItem[];
+  widgets: Widget[];
+  layoutStructure: LayoutSection[];
+  theme: string;
+  glow: string;
+  hasBanner: boolean;
+  hasPageBackground: boolean;
+  hasVideoBackground: boolean;
+  profileUrl: string;
+  specialTag: string | null;
 }
 
 const getThemeBackground = (theme: string) => {
@@ -153,7 +151,7 @@ export default function ClientProfile({
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
-      {/* Background */}
+      {/* Background Logic */}
       {hasBanner ? (
         <div className="absolute inset-0 z-0 flex justify-center">
           <div className="w-full max-w-4xl">
@@ -183,7 +181,6 @@ export default function ClientProfile({
 
       <div className="relative z-20 flex justify-center p-4 pt-16 min-h-screen">
         <div className="w-full max-w-md space-y-4">
-          {/* Profile Card */}
           <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
             <div className="-mt-16 mb-4">
               <Avatar name={name} avatar={avatar} />
@@ -255,7 +252,6 @@ export default function ClientProfile({
             </div>
           )}
 
-          {/* Layout Sections */}
           {layoutStructure.map((section) => {
             if (section.type === 'bio') return null;
 
@@ -292,7 +288,6 @@ export default function ClientProfile({
                   {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
                   {widget.type === 'youtube' && widget.url && (
                     <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-                      {/* ✅ Fixed: removed extra spaces in URL */}
                       <iframe
                         src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
                         title={widget.title || 'YouTube video'}
@@ -305,7 +300,6 @@ export default function ClientProfile({
                   )}
                   {widget.type === 'spotify' && widget.url && (
                     <div className="aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg">
-                      {/* ✅ Fixed: removed extra spaces in URL */}
                       <iframe
                         src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
                         title={widget.title || 'Spotify embed'}

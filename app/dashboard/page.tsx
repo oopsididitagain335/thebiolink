@@ -1,8 +1,13 @@
 // app/dashboard/page.tsx
 'use client';
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
+import Editor from '@monaco-editor/react';
+import { Editor as TipTapEditor, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { loadStripe } from '@stripe/stripe-js';
 
 // --- Interfaces ---
 interface Link {
@@ -14,7 +19,7 @@ interface Link {
 }
 interface Widget {
   id: string;
-  type: 'spotify' | 'youtube' | 'twitter' | 'custom';
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
@@ -32,9 +37,9 @@ interface User {
   _id: string;
   name: string;
   username: string;
-  avatar: string;          // ← Profile Avatar
-  profileBanner: string;   // ← NEW: Profile Banner
-  pageBackground: string;  // ← NEW: Full-page background
+  avatar: string;
+  profileBanner: string;
+  pageBackground: string;
   bio: string;
   location?: string;
   isEmailVerified: boolean;
@@ -44,13 +49,26 @@ interface User {
   badges?: Badge[];
   email?: string;
   discordId?: string;
+  xp?: number;
+  level?: number;
+  loginStreak?: number;
+  lastLogin?: string;
+  loginHistory?: string[];
+  lastMonthlyBadge?: string;
+  customCSS?: string;
+  customJS?: string;
+  seoMeta?: { title: string; description: string; keywords: string };
+  analyticsCode?: string;
 }
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
   widgetId?: string;
   height?: number;
   content?: string;
+  children?: LayoutSection[];
+  pagePath?: string;
+  styling?: { [key: string]: string };
 }
 
 // --- Constants ---
@@ -72,6 +90,24 @@ const WIDGET_TYPES = [
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
   { id: 'twitter', name: 'Twitter Feed', icon: '🐦' },
   { id: 'custom', name: 'Custom HTML', icon: '</>' },
+  { id: 'form', name: 'Contact Form', icon: '📝' },
+  { id: 'ecommerce', name: 'Buy Button', icon: '🛒' },
+  { id: 'api', name: 'Dynamic API', icon: '🔌' },
+  { id: 'calendar', name: 'Calendar', icon: '📅' },
+];
+
+const TEMPLATES = [
+  { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
+  { id: 'portfolio', name: 'Portfolio', config: [{ id: 'bio', type: 'bio' }, { id: 'column', type: 'column', children: [{ id: 'images', type: 'custom', content: 'Images' }] }] },
+  { id: 'ecommerce', name: 'E-Commerce', config: [{ id: 'bio', type: 'bio' }, { id: 'ecommerce', type: 'ecommerce' }] },
+  { id: 'blog', name: 'Blog', config: [{ id: 'bio', type: 'bio' }, { id: 'api', type: 'api', content: 'RSS Feed URL' }] },
+];
+
+const CHALLENGES = [
+  { id: 'updateProfile', name: 'Update your profile', xp: 50, completed: false },
+  { id: 'addLink', name: 'Add a link', xp: 20, completed: false },
+  { id: 'addWidget', name: 'Add a widget', xp: 30, completed: false },
+  // Weekly, etc.
 ];
 
 const isValidUsername = (username: string): boolean => {
@@ -81,45 +117,6 @@ const isValidUsername = (username: string): boolean => {
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
-};
-
-// --- Draggable Component ---
-const DraggableItem = ({ 
-  children,
-  index,
-  onMove,
-  itemType = 'item'
-}: { 
-  children: React.ReactNode;
-  index: number;
-  onMove: (from: number, to: number) => void;
-  itemType?: string;
-}) => {
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', `${itemType}:${index}`);
-    e.currentTarget.classList.add('opacity-60');
-  };
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData('text/plain');
-    const [type, fromIndexStr] = data.split(':');
-    const fromIndex = parseInt(fromIndexStr, 10);
-    if (type === itemType && !isNaN(fromIndex) && fromIndex !== index) {
-      onMove(fromIndex, index);
-    }
-  };
-  return (
-    <div 
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-      className="mb-3"
-    >
-      {children}
-    </div>
-  );
 };
 
 // --- Upload Helper ---
@@ -133,6 +130,18 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   });
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
+};
+
+// --- Version History Reducer ---
+const historyReducer = (state, action) => {
+  switch (action.type) {
+    case 'SAVE':
+      return [...state, action.payload];
+    case 'UNDO':
+      return state.slice(0, -1);
+    default:
+      return state;
+  }
 };
 
 // --- Tabs ---
@@ -281,7 +290,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     if (user.email) setEmail(user.email);
   }, [user.email]);
   const handleAccountSecurity = () => {
-    alert('Please set up your email and password for improved security.');
+    alert('Please confirm your email and set a password for improved security.');
   };
   const handleUpgrade = () => {
     window.location.href = '/premium';
@@ -405,12 +414,12 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
-        <p className="text-gray-400 mb-6">Choose a background theme for your BioLink page.</p>
+        <p className="text-gray-400 mb-6">Choose a base theme. Customize further in Advanced tab.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {themes.map((theme) => (
             <button
               key={theme.id}
-              onClick={() => setUser({ ...user, theme: theme.id as any })}
+              onClick={() => setUser({ ...user, theme: theme.id })}
               className={`p-4 rounded-xl text-white flex flex-col items-center ${
                 user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
               }`}
@@ -740,7 +749,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   );
 };
 
-const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void }) => {
+const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
       ...widgets,
@@ -776,7 +785,8 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
             <button
               key={w.id}
               onClick={() => addWidget(w.id as Widget['type'])}
-              className="bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white"
+              disabled={w.id === 'custom' && user.plan !== 'premium'} // Example premium check
+              className={`bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white ${w.id === 'custom' && user.plan !== 'premium' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className="text-2xl mb-1">{w.icon}</div>
               <div className="text-xs">{w.name}</div>
@@ -833,375 +843,230 @@ const WidgetsTab = ({ widgets, setWidgets }: { widgets: Widget[]; setWidgets: (w
   );
 };
 
-const ProfileBuilderTab = ({ 
-  user, 
-  setUser, 
-  links, 
-  setLinks, 
-  widgets, 
-  setWidgets,
-  layoutStructure,
-  setLayoutStructure
-}: { 
-  user: User; 
-  setUser: (user: User) => void;
-  links: Link[];
-  setLinks: (links: Link[]) => void;
-  widgets: Widget[];
-  setWidgets: (widgets: Widget[]) => void;
-  layoutStructure: LayoutSection[];
-  setLayoutStructure: (sections: LayoutSection[]) => void;
-}) => {
-  const addSection = (type: LayoutSection['type'], options: Partial<LayoutSection> = {}) => {
-    const newSection: LayoutSection = {
-      id: `${type}-${Date.now()}`,
-      type,
-      ...options
-    };
-    setLayoutStructure([...layoutStructure, newSection]);
-  };
-  const updateSection = (id: string, updates: Partial<LayoutSection>) => {
-    setLayoutStructure(layoutStructure.map(s => 
-      s.id === id ? { ...s, ...updates } : s
-    ));
-  };
-  const removeSection = (id: string) => {
-    setLayoutStructure(layoutStructure.filter(s => s.id !== id));
-  };
-  const moveSection = (fromIndex: number, toIndex: number) => {
-    const newSections = [...layoutStructure];
-    const [movedItem] = newSections.splice(fromIndex, 1);
-    newSections.splice(toIndex, 0, movedItem);
-    setLayoutStructure(newSections);
-  };
-  const renderSectionEditor = (section: LayoutSection, index: number) => {
-    if (section.type === 'spacer') {
-      return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">Spacer</span>
-            <button 
-              onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
-            >
-              Remove
-            </button>
-          </div>
-          <input
-            type="range"
-            min="10"
-            max="100"
-            value={section.height || 20}
-            onChange={(e) => updateSection(section.id, { height: parseInt(e.target.value) })}
-            className="w-full"
-          />
-          <div className="text-xs text-gray-400 mt-1">{section.height || 20}px</div>
-        </div>
-      );
-    }
-    if (section.type === 'custom') {
-      return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">Custom HTML</span>
-            <button 
-              onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
-            >
-              Remove
-            </button>
-          </div>
-          <textarea
-            value={section.content || ''}
-            onChange={(e) => updateSection(section.id, { content: e.target.value })}
-            placeholder="Enter custom HTML"
-            className="w-full px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
-            rows={3}
-          />
-        </div>
-      );
-    }
-    if (section.type === 'widget') {
-      const widget = widgets.find(w => w.id === section.widgetId);
-      return (
-        <div className="p-3 bg-gray-700/50 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm">
-              Widget: {widget?.title || 'Unknown'}
-            </span>
-            <button 
-              onClick={() => removeSection(section.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
-            >
-              Remove
-            </button>
-          </div>
-          <select
-            value={section.widgetId || ''}
-            onChange={(e) => updateSection(section.id, { widgetId: e.target.value })}
-            className="w-full bg-gray-600/50 border border-gray-600 rounded text-white text-sm p-1"
-          >
-            <option value="">Select Widget</option>
-            {widgets.map(w => (
-              <option key={w.id} value={w.id}>
-                {w.title || w.type}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    }
-    return (
-      <div className="p-3 bg-gray-700/50 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-white capitalize text-sm">{section.type}</span>
-          <button 
-            onClick={() => removeSection(section.id)}
-            className="text-red-400 hover:text-red-300 text-xs"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    );
-  };
+const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
-        <p className="text-gray-400 mb-4">Drag to reorder. Click + to add sections.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-          <button
-            onClick={() => addSection('bio')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
-          >
-            📝 Bio
-          </button>
-          <button
-            onClick={() => addSection('links')}
-            className="p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm"
-          >
-            🔗 Links
-          </button>
-          <button
-            onClick={() => addSection('spacer', { height: 20 })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
-          >
-            ⬇️ Spacer
-          </button>
-          <button
-            onClick={() => addSection('custom', { content: '' })}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
-          >
-            ✏️ Custom
-          </button>
-        </div>
-        {widgets.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-gray-300 text-sm font-medium mb-2">Add Widgets</h3>
-            <div className="flex flex-wrap gap-2">
-              {widgets.map(widget => (
-                <button
-                  key={widget.id}
-                  onClick={() => addSection('widget', { widgetId: widget.id })}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
-                >
-                  + {widget.title || widget.type}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        <div>
-          <h3 className="text-gray-300 text-sm font-medium mb-3">Your Layout</h3>
-          <div className="space-y-3">
-            {layoutStructure.map((section, index) => (
-              <DraggableItem 
-                key={section.id} 
-                index={index} 
-                onMove={moveSection} 
-                itemType="section"
-              >
-                {renderSectionEditor(section, index)}
-              </DraggableItem>
-            ))}
-            {layoutStructure.length === 0 && (
-              <div className="text-gray-500 text-sm py-4 text-center border-2 border-dashed border-gray-700 rounded-lg">
-                Click + buttons above to add sections
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-white">Live Preview</h3>
-        <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-          {/* Page Background */}
-          {user.pageBackground && (
-            /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
-              <video
-                className="absolute inset-0 z-0 object-cover w-full h-full"
-                src={user.pageBackground}
-                autoPlay
-                loop
-                muted
-                playsInline
-              />
-            ) : (
-              <div
-                className="absolute inset-0 z-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${user.pageBackground})` }}
-              />
-            )
-          )}
-          <div className="absolute inset-0 bg-black/70 z-10"></div>
-          <div className="relative z-20 space-y-4">
-            {/* Profile Banner */}
-            {user.profileBanner && (
-              <div className="relative rounded-xl overflow-hidden mb-4">
-                <img
-                  src={user.profileBanner}
-                  alt="Profile banner"
-                  className="w-full h-32 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-              </div>
-            )}
-            {layoutStructure.map((section) => {
-              if (section.type === 'bio') {
-                return (
-                  <div key={section.id} className="text-center">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-white font-bold">
-                          {user.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-white mb-2">{user.name}</h3>
-                    {user.location && (
-                      <div className="flex items-center justify-center text-gray-300 mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>{user.location}</span>
-                      </div>
-                    )}
-                    {user.bio && <p className="text-gray-300 max-w-xs mx-auto">{user.bio}</p>}
-                  </div>
-                );
-              }
-              if (section.type === 'links' && links.length > 0) {
-                const themeHoverMap = {
-                  indigo: 'hover:bg-indigo-900/30',
-                  purple: 'hover:bg-purple-900/30',
-                  green: 'hover:bg-emerald-900/30',
-                  red: 'hover:bg-rose-900/30',
-                  halloween: 'hover:bg-orange-900/30',
-                } as const;
-                const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
-                return (
-                  <div key={section.id} className="space-y-3">
-                    {links
-                      .filter(link => link.url && link.title)
-                      .map((link, idx) => (
-                        <a
-                          key={idx}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
-                        >
-                          {link.title}
-                        </a>
-                      ))}
-                  </div>
-                );
-              }
-              if (section.type === 'widget') {
-                const widget = widgets.find(w => w.id === section.widgetId);
-                if (!widget) return null;
-                return (
-                  <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
-                    {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                    {widget.type === 'youtube' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'spotify' && widget.url ? (
-                      <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
-                          frameBorder="0"
-                          allowTransparency={true}
-                          allow="encrypted-media"
-                          className="w-full h-full"
-                        ></iframe>
-                      </div>
-                    ) : widget.type === 'twitter' && widget.url ? (
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <a href={widget.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                          🐦 View Twitter Feed
-                        </a>
-                      </div>
-                    ) : widget.type === 'custom' && widget.content ? (
-                      <div
-                        className="text-gray-300 text-sm"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(widget.content) }}
-                      />
-                    ) : (
-                      <div className="text-gray-400 text-sm italic">
-                        {widget.type === 'spotify' && '🎵 Spotify embed'}
-                        {widget.type === 'youtube' && '📺 YouTube video'}
-                        {widget.type === 'twitter' && '🐦 Twitter feed'}
-                        {!widget.type && 'Widget content'}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              if (section.type === 'spacer') {
-                return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
-              }
-              if (section.type === 'custom' && section.content) {
-                return (
-                  <div 
-                    key={section.id} 
-                    className="bg-white/5 p-4 rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
-                  />
-                );
-              }
-              return null;
-            })}
-          </div>
+        <h2 className="text-xl font-semibold mb-4 text-white">Template Gallery</h2>
+        <p className="text-gray-400 mb-6">Select a template to get started quickly. You can customize it in the builder.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => setLayoutStructure(template.config)}
+              className="p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl text-left"
+            >
+              <h3 className="text-white font-medium">{template.name}</h3>
+              <p className="text-gray-400 text-sm">Pre-built layout for {template.name.toLowerCase()} profiles.</p>
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 };
 
-const getYouTubeId = (url: string): string => {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
-  return match ? match[1] : '';
+const ProfileBuilderTab = ({ 
+  layoutStructure, 
+  setLayoutStructure,
+  user
+}: { 
+  layoutStructure: LayoutSection[];
+  setLayoutStructure: (sections: LayoutSection[]) => void;
+  user: User;
+}) => {
+  const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+
+  useEffect(() => {
+    setConfigJson(JSON.stringify(layoutStructure, null, 2));
+  }, [layoutStructure]);
+
+  const handleConfigChange = (value: string | undefined) => {
+    setConfigJson(value || '');
+  };
+
+  const applyConfig = () => {
+    try {
+      const parsed = JSON.parse(configJson);
+      if (Array.isArray(parsed)) {
+        dispatchHistory({ type: 'SAVE', payload: parsed });
+        setLayoutStructure(parsed);
+      }
+    } catch (error) {
+      alert('Invalid JSON config');
+    }
+  };
+
+  const undo = () => {
+    if (history.length > 1) {
+      dispatchHistory({ type: 'UNDO' });
+      setLayoutStructure(history[history.length - 2]);
+    }
+  };
+
+  const renderPreview = () => {
+    // Simplified preview - in full implementation, use the same renderer as ClientProfile
+    const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
+    return (
+      <div className={className} style={{ background: user.pageBackground }}>
+        {/* Render layoutStructure recursively */}
+        {layoutStructure.map((section) => (
+          <div key={section.id} style={section.styling}>
+            {section.type === 'bio' && <div>Bio Section</div>}
+            {section.type === 'page' && <div>Sub-page: {section.pagePath}</div>}
+            {section.children && section.children.map(child => <div key={child.id}>{child.type}</div>)}
+            {/* Add more renderers */}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
+        <p className="text-gray-400 mb-4">Edit the JSON config for your layout. Use templates for starting points.</p>
+        <Editor
+          height="400px"
+          defaultLanguage="json"
+          value={configJson}
+          onChange={handleConfigChange}
+          theme="vs-dark"
+        />
+        <div className="flex gap-3 mt-4">
+          <button onClick={applyConfig} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Apply Config</button>
+          <button onClick={undo} disabled={history.length <= 1} className="bg-gray-700 text-white px-4 py-2 rounded-lg disabled:opacity-50">Undo</button>
+        </div>
+      </div>
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
+        <div className="flex gap-3 mb-4">
+          <button onClick={() => setPreviewDevice('desktop')} className="bg-gray-700 text-white px-4 py-2 rounded-lg">Desktop</button>
+          <button onClick={() => setPreviewDevice('mobile')} className="bg-gray-700 text-white px-4 py-2 rounded-lg">Mobile</button>
+        </div>
+        {renderPreview()}
+      </div>
+    </div>
+  );
 };
 
-const getSpotifyId = (url: string): string => {
-  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
-  return match ? `${match[1]}/${match[2]}` : '';
+const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
+    setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
+  };
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
+      <div className="space-y-4">
+        <input
+          type="text"
+          value={user.seoMeta?.title || ''}
+          onChange={(e) => handleMetaChange('title', e.target.value)}
+          placeholder="Custom Title"
+          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
+        />
+        <textarea
+          value={user.seoMeta?.description || ''}
+          onChange={(e) => handleMetaChange('description', e.target.value)}
+          placeholder="Meta Description"
+          rows={3}
+          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
+        />
+        <input
+          type="text"
+          value={user.seoMeta?.keywords || ''}
+          onChange={(e) => handleMetaChange('keywords', e.target.value)}
+          placeholder="Keywords (comma-separated)"
+          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
+        />
+      </div>
+    </div>
+  );
+};
+
+const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
+      <textarea
+        value={user.analyticsCode || ''}
+        onChange={(e) => setUser({ ...user, analyticsCode: e.target.value })}
+        placeholder="Paste Google Analytics script or similar"
+        rows={5}
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono"
+      />
+    </div>
+  );
+};
+
+const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Custom CSS Editor</h2>
+        <Editor
+          height="300px"
+          defaultLanguage="css"
+          value={user.customCSS || ''}
+          onChange={(value) => setUser({ ...user, customCSS: value })}
+          theme="vs-dark"
+        />
+      </div>
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Custom JS Editor (Premium)</h2>
+        <Editor
+          height="300px"
+          defaultLanguage="javascript"
+          value={user.customJS || ''}
+          onChange={(value) => setUser({ ...user, customJS: value })}
+          theme="vs-dark"
+          options={{ readOnly: user.plan !== 'premium' }}
+        />
+        {user.plan !== 'premium' && <p className="text-red-400 mt-2">Upgrade to premium for custom JS.</p>}
+      </div>
+    </div>
+  );
+};
+
+const ProgressTab = ({ user, completeChallenge }: { user: User; completeChallenge: (id: string) => void }) => {
+  const xpToNextLevel = (user.level! * user.level! * 100) - user.xp!;
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Your Progress</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-gray-300">Level {user.level}</h3>
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${(user.xp! % (user.level! * user.level! * 100)) / (user.level! * user.level! * 100) * 100}%` }}></div>
+            </div>
+            <p className="text-gray-400 text-sm">{xpToNextLevel} XP to next level</p>
+          </div>
+          <div>
+            <h3 className="text-gray-300">Login Streak: {user.loginStreak} days</h3>
+          </div>
+          <div>
+            <h3 className="text-gray-300 mb-2">Challenges</h3>
+            {CHALLENGES.map(challenge => (
+              <div key={challenge.id} className="flex justify-between items-center mb-2">
+                <span className="text-white">{challenge.name} (+{challenge.xp} XP)</span>
+                <button 
+                  onClick={() => completeChallenge(challenge.id)}
+                  disabled={challenge.completed}
+                  className="bg-green-600 text-white px-3 py-1 rounded-lg disabled:opacity-50"
+                >
+                  {challenge.completed ? 'Completed' : 'Complete'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // --- Main Dashboard Component ---
@@ -1222,13 +1087,23 @@ export default function Dashboard() {
     badges: [],
     email: '',
     discordId: undefined,
+    xp: 0,
+    level: 1,
+    loginStreak: 0,
+    lastLogin: '',
+    loginHistory: [],
+    lastMonthlyBadge: '',
+    customCSS: '',
+    customJS: '',
+    seoMeta: { title: '', description: '', keywords: '' },
+    analyticsCode: '',
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
     { id: 'bio', type: 'bio' },
-    { id: 'spacer-1', type: 'spacer', height: 20 },
-    { id: 'links', type: 'links' }
+    { id: 'spacer-1', type: 'spacer', height: 24 },
+    { id: 'links', type: 'links' },
   ]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -1255,7 +1130,7 @@ export default function Dashboard() {
           username: safeUsername,
           avatar: (data.user.avatar || '').trim(),
           profileBanner: (data.user.profileBanner || '').trim(),
-          pageBackground: (data.user.pageBackground || data.user.background || '').trim(),
+          pageBackground: (data.user.pageBackground || '').trim(),
           bio: (data.user.bio || '').substring(0, 500),
           location: (data.user.location || '').substring(0, 100),
           isEmailVerified: data.user.isEmailVerified ?? true,
@@ -1265,6 +1140,16 @@ export default function Dashboard() {
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
           discordId: data.user.discordId,
+          xp: data.user.xp || 0,
+          level: data.user.level || 1,
+          loginStreak: data.user.loginStreak || 0,
+          lastLogin: data.user.lastLogin || '',
+          loginHistory: data.user.loginHistory || [],
+          lastMonthlyBadge: data.user.lastMonthlyBadge || '',
+          customCSS: data.user.customCSS || '',
+          customJS: data.user.customJS || '',
+          seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
+          analyticsCode: data.user.analyticsCode || '',
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1293,8 +1178,8 @@ export default function Dashboard() {
         );
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
-          { id: 'spacer-1', type: 'spacer', height: 20 },
-          { id: 'links', type: 'links' }
+          { id: 'spacer-1', type: 'spacer', height: 24 },
+          { id: 'links', type: 'links' },
         ]);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -1316,8 +1201,20 @@ export default function Dashboard() {
     }
   };
 
-  const handleSave = () => {
-    setShowGuidelinesModal(true);
+  const completeChallenge = async (id: string) => {
+    // Call API to complete challenge and award XP
+    try {
+      await fetch('/api/dashboard/update', {
+        method: 'PUT',
+        body: JSON.stringify({ challengeId: id })
+      });
+      // Refresh user data
+      const res = await fetch('/api/dashboard/data');
+      const data = await res.json();
+      setUser(data.user);
+    } catch (error) {
+      console.error('Challenge error', error);
+    }
   };
 
   const confirmSave = async () => {
@@ -1362,6 +1259,10 @@ export default function Dashboard() {
             plan: user.plan || 'free',
             theme: user.theme || 'indigo',
             layoutStructure,
+            customCSS: user.customCSS,
+            customJS: user.customJS,
+            seoMeta: user.seoMeta,
+            analyticsCode: user.analyticsCode,
             email: user.email,
             discordId: user.discordId,
           },
@@ -1387,10 +1288,15 @@ export default function Dashboard() {
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
+    { id: 'templates', name: 'Templates' },
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'themes', name: 'Themes' },
+    { id: 'seo', name: 'SEO & Meta' },
+    { id: 'analytics_integration', name: 'Analytics Integration' },
+    { id: 'custom_code', name: 'Custom Code' },
+    { id: 'progress', name: 'Progress & Challenges' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
@@ -1463,21 +1369,15 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
-            {activeTab === 'builder' && (
-              <ProfileBuilderTab 
-                user={user} 
-                setUser={setUser} 
-                links={links} 
-                setLinks={setLinks} 
-                widgets={widgets} 
-                setWidgets={setWidgets}
-                layoutStructure={layoutStructure}
-                setLayoutStructure={setLayoutStructure}
-              />
-            )}
+            {activeTab === 'templates' && <TemplatesTab setLayoutStructure={setLayoutStructure} />}
+            {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
-            {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} />}
+            {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
+            {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />}
+            {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
+            {activeTab === 'custom_code' && <CustomCodeTab user={user} setUser={setUser} />}
+            {activeTab === 'progress' && <ProgressTab user={user} completeChallenge={completeChallenge} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
@@ -1507,7 +1407,7 @@ export default function Dashboard() {
                   )
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
-                <div className="relative z-20">
+                <div className="relative z-20 space-y-4">
                   {/* Profile Banner */}
                   {user.profileBanner && (
                     <div className="relative rounded-xl overflow-hidden mb-4">
@@ -1545,62 +1445,21 @@ export default function Dashboard() {
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
+                      // Simplified preview rendering
                       if (section.type === 'bio') return null;
                       if (section.type === 'links' && links.length > 0) {
-                        const themeHoverMap = {
-                          indigo: 'hover:bg-indigo-900/30',
-                          purple: 'hover:bg-purple-900/30',
-                          green: 'hover:bg-emerald-900/30',
-                          red: 'hover:bg-rose-900/30',
-                          halloween: 'hover:bg-orange-900/30',
-                        } as const;
-                        const hoverClass = themeHoverMap[user.theme as keyof typeof themeHoverMap] || 'hover:bg-indigo-900/30';
                         return (
                           <div key={section.id} className="space-y-3">
-                            {links
-                              .filter(link => link.url && link.title)
-                              .map((link, idx) => (
-                                <a
-                                  key={idx}
-                                  href={link.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`block w-full py-3 px-4 rounded-lg text-sm text-white backdrop-blur-sm border border-white/10 ${hoverClass}`}
-                                >
-                                  {link.title}
-                                </a>
-                              ))}
+                            {links.map((link) => (
+                              <a key={link.id} href={link.url} className="block bg-white/10 p-2 rounded">
+                                {link.title}
+                              </a>
+                            ))}
                           </div>
                         );
                       }
-                      if (section.type === 'widget') {
-                        const widget = widgets.find(w => w.id === section.widgetId);
-                        if (!widget) return null;
-                        return (
-                          <div key={section.id} className="bg-white/10 rounded-lg p-4 text-left">
-                            {widget.title && <h4 className="text-white font-medium mb-2">{widget.title}</h4>}
-                            <div className="text-gray-400 text-sm italic">
-                              {widget.type === 'spotify' && '🎵 Spotify embed'}
-                              {widget.type === 'youtube' && '📺 YouTube video'}
-                              {widget.type === 'twitter' && '🐦 Twitter feed'}
-                              {widget.type === 'custom' && 'Custom content'}
-                            </div>
-                          </div>
-                        );
-                      }
-                      if (section.type === 'spacer') {
-                        return <div key={section.id} style={{ height: `${section.height}px` }}></div>;
-                      }
-                      if (section.type === 'custom' && section.content) {
-                        return (
-                          <div 
-                            key={section.id} 
-                            className="bg-white/5 p-4 rounded-lg"
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
-                          />
-                        );
-                      }
-                      return null;
+                      // Add more preview logic
+                      return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>
                 </div>

@@ -129,7 +129,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   }
 
   // For multi-page, filter layoutStructure based on subPath
-  const currentPageStructure = subPath ? userData.layoutStructure.filter(s => s.pagePath === subPath) : userData.layoutStructure.filter(s => !s.pagePath || s.pagePath === 'home');
+  const currentPageStructure = subPath
+    ? userData.layoutStructure.filter(s => s.pagePath === subPath)
+    : userData.layoutStructure.filter(s => !s.pagePath || s.pagePath === 'home');
 
   const {
     name = '',
@@ -159,8 +161,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
+  // ✅ FIXED: Support GIFs as background (treat like image)
   const hasBanner = !!profileBanner;
-  const hasPageBackground = !!(pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground));
+  const hasPageBackground = !!(pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground));
   const hasVideoBackground = !!(pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground));
 
   const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -175,6 +178,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   };
   const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
+  // ✅ FIXED: Removed extra spaces in URL
   const profileUrl = `https://thebiolink.lol/${username}`;
 
   return (
@@ -233,6 +237,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     if (!userData || userData.isBanned) {
       return { title: 'Banned | The BioLink' };
     }
+    const profileUrl = `https://thebiolink.lol/${username}`; // ✅ Clean URL
     return {
       title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
       description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
@@ -240,7 +245,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
         title: `${userData.name || username} (Level ${userData.level}) | The BioLink`,
         description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
         images: userData.avatar ? [userData.avatar] : [],
-        url: `https://thebiolink.lol/${username}`,
+        url: profileUrl,
         siteName: 'The BioLink',
       },
       twitter: {

@@ -1,4 +1,3 @@
-// lib/storage.ts
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -31,14 +30,15 @@ interface UserDoc {
   pageBackground?: string;
   bio?: string;
   location?: string;
-  badges: Array<{
+  badges: {
     id: string;
     name: string;
+    description: string;
     icon: string;
     awardedAt: string;
     earnedAt?: string;
     hidden?: boolean;
-  }>;
+  }[];
   isEmailVerified: boolean;
   isBanned?: boolean;
   bannedAt?: string;
@@ -182,6 +182,7 @@ async function awardMonthlyBadge(user: UserDoc) {
       const newBadge = {
         id: `monthly-${prevMonthStr}`,
         name: badgeName,
+        description: `Active in ${previousMonth.toLocaleString('default', { month: 'long' })} ${previousMonth.getFullYear()}`,
         icon,
         awardedAt: now.toISOString(),
         earnedAt: now.toISOString(),
@@ -775,7 +776,7 @@ export async function getAllBadges() {
 
 export async function addUserBadge(
   userId: string,
-  badge: { id: string; name: string; icon: string; awardedAt: string; earnedAt?: string; hidden?: boolean }
+  badge: { id: string; name: string; description: string; icon: string; awardedAt: string; earnedAt?: string; hidden?: boolean }
 ) {
   const db = await connectDB();
   const userObjectId = new ObjectId(userId);

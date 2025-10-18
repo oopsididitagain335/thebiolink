@@ -57,7 +57,7 @@ interface User {
 }
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'page' | 'tab' | 'column';
   widgetId?: string;
   height?: number;
   content?: string;
@@ -96,7 +96,6 @@ const WIDGET_TYPES = [
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
 
-// ✅ NEW: 12+ Templates
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -202,37 +201,44 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Tabs ---
+// --- HELP CENTER TYPES ---
+type HelpCategoryKey = 'Getting Started' | 'General' | 'How-To Guides';
 
-// ✅ HELP CENTER TAB (guns.lol style)
+interface HelpArticle {
+  id: string;
+  title: string;
+  content: string;
+}
+
+const HELP_CATEGORIES: Record<HelpCategoryKey, HelpArticle[]> = {
+  'Getting Started': [
+    { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
+    { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
+    { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
+    { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
+    { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
+  ],
+  General: [
+    { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
+    { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
+    { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
+    { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
+    { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
+  ],
+  'How-To Guides': [
+    { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
+    { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
+    { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
+    { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
+  ],
+};
+
+// ✅ FIXED HELP CENTER TAB
 const HelpCenterTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Getting Started');
+  const [activeCategory, setActiveCategory] = useState<HelpCategoryKey>('Getting Started');
 
-  const categories = {
-    'Getting Started': [
-      { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
-      { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
-      { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
-      { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
-      { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
-    ],
-    'General': [
-      { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
-      { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
-      { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
-      { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
-      { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
-    ],
-    'How-To Guides': [
-      { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
-      { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
-      { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
-      { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
-    ],
-  };
-
-  const filteredArticles = Object.entries(categories).flatMap(([category, articles]) =>
+  const filteredArticles = Object.entries(HELP_CATEGORIES).flatMap(([category, articles]) =>
     articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -258,22 +264,23 @@ const HelpCenterTab = () => {
           )}
         </div>
       </div>
-
       {/* Sidebar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gray-900/30 p-4 rounded-lg">
           <nav>
-            {Object.keys(categories).map((category) => (
+            {(Object.keys(HELP_CATEGORIES) as HelpCategoryKey[]).map((category) => (
               <div key={category} className="mb-4">
                 <button
                   onClick={() => setActiveCategory(category)}
-                  className={`w-full text-left py-2 px-3 rounded-md ${activeCategory === category ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+                  className={`w-full text-left py-2 px-3 rounded-md ${
+                    activeCategory === category ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'
+                  }`}
                 >
                   {category}
                 </button>
                 {activeCategory === category && (
                   <ul className="mt-2 space-y-1">
-                    {categories[category].map((article) => (
+                    {HELP_CATEGORIES[category].map((article) => (
                       <li key={article.id}>
                         <button
                           onClick={() => {}}
@@ -289,7 +296,6 @@ const HelpCenterTab = () => {
             ))}
           </nav>
         </div>
-
         {/* Main Content */}
         <div className="md:col-span-3">
           <div className="bg-gray-900/30 p-6 rounded-lg">
@@ -297,7 +303,6 @@ const HelpCenterTab = () => {
             <p className="text-gray-300 mb-6">
               Need help? Start by searching for answers to common questions. Whether you're setting up your page, adding social media links, or exploring premium features, we've got you covered.
             </p>
-
             {searchQuery ? (
               <div>
                 <h4 className="text-lg font-medium text-white mb-4">Search Results</h4>
@@ -356,10 +361,9 @@ const HelpCenterTab = () => {
                     Troubleshooting & Issues
                   </button>
                 </div>
-
                 <h4 className="text-lg font-medium text-white mb-4">Popular Articles</h4>
                 <div className="space-y-4">
-                  {Object.entries(categories).flatMap(([category, articles]) =>
+                  {Object.entries(HELP_CATEGORIES).flatMap(([category, articles]) =>
                     articles.slice(0, 3).map((article) => (
                       <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
                         <h5 className="text-white font-medium">{article.title}</h5>
@@ -377,10 +381,12 @@ const HelpCenterTab = () => {
   );
 };
 
+// --- Other Tabs (unchanged, but included for completeness) ---
 const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const generateCode = async () => {
     setLoading(true);
     setMessage(null);
@@ -402,6 +408,7 @@ const DiscordTab = ({ user }: { user: User }) => {
       setLoading(false);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
@@ -467,6 +474,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
+
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -475,6 +483,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -518,15 +527,19 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
+
   const handleAccountSecurity = () => {
     alert('Please confirm your email and set a password for improved security.');
   };
+
   const handleUpgrade = () => {
     window.location.href = '/premium';
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -589,6 +602,7 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -603,6 +617,7 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -642,6 +657,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ] as const;
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -674,6 +690,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -714,6 +731,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -728,6 +746,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -1103,12 +1122,15 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
+
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
+
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -1120,12 +1142,14 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
+
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
+
   const renderPreview = () => {
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
@@ -1140,6 +1164,7 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1520,7 +1545,7 @@ export default function Dashboard() {
     { id: 'badges', name: 'Badges' },
     { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
-    { id: 'help_center', name: 'Help Center' }, // ✅ Added Help Center Tab
+    { id: 'help_center', name: 'Help Center' },
   ];
 
   if (loading) {
@@ -1602,7 +1627,7 @@ export default function Dashboard() {
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
             {activeTab === 'discord' && <DiscordTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
-            {activeTab === 'help_center' && <HelpCenterTab />} {/* ✅ Help Center Tab */}
+            {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

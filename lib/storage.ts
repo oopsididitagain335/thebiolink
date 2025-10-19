@@ -25,13 +25,16 @@ function normalizeGifUrl(url: string): string {
 
   const cleanUrl = url.trim();
 
-  // Handle Tenor URLs
+  // Handle Tenor URLs: https://tenor.com/view/ID or https://tenor.com/view/ID.gif
   if (cleanUrl.includes('tenor.com/view/')) {
     try {
-      // Extract ID from /view/ID pattern
       const match = cleanUrl.match(/\/view\/([^/]+)$/);
       if (match) {
-        const id = match[1];
+        let id = match[1];
+        // Remove trailing .gif, .jpg, .png if present (Tenor sometimes includes it)
+        if (/\.(gif|jpg|jpeg|png)$/i.test(id)) {
+          id = id.replace(/\.(gif|jpg|jpeg|png)$/i, '');
+        }
         return `https://media.tenor.com/${id}.gif`;
       }
     } catch (e) {
@@ -39,7 +42,7 @@ function normalizeGifUrl(url: string): string {
     }
   }
 
-  // Handle Giphy URLs
+  // Handle Giphy URLs: https://giphy.com/media/ID/...
   if (cleanUrl.includes('giphy.com/media/')) {
     try {
       const match = cleanUrl.match(/\/media\/([^/]+)/);
@@ -626,14 +629,13 @@ export async function updateUserProfile(userId: string, updates: any) {
   let pageBackground = updates.pageBackground?.trim() || '';
 
   if (pageBackground) {
-    // Convert Tenor/Giphy URLs to direct media links
     pageBackground = normalizeGifUrl(pageBackground);
 
     // Validate extension
     const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg)$/i;
     if (!validExtensions.test(pageBackground)) {
       console.warn('Invalid background URL format after normalization:', pageBackground);
-      pageBackground = ''; // Clear invalid URL
+      pageBackground = ''; // Clear invalid
     }
   }
 
@@ -642,7 +644,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
     profileBanner: (updates.profileBanner || '').trim(),
-    pageBackground, // ✅ Now normalized!
+    pageBackground, // ✅ Now correctly normalized
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',
@@ -661,6 +663,9 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
+
+// --- Rest of your functions (createNewsPost, getAllNewsPosts, etc.) remain unchanged ---
+// They are already correct and don't affect background loading.
 
 export async function createNewsPost(
   title: string,

@@ -23,7 +23,7 @@ export async function connectDB() {
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
-  // Tenor: https://tenor.com/view/ID.gif → https://media.tenor.com/ID.gif
+  // Tenor: https://tenor.com/view/ID.gif   → https://media.tenor.com/ID.gif  
   if (clean.includes('tenor.com/view/')) {
     const match = clean.match(/\/view\/([^/]+)$/);
     if (match) {
@@ -199,7 +199,7 @@ async function awardMonthlyBadge(user: UserDoc) {
 
     if (loginCount >= 15) {
       const badgeName = `Active ${previousMonth.toLocaleString('default', { month: 'long' })} ${previousMonth.getFullYear()}`;
-      const icon = 'https://example.com/monthly-badge-icon.png  ';
+      const icon = 'https://example.com/monthly-badge-icon.png';
       const newBadge = {
         id: `monthly-${prevMonthStr}`,
         name: badgeName,
@@ -640,9 +640,6 @@ export async function updateUserProfile(userId: string, updates: any) {
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
-
-// --- Rest of your functions (createNewsPost, getAllNewsPosts, etc.) remain unchanged ---
-// They are already correct and don't affect background loading.
 
 export async function createNewsPost(
   title: string,

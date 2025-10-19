@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -161,35 +160,43 @@ export default function UserPage() {
         ? 'Founder of BioLinkHQ'
         : null;
 
-  // --- Render ClientProfile inline ---
   const [backgroundError, setBackgroundError] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // ✅ Fixed: cleanup returns void
   useEffect(() => {
     setIsClient(true);
     if (userData.customCSS) {
       const style = document.createElement('style');
       style.textContent = userData.customCSS;
       document.head.appendChild(style);
-      return () => document.head.removeChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
     }
   }, [userData?.customCSS]);
 
+  // ✅ Fixed: cleanup returns void
   useEffect(() => {
     if (userData.customJS && isClient) {
       const script = document.createElement('script');
       script.textContent = userData.customJS;
       document.body.appendChild(script);
-      return () => document.body.removeChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
     }
   }, [userData?.customJS, isClient]);
 
+  // ✅ Fixed: cleanup returns void
   useEffect(() => {
     if (userData.analyticsCode && isClient) {
       const script = document.createElement('script');
       script.textContent = userData.analyticsCode;
       document.head.appendChild(script);
-      return () => document.head.removeChild(script);
+      return () => {
+        document.head.removeChild(script);
+      };
     }
   }, [userData?.analyticsCode, isClient]);
 

@@ -1,4 +1,3 @@
-// app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets, updateUserXP } from '@/lib/storage';
@@ -26,14 +25,13 @@ const CHALLENGES: Record<string, { xp: number }> = {
   completeProfile: { xp: 100 },
 };
 
-// ✅ FIXED: User interface includes `plan`
 interface User {
   _id: string;
   email?: string;
   username?: string;
   name?: string;
   avatar?: string;
-  plan?: string; // ✅ Now declared
+  plan?: string;
 }
 
 export async function PUT(request: NextRequest) {
@@ -61,7 +59,7 @@ export async function PUT(request: NextRequest) {
       const bio = (profile.bio || '').trim().substring(0, 500);
       const avatar = (profile.avatar || '').trim();
       const profileBanner = (profile.profileBanner || '').trim();
-      const pageBackground = (profile.pageBackground || '').trim();
+      const pageBackground = (profile.pageBackground || '').trim(); // ✅ Passed as-is
       const location = profile.location ? profile.location.trim().substring(0, 100) : '';
 
       const customCSS = DOMPurify.sanitize(profile.customCSS || '');
@@ -100,7 +98,7 @@ export async function PUT(request: NextRequest) {
         bio,
         avatar,
         profileBanner,
-        pageBackground,
+        pageBackground, // ✅ Saved to DB
         location,
         theme,
         layoutStructure,

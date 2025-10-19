@@ -52,8 +52,11 @@ interface User {
   lastLogin?: string;
   loginHistory?: string[];
   lastMonthlyBadge?: string;
+  customCSS?: string;
+  customJS?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
+  widgets?: Widget[];
 }
 
 interface LayoutSection {
@@ -539,7 +542,7 @@ const ProfileBuilderTab = ({
             );
           }
           if (section.type === 'spacer') {
-            return <div key={section.id} style={{ height: section.height || 20 }} />;
+            return <div key={section.id} style={{ height: section.styling?.height || '20px' }} />;
           }
           return <div key={section.id}>Unknown block</div>;
         })}
@@ -682,9 +685,42 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
   );
 };
 
-// --- Other tabs (Discord, Badges, Settings, etc.) remain unchanged ---
-// For brevity, they are omitted here but should be included in your full file.
-// They do not reference customCSS/customJS, so no changes needed.
+const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Custom Code</h2>
+      {user.plan !== 'premium' ? (
+        <div className="text-gray-400">
+          <p>Custom CSS and JavaScript are available for premium users only.</p>
+          <a href="/upgrade" className="text-indigo-400 hover:underline">Upgrade to Premium</a>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Custom CSS</label>
+            <textarea
+              value={user.customCSS || ''}
+              onChange={(e) => setUser({ ...user, customCSS: e.target.value })}
+              placeholder="Enter custom CSS"
+              rows={5}
+              className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Custom JavaScript</label>
+            <textarea
+              value={user.customJS || ''}
+              onChange={(e) => setUser({ ...user, customJS: e.target.value })}
+              placeholder="Enter custom JavaScript (executed in a sandbox)"
+              rows={5}
+              className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- Main Dashboard Component ---
 export default function Dashboard() {
@@ -710,8 +746,11 @@ export default function Dashboard() {
     lastLogin: '',
     loginHistory: [],
     lastMonthlyBadge: '',
+    customCSS: '',
+    customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
+    widgets: [],
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -721,6 +760,7 @@ export default function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [layoutHistory, dispatch] = useReducer(historyReducer, [[]]);
   const router = useRouter();
 
   useEffect(() => {
@@ -733,6 +773,9 @@ export default function Dashboard() {
           return;
         }
         const data = await res.json();
+        if (!data.success || !data.user) {
+          throw new Error('Invalid response data');
+        }
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
         setUser({
@@ -747,7 +790,7 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
-          theme: (data.user.theme as User['theme']) || 'indigo',
+          theme: (['indigo', 'purple', 'green', 'red', 'halloween'].includes(data.user.theme) ? data.user.theme : 'indigo') as User['theme'],
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
           discordId: data.user.discordId,
@@ -755,23 +798,24 @@ export default function Dashboard() {
           level: data.user.level || 1,
           loginStreak: data.user.loginStreak || 0,
           lastLogin: data.user.lastLogin || '',
-          loginHistory: data.user.loginHistory || [],
+          loginHistory: Array.isArray(data.user.loginHistory) ? data.user.loginHistory : [],
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
+          customCSS: data.user.customCSS || '',
+          customJS: data.user.customJS || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
+          widgets: Array.isArray(data.widgets) ? data.widgets : [],
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
-          sortedLinks.length > 0
-            ? sortedLinks.map((link: any) => ({
-                id: link.id || Date.now().toString(),
-                url: (link.url || '').trim(),
-                title: (link.title || '').substring(0, 100),
-                icon: (link.icon || '').trim(),
-                position: link.position ?? 0,
-              }))
-            : []
+          sortedLinks.map((link: any) => ({
+            id: link.id || Date.now().toString(),
+            url: (link.url || '').trim(),
+            title: (link.title || '').substring(0, 100),
+            icon: (link.icon || '').trim(),
+            position: link.position ?? 0,
+          }))
         );
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -785,7 +829,8 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
-        setLayoutStructure(data.layoutStructure || []);
+        setLayoutStructure(Array.isArray(data.layoutStructure) ? data.layoutStructure : []);
+        dispatch({ type: 'SAVE', payload: data.layoutStructure || [] });
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/auth/login');
@@ -848,8 +893,10 @@ export default function Dashboard() {
             plan: user.plan || 'free',
             theme: user.theme || 'indigo',
             layoutStructure,
-            seoMeta: user.seoMeta,
-            analyticsCode: user.analyticsCode,
+            customCSS: user.customCSS || '',
+            customJS: user.customJS || '',
+            seoMeta: user.seoMeta || { title: '', description: '', keywords: '' },
+            analyticsCode: user.analyticsCode || '',
             email: user.email,
             discordId: user.discordId,
           },
@@ -860,6 +907,7 @@ export default function Dashboard() {
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
+        dispatch({ type: 'SAVE', payload: layoutStructure });
       } else {
         const errorMessage = data.error || 'Failed to save changes.';
         setMessage({ type: 'error', text: errorMessage });
@@ -884,8 +932,7 @@ export default function Dashboard() {
     { id: 'widgets', name: 'Widgets' },
     { id: 'seo', name: 'SEO & Meta' },
     { id: 'analytics_integration', name: 'Analytics Integration' },
-    // Removed 'custom_code'
-    // Other tabs like 'badges', 'discord', etc. can be added if needed
+    { id: 'custom_code', name: 'Custom Code' },
   ];
 
   if (loading) {
@@ -958,7 +1005,7 @@ export default function Dashboard() {
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
-            {/* Other tabs */}
+            {activeTab === 'custom_code' && <CustomCodeTab user={user} setUser={setUser} />}
           </div>
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

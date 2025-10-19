@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 import { useParams } from 'next/navigation';
 
-// --- Types ---
 interface Badge {
   id: string;
   name: string;
@@ -65,21 +64,20 @@ export default function UserPage() {
   const { username, subPath } = params;
   const subPathString = subPath?.join('/') || '';
 
+  // ✅ ALL HOOKS AT TOP — NO EXCEPTIONS
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [backgroundError, setBackgroundError] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  // Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await fetch(`/api/links/${username}`);
         if (!res.ok) {
-          if (res.status === 404) {
-            setNotFound(true);
-          } else {
-            console.error('Fetch error:', res.status);
-            setNotFound(true);
-          }
+          setNotFound(res.status === 404);
           setLoading(false);
           return;
         }
@@ -98,7 +96,61 @@ export default function UserPage() {
     }
   }, [username]);
 
-  // --- Loading / Not Found / Banned ---
+  // Set isClient flag
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Inject custom CSS
+  useEffect(() => {
+    if (userData?.customCSS) {
+      const style = document.createElement('style');
+      style.textContent = userData.customCSS;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, [userData?.customCSS]);
+
+  // Inject custom JS
+  useEffect(() => {
+    if (userData?.customJS && isClient) {
+      const script = document.createElement('script');
+      script.textContent = userData.customJS;
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [userData?.customJS, isClient]);
+
+  // Inject analytics
+  useEffect(() => {
+    if (userData?.analyticsCode && isClient) {
+      const script = document.createElement('script');
+      script.textContent = userData.analyticsCode;
+      document.head.appendChild(script);
+      return () => {
+        document.head.removeChild(script);
+      };
+    }
+  }, [userData?.analyticsCode, isClient]);
+
+  // Validate background image
+  useEffect(() => {
+    if (!userData?.pageBackground) return;
+    const pageBg = userData.pageBackground;
+    const isImage = /\.(png|jpe?g|webp|gif)$/i.test(pageBg);
+    const isVideo = /\.(mp4|webm)$/i.test(pageBg);
+    if (!isImage && !isVideo) {
+      const img = new Image();
+      img.src = pageBg;
+      img.onerror = () => setBackgroundError(true);
+    }
+  }, [userData?.pageBackground]);
+
+  // --- EARLY RETURNS AFTER HOOKS ---
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -131,14 +183,15 @@ export default function UserPage() {
     );
   }
 
-  // ✅ Safely access nested arrays with fallbacks
-  const layoutStructure = userData?.layoutStructure || [];
+  // --- SAFE DATA PROCESSING ---
+  const layoutStructure = userData.layoutStructure || [];
   const currentPageStructure = subPathString
-    ? layoutStructure.filter((s: any) => s.pagePath === subPathString)
-    : layoutStructure.filter((s: any) => !s.pagePath || s.pagePath === 'home');
+    ? layoutStructure.filter((s) => s.pagePath === subPathString)
+    : layoutStructure.filter((s) => !s.pagePath || s.pagePath === 'home');
 
-  const visibleBadges = (userData?.badges || []).filter((badge: any) => !badge.hidden);
-  const sortedLinks = [...(userData?.links || [])].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+  const visibleBadges = (userData.badges || []).filter((b) => !b.hidden);
+  const sortedLinks = [...(userData.links || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const widgetMap = new Map((userData.widgets || []).map((w) => [w.id, w]));
 
   const themeGlowMap: Record<string, string> = {
     indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
@@ -160,56 +213,6 @@ export default function UserPage() {
       : username.toLowerCase() === 'ceosolace'
         ? 'Founder of BioLinkHQ'
         : null;
-
-  const [backgroundError, setBackgroundError] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // ✅ Cleanup returns void
-  useEffect(() => {
-    setIsClient(true);
-    if (userData?.customCSS) {
-      const style = document.createElement('style');
-      style.textContent = userData.customCSS;
-      document.head.appendChild(style);
-      return () => {
-        document.head.removeChild(style);
-      };
-    }
-  }, [userData?.customCSS]);
-
-  // ✅ Cleanup returns void
-  useEffect(() => {
-    if (userData?.customJS && isClient) {
-      const script = document.createElement('script');
-      script.textContent = userData.customJS;
-      document.body.appendChild(script);
-      return () => {
-        document.body.removeChild(script);
-      };
-    }
-  }, [userData?.customJS, isClient]);
-
-  // ✅ Cleanup returns void
-  useEffect(() => {
-    if (userData?.analyticsCode && isClient) {
-      const script = document.createElement('script');
-      script.textContent = userData.analyticsCode;
-      document.head.appendChild(script);
-      return () => {
-        document.head.removeChild(script);
-      };
-    }
-  }, [userData?.analyticsCode, isClient]);
-
-  useEffect(() => {
-    if (hasPageBackground && !isImageBg && !isVideoBg) {
-      const img = new Image();
-      img.src = pageBg;
-      img.onerror = () => setBackgroundError(true);
-    }
-  }, [hasPageBackground, isImageBg, isVideoBg, pageBg]);
-
-  const widgetMap = new Map((userData?.widgets || []).map((w) => [w.id, w]));
 
   const renderWidget = (widget: WidgetItem) => {
     const { type, url, content, title } = widget;

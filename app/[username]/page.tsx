@@ -9,14 +9,7 @@ export type LayoutSection =
   | { id: string; type: 'links' }
   | { id: string; type: 'widget' }
   | { id: string; type: 'spacer'; height: number }
-  | { id: string; type: 'custom' }
-  | { id: string; type: 'form' }
-  | { id: string; type: 'ecommerce' }
-  | { id: string; type: 'api' }
-  | { id: string; type: 'calendar' }
-  | { id: string; type: 'tab' }
-  | { id: string; type: 'column' }
-  | { id: string; type: 'page' };
+  | { id: string; type: 'custom' };
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

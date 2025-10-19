@@ -24,7 +24,7 @@ function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
   // Tenor: https://tenor.com/view/ID.gif → https://media.tenor.com/ID.gif
-  if (clean.includes('tenigo.com/view/') || clean.includes('tenor.com/view/')) {
+  if (clean.includes('tenor.com/view/')) {
     const match = clean.match(/\/view\/([^/]+)$/);
     if (match) {
       let id = match[1];
@@ -297,7 +297,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     name: updatedUser.name || '',
     avatar: updatedUser.avatar || '',
     profileBanner: updatedUser.profileBanner || '',
-    pageBackground: normalizeGifUrl(updatedUser.pageBackground) || '',
+    pageBackground: normalizeGifUrl(updatedUser.pageBackground || '') || '',
     bio: updatedUser.bio || '',
     location: updatedUser.location || '',
     badges: updatedUser.badges || [],
@@ -417,7 +417,7 @@ export async function getUserById(id: string) {
     username: updatedUser.username || '',
     avatar: updatedUser.avatar || '',
     profileBanner: updatedUser.profileBanner || '',
-    pageBackground: normalizeGifUrl(updatedUser.pageBackground) || '',
+    pageBackground: normalizeGifUrl(updatedUser.pageBackground || '') || '',
     bio: updatedUser.bio || '',
     location: updatedUser.location || '',
     isEmailVerified: updatedUser.isEmailVerified,
@@ -464,7 +464,7 @@ export async function getUserByEmail(email: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     profileBanner: user.profileBanner || '',
-    pageBackground: normalizeGifUrl(user.pageBackground) || '',
+    pageBackground: normalizeGifUrl(user.pageBackground || '') || '',
     bio: user.bio || '',
     location: user.location || '',
     isEmailVerified: user.isEmailVerified,
@@ -641,8 +641,8 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- Rest of your existing functions (createNewsPost, getAllNewsPosts, etc.) ---
-// They remain unchanged and are omitted for brevity but should be kept as-is.
+// --- Rest of your functions (createNewsPost, getAllNewsPosts, etc.) remain unchanged ---
+// They are already correct and don't affect background loading.
 
 export async function createNewsPost(
   title: string,

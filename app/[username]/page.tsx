@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -100,6 +99,42 @@ export default function UserPage() {
     };
   }, [userData]);
 
+  useEffect(() => {
+    if (userData?.customCSS) {
+      const style = document.createElement('style');
+      style.textContent = userData.customCSS;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style); // Cleanup without returning the removed element
+      };
+    }
+    return () => {}; // Return empty cleanup if no customCSS
+  }, [userData?.customCSS]);
+
+  useEffect(() => {
+    if (userData?.customJS) {
+      const script = document.createElement('script');
+      script.textContent = userData.customJS;
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script); // Cleanup without returning the removed element
+      };
+    }
+    return () => {}; // Return empty cleanup if no customJS
+  }, [userData?.customJS]);
+
+  useEffect(() => {
+    if (userData?.analyticsCode) {
+      const script = document.createElement('script');
+      script.textContent = userData.analyticsCode;
+      document.head.appendChild(script);
+      return () => {
+        document.head.removeChild(script); // Cleanup without returning the removed element
+      };
+    }
+    return () => {}; // Return empty cleanup if no analyticsCode
+  }, [userData?.analyticsCode]);
+
   if (loading) {
     return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
   }
@@ -124,33 +159,6 @@ export default function UserPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (userData.customCSS) {
-      const style = document.createElement('style');
-      style.textContent = userData.customCSS;
-      document.head.appendChild(style);
-      return () => document.head.removeChild(style);
-    }
-  }, [userData.customCSS]);
-
-  useEffect(() => {
-    if (userData.customJS) {
-      const script = document.createElement('script');
-      script.textContent = userData.customJS;
-      document.body.appendChild(script);
-      return () => document.body.removeChild(script);
-    }
-  }, [userData.customJS]);
-
-  useEffect(() => {
-    if (userData.analyticsCode) {
-      const script = document.createElement('script');
-      script.textContent = userData.analyticsCode;
-      document.head.appendChild(script);
-      return () => document.head.removeChild(script);
-    }
-  }, [userData.analyticsCode]);
 
   const pageBg = userData.pageBackground || '';
   const isVideoBg = /\.(mp4|webm)$/i.test(pageBg);

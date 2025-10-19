@@ -35,9 +35,11 @@ interface LayoutSection {
   height?: number;
   content?: string;
   pagePath?: string;
+  children?: LayoutSection[];
 }
 
 interface UserData {
+  username: string;
   name: string;
   avatar: string;
   profileBanner: string;
@@ -45,12 +47,12 @@ interface UserData {
   bio: string;
   location: string;
   badges: Badge[];
+  isBanned: boolean;
   profileViews: number;
   links: LinkItem[];
   widgets: WidgetItem[];
   layoutStructure: LayoutSection[];
   theme: string;
-  isBanned: boolean;
   xp: number;
   level: number;
   loginStreak: number;
@@ -359,37 +361,38 @@ export default function UserPage() {
           <span>{userData.loginStreak} day streak</span>
         </div>
 
-        {/* Links */}
-        {sortedLinks.length > 0 && (
-          <div className="space-y-3 mb-8">
-            {sortedLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2"
-              >
-                {link.icon && (
-                  <img
-                    src={link.icon}
-                    alt=""
-                    className="w-5 h-5 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
-                <span>{link.title}</span>
-              </a>
-            ))}
-          </div>
-        )}
-
-        {/* Widgets & Custom Sections */}
+        {/* Render layout structure */}
         <div className="space-y-6">
           {currentPageStructure.map((section) => {
-            if (section.type === 'bio' || section.type === 'links') return null;
+            if (section.type === 'bio') return null;
+
+            if (section.type === 'links' && sortedLinks.length > 0) {
+              return (
+                <div key={section.id} className="space-y-3">
+                  {sortedLinks.map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2"
+                    >
+                      {link.icon && (
+                        <img
+                          src={link.icon}
+                          alt=""
+                          className="w-5 h-5 rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span>{link.title}</span>
+                    </a>
+                  ))}
+                </div>
+              );
+            }
 
             if (section.type === 'widget' && section.widgetId) {
               const widget = widgetMap.get(section.widgetId);

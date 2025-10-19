@@ -163,10 +163,10 @@ export default function UserPage() {
   const [backgroundError, setBackgroundError] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // ✅ Fixed: cleanup returns void
+  // ✅ Fixed: cleanup returns void (no implicit return)
   useEffect(() => {
     setIsClient(true);
-    if (userData.customCSS) {
+    if (userData?.customCSS) {
       const style = document.createElement('style');
       style.textContent = userData.customCSS;
       document.head.appendChild(style);
@@ -178,7 +178,7 @@ export default function UserPage() {
 
   // ✅ Fixed: cleanup returns void
   useEffect(() => {
-    if (userData.customJS && isClient) {
+    if (userData?.customJS && isClient) {
       const script = document.createElement('script');
       script.textContent = userData.customJS;
       document.body.appendChild(script);
@@ -190,7 +190,7 @@ export default function UserPage() {
 
   // ✅ Fixed: cleanup returns void
   useEffect(() => {
-    if (userData.analyticsCode && isClient) {
+    if (userData?.analyticsCode && isClient) {
       const script = document.createElement('script');
       script.textContent = userData.analyticsCode;
       document.head.appendChild(script);

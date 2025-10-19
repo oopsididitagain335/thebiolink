@@ -23,28 +23,31 @@ export async function GET(request: NextRequest) {
         name: userData.name,
         username: userData.username,
         avatar: userData.avatar,
-        profileBanner: userData.profileBanner || '',   // ✅ NEW
-        pageBackground: userData.pageBackground || '', // ✅ NEW (replaces background)
+        profileBanner: userData.profileBanner || '',
+        pageBackground: userData.pageBackground || '',
         bio: userData.bio,
         location: userData.location || '',
-        // ❌ Remove these deprecated fields:
-        // background: ...,
-        // backgroundVideo: ...,
-        // backgroundAudio: ...,
         isEmailVerified: userData.isEmailVerified,
         plan: userData.plan || 'free',
         profileViews: userData.profileViews || 0,
         theme: userData.theme || 'indigo',
         badges: Array.isArray(userData.badges) ? userData.badges : [],
         email: user.email,
+        discordId: userData.discordId,
+        xp: userData.xp || 0,
+        level: userData.level || 1,
+        loginStreak: userData.loginStreak || 0,
+        lastLogin: userData.lastLogin?.toISOString() || '',
+        loginHistory: (userData.loginHistory || []).map(d => d.toISOString()),
+        lastMonthlyBadge: userData.lastMonthlyBadge || '',
+        customCSS: userData.customCSS || '',
+        customJS: userData.customJS || '',
+        seoMeta: userData.seoMeta || { title: '', description: '', keywords: '' },
+        analyticsCode: userData.analyticsCode || '',
       },
       links: userData.links || [],
       widgets: userData.widgets || [],
-      layoutStructure: userData.layoutStructure || [
-        { id: 'bio', type: 'bio' },
-        { id: 'spacer-1', type: 'spacer', height: 20 },
-        { id: 'links', type: 'links' },
-      ],
+      layoutStructure: userData.layoutStructure || [],
     });
   } catch (error: any) {
     console.error('Dashboard data fetch error:', error);

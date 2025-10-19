@@ -1,10 +1,11 @@
 // app/[username]/page.tsx
-import { headers } from 'next/headers';
-import { getUserByUsername } from '@/lib/storage';
-import WhackTheBanHammerGame from './WhackTheBanHammerGame';
-import { NextPage } from 'next';
+'use client';
 
-// --- Types (shared) ---
+import { useEffect, useState } from 'react';
+import WhackTheBanHammerGame from './WhackTheBanHammerGame';
+import { useRouter } from 'next/navigation';
+
+// --- Types ---
 interface Badge {
   id: string;
   name: string;
@@ -38,30 +39,20 @@ interface LayoutSection {
   pagePath?: string;
 }
 
-// --- Client Component ---
-'use client';
-
-import { useEffect, useState } from 'react';
-
-interface ClientProfileProps {
-  username: string;
+interface UserData {
   name: string;
   avatar: string;
   profileBanner: string;
   pageBackground: string;
   bio: string;
   location: string;
-  visibleBadges: Badge[];
+  badges: Badge[];
   profileViews: number;
   links: LinkItem[];
   widgets: WidgetItem[];
   layoutStructure: LayoutSection[];
   theme: string;
-  glow: string;
-  hasBanner: boolean;
-  hasPageBackground: boolean;
-  hasVideoBackground: boolean;
-  specialTag: string | null;
+  isBanned: boolean;
   xp: number;
   level: number;
   loginStreak: number;
@@ -95,9 +86,34 @@ const ClientProfile = ({
   customCSS,
   customJS,
   analyticsCode,
-}: ClientProfileProps) => {
-  const [isClient, setIsClient] = useState(false);
+}: {
+  username: string;
+  name: string;
+  avatar: string;
+  profileBanner: string;
+  pageBackground: string;
+  bio: string;
+  location: string;
+  visibleBadges: Badge[];
+  profileViews: number;
+  links: LinkItem[];
+  widgets: WidgetItem[];
+  layoutStructure: LayoutSection[];
+  theme: string;
+  glow: string;
+  hasBanner: boolean;
+  hasPageBackground: boolean;
+  hasVideoBackground: boolean;
+  specialTag: string | null;
+  xp: number;
+  level: number;
+  loginStreak: number;
+  customCSS?: string;
+  customJS?: string;
+  analyticsCode?: string;
+}) => {
   const [backgroundError, setBackgroundError] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const isGifBackground = hasPageBackground && pageBackground.toLowerCase().endsWith('.gif');
   const widgetMap = new Map(widgets.map((w) => [w.id, w]));
@@ -345,31 +361,55 @@ const ClientProfile = ({
   );
 };
 
-// --- Server Page ---
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-interface UserPageProps {
-  params: Promise<{ username: string; subPath?: string[] }>;
-}
-
-const UserPage: NextPage<UserPageProps> = async ({ params }) => {
-  const resolvedParams = await params;
-  const { username, subPath } = resolvedParams;
+// --- Main Page ---
+export default function UserPage({ params }: { params: { username: string; subPath?: string[] } }) {
+  const router = useRouter();
+  const { username, subPath } = params;
   const subPathString = subPath?.join('/') || '';
 
-  const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [banned, setBanned] = useState(false);
 
-  let userData;
-  try {
-    userData = await getUserByUsername(username, ip);
-  } catch (error) {
-    console.error('UserPage fetch error:', error);
-    userData = null;
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`/api/links/${username}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            setNotFound(true);
+          } else {
+            throw new Error('Failed to fetch');
+          }
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        // Simulate full user data (you may need to extend your API to return all fields)
+        // For now, assume API returns full profile
+        setUserData(data);
+        setBanned(data.isBanned);
+      } catch (err) {
+        console.error(err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [username]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
-  if (!userData) {
+  if (notFound) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
         <div className="text-center">
@@ -381,7 +421,7 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
     );
   }
 
-  if (userData.isBanned) {
+  if (banned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -392,6 +432,8 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
       </div>
     );
   }
+
+  if (!userData) return null;
 
   const currentPageStructure = subPathString
     ? userData.layoutStructure.filter((s: any) => s.pagePath === subPathString)
@@ -409,8 +451,8 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
   };
   const glow = themeGlowMap[userData.theme || 'indigo'] || themeGlowMap.indigo;
 
-  const hasPageBackground = !!userData.pageBackground;
   const pageBg = userData.pageBackground || '';
+  const hasPageBackground = !!pageBg;
   const isImageBg = /\.(png|jpe?g|webp|gif)$/i.test(pageBg);
   const isVideoBg = /\.(mp4|webm)$/i.test(pageBg);
 
@@ -449,25 +491,4 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
       analyticsCode={userData.analyticsCode || ''}
     />
   );
-};
-
-export default UserPage;
-
-// --- Metadata ---
-export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = await params;
-  try {
-    const user = await getUserByUsername(username, '0.0.0.0');
-    if (!user || user.isBanned) {
-      return { title: 'Banned | The BioLink' };
-    }
-    const desc = user.bio?.substring(0, 160) || `Check out ${user.name || username}'s BioLink`;
-    return {
-      title: `${user.name || username} (Level ${user.level}) | The BioLink`,
-      description: desc,
-      openGraph: { title: `${user.name || username} | The BioLink`, description: desc },
-    };
-  } catch {
-    return { title: 'Not Found | The BioLink' };
-  }
 }

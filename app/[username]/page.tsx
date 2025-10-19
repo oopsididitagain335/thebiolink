@@ -3,6 +3,21 @@ import { getUserByUsername } from '@/lib/storage';
 import ClientProfile from './ClientProfile';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 
+// 🔹 Unified LayoutSection type — define it here or (better) in a shared types file
+export type LayoutSection =
+  | { id: string; type: 'bio' }
+  | { id: string; type: 'links' }
+  | { id: string; type: 'widget' }
+  | { id: string; type: 'spacer'; height: number }
+  | { id: string; type: 'custom' }
+  | { id: string; type: 'form' }
+  | { id: string; type: 'ecommerce' }
+  | { id: string; type: 'api' }
+  | { id: string; type: 'calendar' }
+  | { id: string; type: 'tab' }
+  | { id: string; type: 'column' }
+  | { id: string; type: 'page' };
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -39,6 +54,9 @@ type Badge = {
   earnedAt?: string;
   hidden?: boolean;
 };
+
+// Union type for badges
+type UserBadge = LegacyBadge | Badge;
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
@@ -143,7 +161,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     pageBackground = '',
     bio = '',
     location = '',
-    badges = [] as (LegacyBadge | Badge)[],
+    badges = [] as UserBadge[],
     links = [],
     widgets = [],
     layoutStructure = [
@@ -191,7 +209,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       profileViews={profileViews}
       links={sortedLinks}
       widgets={sortedWidgets}
-      layoutStructure={layoutStructure}
+      layoutStructure={layoutStructure as LayoutSection[]} // ✅ Now safely typed
       theme={theme}
       glow={glow}
       hasBanner={hasBanner}

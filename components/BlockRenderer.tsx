@@ -1,17 +1,63 @@
-// components/BlockRenderer.tsx
 import React from 'react';
 
+// Define interfaces for the data structures
+interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  hidden?: boolean;
+}
+
+interface Link {
+  id: string;
+  title: string;
+  url: string;
+}
+
+interface Widget {
+  id: string;
+  type: string;
+  url: string;
+}
+
+interface Styling {
+  backgroundColor?: string;
+  color?: string;
+  padding?: string;
+  margin?: string;
+  borderRadius?: string;
+  border?: string;
+  fontSize?: string;
+  textAlign?: string;
+}
+
+interface Section {
+  type: string;
+  styling?: Styling;
+  content?: string;
+  height?: number;
+  visibleLinks?: string[];
+  widgetId?: string;
+}
+
+interface User {
+  name?: string;
+  username?: string;
+  bio?: string;
+  badges?: Badge[];
+}
+
 interface Props {
-  section: any;
-  user: any;
-  links: any[];
-  widgets: any[];
+  section: Section;
+  user: User;
+  links: Link[];
+  widgets: Widget[];
 }
 
 export default function BlockRenderer({ section, user, links, widgets }: Props) {
   const style = section.styling || {};
 
-  const baseStyle = {
+  const baseStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || 'transparent',
     color: style.color || 'inherit',
     padding: style.padding || '0',
@@ -38,7 +84,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     case 'badges':
       return (
         <div style={baseStyle} className="block">
-          {(user.badges || []).filter(b => !b.hidden).map(badge => (
+          {(user.badges || []).filter((badge: Badge) => !badge.hidden).map((badge: Badge) => (
             <span key={badge.id} className="inline-block mr-2">
               <img src={badge.icon} alt={badge.name} className="inline w-5 h-5 rounded-full" />
               {badge.name}
@@ -48,11 +94,11 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
       );
     case 'links':
       const visibleLinks = section.visibleLinks
-        ? links.filter(l => section.visibleLinks.includes(l.id))
+        ? links.filter((l) => section.visibleLinks.includes(l.id))
         : links;
       return (
         <div style={baseStyle} className="block">
-          {visibleLinks.map(link => (
+          {visibleLinks.map((link) => (
             <a
               key={link.id}
               href={link.url}
@@ -66,7 +112,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
         </div>
       );
     case 'widget':
-      const widget = widgets.find(w => w.id === section.widgetId);
+      const widget = widgets.find((w) => w.id === section.widgetId);
       if (!widget) return null;
       if (widget.type === 'youtube' && widget.url) {
         const id = widget.url.split('v=')[1]?.split('&')[0] || widget.url.split('/').pop();

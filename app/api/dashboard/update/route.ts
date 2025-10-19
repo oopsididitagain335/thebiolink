@@ -1,134 +1,44 @@
+// app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { updateUserProfile, saveUserLinks, saveUserWidgets, updateUserXP } from '@/lib/storage';
-import createDOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
-
-const window = new JSDOM('').window;
-const DOMPurify = createDOMPurify(window);
-
-interface LayoutSection {
-  id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
-  widgetId?: string;
-  height?: number;
-  content?: string;
-  children?: LayoutSection[];
-  pagePath?: string;
-  styling?: { [key: string]: string };
-}
-
-const CHALLENGES: Record<string, { xp: number }> = {
-  updateProfile: { xp: 50 },
-  addLink: { xp: 20 },
-  addWidget: { xp: 30 },
-  completeProfile: { xp: 100 },
-};
-
-interface User {
-  _id: string;
-  email?: string;
-  username?: string;
-  name?: string;
-  avatar?: string;
-  plan?: string;
-}
+import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
-  const user = (await getCurrentUser()) as User;
+  const user = await getCurrentUser();
   if (!user || !user._id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const { profile, links, widgets, challengeId } = await request.json();
+    const { profile, links, widgets } = await request.json();
 
-    if (challengeId && CHALLENGES[challengeId]) {
-      const xpAward = CHALLENGES[challengeId].xp;
-      await updateUserXP(user._id, xpAward);
-      return Response.json({ success: true, xpAward });
-    }
-
-    let totalXP = 0;
-
-    if (profile && typeof profile === 'object') {
-      const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
-      const theme = validThemes.includes(profile.theme) ? profile.theme : 'indigo';
-      const name = (profile.name || '').trim().substring(0, 100);
-      const username = (profile.username || '').trim().toLowerCase();
-      const bio = (profile.bio || '').trim().substring(0, 500);
-      const avatar = (profile.avatar || '').trim();
-      const profileBanner = (profile.profileBanner || '').trim();
-      const pageBackground = (profile.pageBackground || '').trim(); // ✅ Passed as-is
-      const location = profile.location ? profile.location.trim().substring(0, 100) : '';
-
-      const customCSS = DOMPurify.sanitize(profile.customCSS || '');
-      const customJS = user.plan === 'premium' ? DOMPurify.sanitize(profile.customJS || '', { ALLOWED_TAGS: [] }) : '';
-      const analyticsCode = DOMPurify.sanitize(profile.analyticsCode || '');
-
-      const seoMeta = {
-        title: (profile.seoMeta?.title || '').trim(),
-        description: (profile.seoMeta?.description || '').trim(),
-        keywords: (profile.seoMeta?.keywords || '').trim(),
-      };
-
-      const sanitizeLayout = (section: any): LayoutSection | null => {
-        if (!['bio', 'links', 'widget', 'spacer', 'custom', 'form', 'ecommerce', 'tab', 'column', 'api', 'calendar', 'page'].includes(section.type)) return null;
-        return {
-          id: String(section.id || Date.now()),
-          type: section.type,
-          widgetId: section.widgetId,
-          height: typeof section.height === 'number' ? section.height : undefined,
-          content: DOMPurify.sanitize(section.content || ''),
-          pagePath: section.pagePath,
-          styling: typeof section.styling === 'object' ? section.styling : {},
-          children: Array.isArray(section.children)
-            ? section.children.map(sanitizeLayout).filter(Boolean) as LayoutSection[]
-            : undefined,
-        };
-      };
-
-      const layoutStructure = (profile.layoutStructure || [])
-        .map(sanitizeLayout)
-        .filter(Boolean) as LayoutSection[];
-
+    if (profile) {
       await updateUserProfile(user._id, {
-        name,
-        username,
-        bio,
-        avatar,
-        profileBanner,
-        pageBackground, // ✅ Saved to DB
-        location,
-        theme,
-        layoutStructure,
-        customCSS,
-        customJS,
-        seoMeta,
-        analyticsCode,
+        name: profile.name?.substring(0, 100) || '',
+        username: profile.username?.toLowerCase() || '',
+        avatar: profile.avatar || '',
+        profileBanner: profile.profileBanner || '',
+        pageBackground: profile.pageBackground || '',
+        bio: profile.bio?.substring(0, 500) || '',
+        location: profile.location?.substring(0, 100) || '',
+        theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) 
+          ? profile.theme 
+          : 'indigo',
+        layoutStructure: profile.layoutStructure || [],
+        customCSS: '',
+        customJS: '',
+        seoMeta: profile.seoMeta || { title: '', description: '', keywords: '' },
+        analyticsCode: profile.analyticsCode || '',
         discordId: profile.discordId,
       });
-
-      totalXP += 10;
     }
 
-    if (Array.isArray(links) && links.length > 0) {
-      await saveUserLinks(user._id, links);
-      totalXP += 5;
-    }
-
-    if (Array.isArray(widgets) && widgets.length > 0) {
-      await saveUserWidgets(user._id, widgets);
-      totalXP += 5;
-    }
-
-    if (totalXP > 0) {
-      await updateUserXP(user._id, totalXP);
-    }
+    if (Array.isArray(links)) await saveUserLinks(user._id, links);
+    if (Array.isArray(widgets)) await saveUserWidgets(user._id, widgets);
 
     return Response.json({ success: true });
   } catch (error: any) {
     console.error('Update error:', error);
-    return Response.json({ error: error.message || 'Update failed' }, { status: 400 });
+    return Response.json({ error: 'Update failed' }, { status: 400 });
   }
 }

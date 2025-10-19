@@ -100,7 +100,7 @@ const UserPage: NextPage<UserPageProps> = async ({ params }) => {
       loginStreak={userData.loginStreak || 0}
       customCSS={userData.customCSS || ''}
       customJS={userData.customJS || ''}
-      seoMeta={{ title: '', description: '', keywords: '' }},
+      seoMeta={{ title: '', description: '', keywords: '' }}
       analyticsCode={userData.analyticsCode || ''}
     />
   );

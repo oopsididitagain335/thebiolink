@@ -131,13 +131,14 @@ export default function UserPage() {
     );
   }
 
-  // --- Process data ---
+  // ✅ Safely access nested arrays with fallbacks
+  const layoutStructure = userData?.layoutStructure || [];
   const currentPageStructure = subPathString
-    ? userData.layoutStructure.filter((s: any) => s.pagePath === subPathString)
-    : userData.layoutStructure.filter((s: any) => !s.pagePath || s.pagePath === 'home');
+    ? layoutStructure.filter((s: any) => s.pagePath === subPathString)
+    : layoutStructure.filter((s: any) => !s.pagePath || s.pagePath === 'home');
 
-  const visibleBadges = (userData.badges || []).filter((badge: any) => !badge.hidden);
-  const sortedLinks = [...(userData.links || [])].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+  const visibleBadges = (userData?.badges || []).filter((badge: any) => !badge.hidden);
+  const sortedLinks = [...(userData?.links || [])].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
 
   const themeGlowMap: Record<string, string> = {
     indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
@@ -163,7 +164,7 @@ export default function UserPage() {
   const [backgroundError, setBackgroundError] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // ✅ Fixed: cleanup returns void (no implicit return)
+  // ✅ Cleanup returns void
   useEffect(() => {
     setIsClient(true);
     if (userData?.customCSS) {
@@ -176,7 +177,7 @@ export default function UserPage() {
     }
   }, [userData?.customCSS]);
 
-  // ✅ Fixed: cleanup returns void
+  // ✅ Cleanup returns void
   useEffect(() => {
     if (userData?.customJS && isClient) {
       const script = document.createElement('script');
@@ -188,7 +189,7 @@ export default function UserPage() {
     }
   }, [userData?.customJS, isClient]);
 
-  // ✅ Fixed: cleanup returns void
+  // ✅ Cleanup returns void
   useEffect(() => {
     if (userData?.analyticsCode && isClient) {
       const script = document.createElement('script');
@@ -208,7 +209,7 @@ export default function UserPage() {
     }
   }, [hasPageBackground, isImageBg, isVideoBg, pageBg]);
 
-  const widgetMap = new Map(userData.widgets.map((w) => [w.id, w]));
+  const widgetMap = new Map((userData?.widgets || []).map((w) => [w.id, w]));
 
   const renderWidget = (widget: WidgetItem) => {
     const { type, url, content, title } = widget;

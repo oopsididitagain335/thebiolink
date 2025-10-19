@@ -19,44 +19,25 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// 🔧 Helper: Convert Tenor & Giphy URLs to direct media links
+// 🔧 Normalize Tenor/Giphy URLs to direct media links
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
-
-  const cleanUrl = url.trim();
-
-  // Handle Tenor URLs: https://tenor.com/view/ID or https://tenor.com/view/ID.gif
-  if (cleanUrl.includes('tenor.com/view/')) {
-    try {
-      const match = cleanUrl.match(/\/view\/([^/]+)$/);
-      if (match) {
-        let id = match[1];
-        // Remove trailing .gif, .jpg, .png if present (Tenor sometimes includes it)
-        if (/\.(gif|jpg|jpeg|png)$/i.test(id)) {
-          id = id.replace(/\.(gif|jpg|jpeg|png)$/i, '');
-        }
-        return `https://media.tenor.com/${id}.gif`;
-      }
-    } catch (e) {
-      console.warn('Failed to normalize Tenor URL:', cleanUrl);
+  const clean = url.trim();
+  // Tenor: https://tenor.com/view/ID.gif → https://media.tenor.com/ID.gif
+  if (clean.includes('tenigo.com/view/') || clean.includes('tenor.com/view/')) {
+    const match = clean.match(/\/view\/([^/]+)$/);
+    if (match) {
+      let id = match[1];
+      if (/\.(gif|jpg|jpeg|png)$/i.test(id)) id = id.replace(/\.(gif|jpg|jpeg|png)$/i, '');
+      return `https://media.tenor.com/${id}.gif`;
     }
   }
-
-  // Handle Giphy URLs: https://giphy.com/media/ID/...
-  if (cleanUrl.includes('giphy.com/media/')) {
-    try {
-      const match = cleanUrl.match(/\/media\/([^/]+)/);
-      if (match) {
-        const id = match[1];
-        return `https://media.giphy.com/media/${id}/giphy.gif`;
-      }
-    } catch (e) {
-      console.warn('Failed to normalize Giphy URL:', cleanUrl);
-    }
+  // Giphy
+  if (clean.includes('giphy.com/media/')) {
+    const match = clean.match(/\/media\/([^/]+)/);
+    if (match) return `https://media.giphy.com/media/${match[1]}/giphy.gif`;
   }
-
-  // Return original if no conversion needed
-  return cleanUrl;
+  return clean;
 }
 
 interface UserDoc {
@@ -316,7 +297,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     name: updatedUser.name || '',
     avatar: updatedUser.avatar || '',
     profileBanner: updatedUser.profileBanner || '',
-    pageBackground: updatedUser.pageBackground || '',
+    pageBackground: normalizeGifUrl(updatedUser.pageBackground) || '',
     bio: updatedUser.bio || '',
     location: updatedUser.location || '',
     badges: updatedUser.badges || [],
@@ -436,7 +417,7 @@ export async function getUserById(id: string) {
     username: updatedUser.username || '',
     avatar: updatedUser.avatar || '',
     profileBanner: updatedUser.profileBanner || '',
-    pageBackground: updatedUser.pageBackground || '',
+    pageBackground: normalizeGifUrl(updatedUser.pageBackground) || '',
     bio: updatedUser.bio || '',
     location: updatedUser.location || '',
     isEmailVerified: updatedUser.isEmailVerified,
@@ -483,7 +464,7 @@ export async function getUserByEmail(email: string) {
     name: user.name || '',
     avatar: user.avatar || '',
     profileBanner: user.profileBanner || '',
-    pageBackground: user.pageBackground || '',
+    pageBackground: normalizeGifUrl(user.pageBackground) || '',
     bio: user.bio || '',
     location: user.location || '',
     isEmailVerified: user.isEmailVerified,
@@ -625,17 +606,13 @@ export async function updateUserProfile(userId: string, updates: any) {
   const validThemes = ['indigo', 'purple', 'green', 'red', 'halloween'];
   const theme = validThemes.includes(updates.theme) ? updates.theme : 'indigo';
 
-  // 🔧 Normalize and validate pageBackground URL
   let pageBackground = updates.pageBackground?.trim() || '';
-
   if (pageBackground) {
     pageBackground = normalizeGifUrl(pageBackground);
-
-    // Validate extension
     const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg)$/i;
     if (!validExtensions.test(pageBackground)) {
-      console.warn('Invalid background URL format after normalization:', pageBackground);
-      pageBackground = ''; // Clear invalid
+      console.warn('Invalid background URL format:', pageBackground);
+      pageBackground = '';
     }
   }
 
@@ -644,7 +621,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
     profileBanner: (updates.profileBanner || '').trim(),
-    pageBackground, // ✅ Now correctly normalized
+    pageBackground,
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
     plan: updates.plan || 'free',
@@ -664,8 +641,8 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- Rest of your functions (createNewsPost, getAllNewsPosts, etc.) remain unchanged ---
-// They are already correct and don't affect background loading.
+// --- Rest of your existing functions (createNewsPost, getAllNewsPosts, etc.) ---
+// They remain unchanged and are omitted for brevity but should be kept as-is.
 
 export async function createNewsPost(
   title: string,

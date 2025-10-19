@@ -193,15 +193,6 @@ export default function UserPage() {
   const sortedLinks = [...(userData.links || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const widgetMap = new Map((userData.widgets || []).map((w) => [w.id, w]));
 
-  const themeGlowMap: Record<string, string> = {
-    indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
-    purple: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
-    green: 'shadow-[0_0_20px_rgba(34,197,94,0.6)]',
-    red: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
-    halloween: 'shadow-[0_0_20px_rgba(234,88,12,0.6)]',
-  };
-  const glow = themeGlowMap[userData.theme || 'indigo'] || themeGlowMap.indigo;
-
   const pageBg = userData.pageBackground || '';
   const hasPageBackground = !!pageBg;
   const isImageBg = /\.(png|jpe?g|webp|gif)$/i.test(pageBg);
@@ -221,13 +212,14 @@ export default function UserPage() {
       const videoId = cleanUrl.split('v=')[1]?.split('&')[0] || cleanUrl.split('/').pop();
       return videoId ? (
         <iframe
+          key={videoId}
           width="100%"
           height="315"
           src={`https://www.youtube.com/embed/${videoId}`}
           title={title || 'YouTube video'}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="rounded-lg"
+          className="rounded-lg w-full"
         />
       ) : null;
     }
@@ -237,17 +229,19 @@ export default function UserPage() {
         : url.replace('open.spotify.com', 'open.spotify.com/embed');
       return (
         <iframe
+          key={embedUrl}
           src={embedUrl}
           width="100%"
           height="380"
           allow="encrypted-media"
-          className="rounded-lg"
+          className="rounded-lg w-full"
         />
       );
     }
     if (type === 'custom' && content) {
       return (
         <div
+          key="custom"
           dangerouslySetInnerHTML={{ __html: content }}
           className="prose prose-invert max-w-none"
         />
@@ -255,16 +249,16 @@ export default function UserPage() {
     }
     if (type === 'twitter' && url) {
       return (
-        <blockquote className="twitter-tweet">
+        <blockquote key="twitter" className="twitter-tweet">
           <a href={url.trim()}></a>
         </blockquote>
       );
     }
-    return <div className="text-gray-400 italic">Unsupported widget type: {type}</div>;
+    return <div key="unsupported" className="text-gray-400 italic">Unsupported widget: {type}</div>;
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white relative">
       {/* Background */}
       {isVideoBg ? (
         <video
@@ -278,16 +272,7 @@ export default function UserPage() {
           <source src={pageBg} type="video/mp4" />
           <source src={pageBg} type="video/webm" />
         </video>
-      ) : isImageBg && pageBg.toLowerCase().endsWith('.gif') ? (
-        <div className="fixed top-0 left-0 w-full h-full z-[-1] overflow-hidden">
-          <img
-            src={pageBg}
-            alt=""
-            className="w-full h-full object-cover"
-            onError={() => setBackgroundError(true)}
-          />
-        </div>
-      ) : hasPageBackground && isImageBg ? (
+      ) : isImageBg ? (
         <div
           className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
           style={{ backgroundImage: `url(${pageBg})` }}
@@ -303,6 +288,7 @@ export default function UserPage() {
       )}
 
       <div className="relative max-w-2xl mx-auto px-4 py-12">
+        {/* Profile Banner */}
         {userData.profileBanner && (
           <div
             className="w-full h-32 md:h-48 rounded-xl mb-6 overflow-hidden"
@@ -315,6 +301,7 @@ export default function UserPage() {
         )}
 
         <div className="text-center mb-6">
+          {/* Avatar */}
           {userData.avatar ? (
             <img
               src={userData.avatar}
@@ -325,19 +312,25 @@ export default function UserPage() {
           ) : (
             <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl text-white font-bold">
-                {userData.name.charAt(0).toUpperCase()}
+                {userData.name?.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
 
+          {/* Name */}
           <h1 className="text-2xl font-bold">{userData.name || username}</h1>
+
+          {/* Location */}
           {userData.location && <p className="text-gray-400 text-sm mt-1">{userData.location}</p>}
+
+          {/* Special Tag */}
           {specialTag && (
             <span className="inline-block mt-2 px-3 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full border border-amber-500/30">
               {specialTag}
             </span>
           )}
 
+          {/* Badges */}
           {visibleBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {visibleBadges.map((badge) => (
@@ -354,8 +347,10 @@ export default function UserPage() {
           )}
         </div>
 
+        {/* Bio */}
         {userData.bio && <p className="text-center text-gray-300 mb-6">{userData.bio}</p>}
 
+        {/* Stats */}
         <div className="flex justify-center gap-4 text-sm text-gray-400 mb-8">
           <span>Level {userData.level}</span>
           <span>•</span>
@@ -364,36 +359,38 @@ export default function UserPage() {
           <span>{userData.loginStreak} day streak</span>
         </div>
 
+        {/* Links */}
+        {sortedLinks.length > 0 && (
+          <div className="space-y-3 mb-8">
+            {sortedLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2"
+              >
+                {link.icon && (
+                  <img
+                    src={link.icon}
+                    alt=""
+                    className="w-5 h-5 rounded"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+                <span>{link.title}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Widgets & Custom Sections */}
         <div className="space-y-6">
           {currentPageStructure.map((section) => {
-            if (section.type === 'bio') return null;
-            if (section.type === 'links' && sortedLinks.length > 0) {
-              return (
-                <div key={section.id} className="space-y-3">
-                  {sortedLinks.map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${glow} bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2`}
-                    >
-                      {link.icon && (
-                        <img
-                          src={link.icon}
-                          alt=""
-                          className="w-5 h-5 rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      )}
-                      <span>{link.title}</span>
-                    </a>
-                  ))}
-                </div>
-              );
-            }
+            if (section.type === 'bio' || section.type === 'links') return null;
+
             if (section.type === 'widget' && section.widgetId) {
               const widget = widgetMap.get(section.widgetId);
               if (widget) {
@@ -405,9 +402,11 @@ export default function UserPage() {
                 );
               }
             }
+
             if (section.type === 'spacer') {
               return <div key={section.id} style={{ height: section.height || 24 }} />;
             }
+
             if (section.type === 'custom' && section.content) {
               return (
                 <div
@@ -417,6 +416,7 @@ export default function UserPage() {
                 />
               );
             }
+
             return null;
           })}
         </div>

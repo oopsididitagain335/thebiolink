@@ -134,6 +134,8 @@ export default function ClientProfile({
   theme,
   glow,
   hasBanner,
+  hasPageBackground,
+  hasVideoBackground,
   profileUrl: rawProfileUrl,
   specialTag,
   xp,
@@ -150,8 +152,6 @@ export default function ClientProfile({
   const pageBackground = rawPageBackground?.trim() || '';
   const profileUrl = `https://thebiolink.lol/${username}`;
 
-  const hasPageBackground = !!pageBackground && /\.(png|jpe?g|webp|gif)$/i.test(pageBackground);
-  const hasVideoBackground = !!pageBackground && /\.(mp4|webm|ogg)$/i.test(pageBackground);
   const isGifBackground = hasPageBackground && pageBackground.toLowerCase().endsWith('.gif');
 
   useEffect(() => {
@@ -200,7 +200,6 @@ export default function ClientProfile({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Background */}
       {hasVideoBackground ? (
         <video
           autoPlay

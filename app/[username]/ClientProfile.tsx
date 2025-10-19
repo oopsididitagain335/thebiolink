@@ -123,7 +123,7 @@ export default function ClientProfile({
   name,
   avatar,
   profileBanner,
-  pageBackground: rawPageBackground,
+  pageBackground,
   bio,
   location,
   visibleBadges,
@@ -136,7 +136,7 @@ export default function ClientProfile({
   hasBanner,
   hasPageBackground,
   hasVideoBackground,
-  profileUrl: rawProfileUrl,
+  profileUrl,
   specialTag,
   xp,
   level,
@@ -148,9 +148,6 @@ export default function ClientProfile({
 }: ClientProfileProps) {
   const [isClient, setIsClient] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
-
-  const pageBackground = rawPageBackground?.trim() || '';
-  const profileUrl = `https://thebiolink.lol/${username}`;
 
   const isGifBackground = hasPageBackground && pageBackground.toLowerCase().endsWith('.gif');
 

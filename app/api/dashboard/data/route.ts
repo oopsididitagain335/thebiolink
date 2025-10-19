@@ -1,7 +1,58 @@
-// app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getUserById } from '@/lib/storage';
+
+// Define the UserData interface to clarify types
+interface UserData {
+  _id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  profileBanner?: string;
+  pageBackground?: string;
+  bio: string;
+  location?: string;
+  isEmailVerified: boolean;
+  plan?: string;
+  profileViews?: number;
+  theme?: string;
+  badges?: Array<{ id: string; name: string; icon: string; hidden?: boolean }>;
+  email: string;
+  discordId?: string;
+  xp?: number;
+  level?: number;
+  loginStreak?: number;
+  lastLogin?: string; // ISO string (e.g., "2025-10-20T00:38:00.000Z")
+  loginHistory?: string[]; // Array of ISO strings
+  lastMonthlyBadge?: string;
+  customCSS?: string;
+  customJS?: string;
+  seoMeta?: { title: string; description: string; keywords: string };
+  analyticsCode?: string;
+  links?: Array<{
+    id: string;
+    url: string;
+    title: string;
+    icon?: string;
+    position: number;
+  }>;
+  widgets?: Array<{
+    id: string;
+    type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
+    title?: string;
+    content?: string;
+    url?: string;
+    position: number;
+  }>;
+  layoutStructure?: Array<{
+    id: string;
+    type: string;
+    widgetId?: string;
+    content?: string;
+    styling?: { [key: string]: string };
+    visibleLinks?: string[];
+  }>;
+}
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -37,8 +88,12 @@ export async function GET(request: NextRequest) {
         xp: userData.xp || 0,
         level: userData.level || 1,
         loginStreak: userData.loginStreak || 0,
-        lastLogin: userData.lastLogin?.toISOString() || '',
-        loginHistory: (userData.loginHistory || []).map(d => d.toISOString()),
+        lastLogin: userData.lastLogin && !isNaN(Date.parse(userData.lastLogin))
+          ? new Date(userData.lastLogin).toISOString()
+          : '',
+        loginHistory: (userData.loginHistory || []).map((d) =>
+          !isNaN(Date.parse(d)) ? new Date(d).toISOString() : ''
+        ),
         lastMonthlyBadge: userData.lastMonthlyBadge || '',
         customCSS: userData.customCSS || '',
         customJS: userData.customJS || '',

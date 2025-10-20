@@ -1,6 +1,5 @@
 // app/dashboard/page.tsx
 'use client';
-
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -12,7 +11,6 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
@@ -21,7 +19,6 @@ interface Widget {
   url?: string;
   position: number;
 }
-
 interface Badge {
   id: string;
   name: string;
@@ -30,7 +27,6 @@ interface Badge {
   earnedAt: string;
   hidden?: boolean;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -59,7 +55,6 @@ interface User {
   analyticsCode?: string;
   widgets?: Widget[];
 }
-
 interface LayoutSection {
   id: string;
   type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text';
@@ -67,6 +62,7 @@ interface LayoutSection {
   content?: string;
   styling?: { [key: string]: string };
   visibleLinks?: string[];
+  height?: number;
 }
 
 // --- Constants ---
@@ -120,7 +116,7 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Tab Components ---
+// --- Tab Components (kept minimal for brevity but fully functional) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   return (
@@ -130,12 +126,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
-            <a
-              href={bioLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
-            >
+            <a href={bioLinkUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-indigo-400 hover:underline break-all">
               {bioLinkUrl}
             </a>
           </div>
@@ -168,7 +159,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -183,7 +173,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -286,7 +275,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
       )
     );
   };
-
   const addLink = () => {
     const preset = FAMOUS_LINKS.find((l) => l.title === newLinkTitle);
     setLinks([
@@ -301,11 +289,9 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     ]);
     setNewLinkTitle('');
   };
-
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -395,15 +381,12 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       },
     ]);
   };
-
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => (i === index ? { ...w, [field]: value } : w)));
   };
-
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -486,15 +469,12 @@ const ProfileBuilderTab = ({
     };
     setLayoutStructure([...layoutStructure, newBlock]);
   };
-
   const updateBlock = (id: string, updates: Partial<LayoutSection>) => {
     setLayoutStructure(layoutStructure.map((s) => (s.id === id ? { ...s, ...updates } : s)));
   };
-
   const removeBlock = (id: string) => {
     setLayoutStructure(layoutStructure.filter((s) => s.id !== id));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -517,7 +497,7 @@ const ProfileBuilderTab = ({
               <div className="flex justify-between items-start mb-3">
                 <span className="text-white font-medium capitalize">{section.type}</span>
                 <button onClick={() => removeBlock(section.id)} className="text-red-400 hover:text-red-300">
-                  ✕
+                  ❌
                 </button>
               </div>
               {section.type === 'links' && (
@@ -556,11 +536,9 @@ const ProfileBuilderTab = ({
               {section.type === 'spacer' && (
                 <input
                   type="number"
-                  value={section.styling?.height || 20}
+                  value={section.height || 20}
                   onChange={(e) =>
-                    updateBlock(section.id, {
-                      styling: { ...section.styling, height: e.target.value },
-                    })
+                    updateBlock(section.id, { height: parseInt(e.target.value) || 20 })
                   }
                   className="w-20 mt-2 px-2 py-1 bg-gray-600/50 border border-gray-600 rounded text-white text-sm"
                   placeholder="px"
@@ -581,7 +559,6 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
@@ -694,7 +671,6 @@ export default function Dashboard() {
     analyticsCode: '',
     widgets: [],
   });
-
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([]);
@@ -719,10 +695,8 @@ export default function Dashboard() {
         if (!data.success || !data.user) {
           throw new Error('Invalid response data');
         }
-
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
-
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -753,7 +727,6 @@ export default function Dashboard() {
           analyticsCode: data.user.analyticsCode || '',
           widgets: Array.isArray(data.widgets) ? data.widgets : [],
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -765,7 +738,6 @@ export default function Dashboard() {
             position: link.position ?? 0,
           }))
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -778,7 +750,6 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(Array.isArray(data.layoutStructure) ? data.layoutStructure : []);
         dispatch({ type: 'SAVE', payload: data.layoutStructure || [] });
       } catch (error) {
@@ -805,13 +776,11 @@ export default function Dashboard() {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
-
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
-
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -822,7 +791,6 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
-
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -831,7 +799,6 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -858,7 +825,6 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
-
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -935,7 +901,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         {/* Tabs */}
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
@@ -954,7 +919,6 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
-
         {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
@@ -967,7 +931,6 @@ export default function Dashboard() {
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'custom_code' && <CustomCodeTab user={user} setUser={setUser} />}
           </div>
-
           {/* Live Preview */}
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1029,6 +992,9 @@ export default function Dashboard() {
                             </div>
                           );
                         }
+                        if (section.type === 'spacer') {
+                          return <div key={section.id} style={{ height: section.height || 20 }}></div>;
+                        }
                         return (
                           <div key={section.id} className="text-sm bg-white/10 py-2 rounded">
                             {section.type}
@@ -1041,7 +1007,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         {/* Notifications */}
         {message && (
           <div
@@ -1054,7 +1019,6 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
-
         {/* Compliance Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">

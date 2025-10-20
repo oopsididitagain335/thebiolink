@@ -16,8 +16,11 @@ interface Link {
 
 interface Widget {
   id: string;
-  type: string;
-  url: string;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
+  url?: string; // Made optional to match WidgetItem
+  title?: string; // Added to align with WidgetItem
+  content?: string; // Added to align with WidgetItem
+  position?: number; // Added to align with WidgetItem
 }
 
 interface Styling {
@@ -136,7 +139,12 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           </div>
         );
       }
-      return <div style={baseStyle} className="block">Widget: {widget.type}</div>;
+      // Handle other widget types using title or content if available
+      return (
+        <div style={baseStyle} className="block">
+          {widget.title || widget.content || `Widget: ${widget.type}`}
+        </div>
+      );
     case 'text':
       return (
         <div style={baseStyle} className="block" dangerouslySetInnerHTML={{ __html: section.content || '' }} />

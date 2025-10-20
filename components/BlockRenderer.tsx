@@ -36,50 +36,16 @@ interface Styling {
   textAlign?: React.CSSProperties['textAlign'];
 }
 
-// ------------------
-// Type-safe LayoutSection
-// ------------------
-interface BaseSection {
+interface LayoutSection {
   id: string;
-  type: string;
+  type: string; // <-- generic string type to match page
+  widgetId?: string;
+  content?: string;
   styling?: Styling;
   visibleLinks?: string[];
+  height?: number; // <-- for spacer
 }
 
-interface NameSection extends BaseSection {
-  type: 'name';
-}
-
-interface BioSection extends BaseSection {
-  type: 'bio';
-}
-
-interface BadgesSection extends BaseSection {
-  type: 'badges';
-}
-
-interface LinksSection extends BaseSection {
-  type: 'links';
-}
-
-interface WidgetSection extends BaseSection {
-  type: 'widget';
-  widgetId: string;
-}
-
-interface TextSection extends BaseSection {
-  type: 'text';
-  content?: string;
-}
-
-interface SpacerSection extends BaseSection {
-  type: 'spacer';
-  height?: number;
-}
-
-type LayoutSection = NameSection | BioSection | BadgesSection | LinksSection | WidgetSection | TextSection | SpacerSection;
-
-// ------------------
 interface UserData {
   name: string;
   username: string;
@@ -194,11 +160,19 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     }
 
     case 'widget': {
+      if (!section.widgetId) {
+        return (
+          <div style={baseStyle} className="block text-center text-gray-400 italic">
+            Widget not configured
+          </div>
+        );
+      }
+
       const widget = widgets.find((w) => w.id === section.widgetId);
       if (!widget) {
         return (
           <div style={baseStyle} className="block text-center text-gray-400 italic">
-            Widget not configured
+            Widget not found
           </div>
         );
       }
@@ -242,9 +216,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
 
       return (
         <div style={baseStyle} className="block p-4">
-          <h3 className="font-bold text-lg mb-1">
-            {widget.title || `Widget: ${widget.type}`}
-          </h3>
+          <h3 className="font-bold text-lg mb-1">{widget.title || `Widget: ${widget.type}`}</h3>
           {widget.content && <p className="opacity-90">{widget.content}</p>}
         </div>
       );

@@ -17,10 +17,10 @@ interface Link {
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
-  url?: string; // Made optional to match WidgetItem
-  title?: string; // Added to align with WidgetItem
-  content?: string; // Added to align with WidgetItem
-  position?: number; // Added to align with WidgetItem
+  url?: string;
+  title?: string;
+  content?: string;
+  position?: number;
 }
 
 interface Styling {
@@ -31,7 +31,7 @@ interface Styling {
   borderRadius?: string;
   border?: string;
   fontSize?: string;
-  textAlign?: string;
+  textAlign?: React.CSSProperties['textAlign']; // Use React.CSSProperties['textAlign'] for correct type
 }
 
 interface Section {
@@ -139,7 +139,6 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           </div>
         );
       }
-      // Handle other widget types using title or content if available
       return (
         <div style={baseStyle} className="block">
           {widget.title || widget.content || `Widget: ${widget.type}`}

@@ -2,34 +2,90 @@
 import { notFound } from 'next/navigation';
 import BlockRenderer from '@/components/BlockRenderer';
 
-interface Badge { id: string; name: string; icon: string; hidden?: boolean }
-interface LinkItem { id: string; url: string; title: string; icon?: string; position: number }
-interface WidgetItem { id: string; type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar'; title?: string; content?: string; url?: string; position: number }
-interface LayoutSection { id: string; type: string; widgetId?: string; content?: string; styling?: { [key: string]: string }; visibleLinks?: string[]; height?: number }
-interface UserData { 
-  name: string; username: string; avatar: string; profileBanner: string; pageBackground: string;
-  bio: string; location: string; badges: Badge[]; isBanned: boolean; profileViews: number;
-  links: LinkItem[]; widgets: WidgetItem[]; layoutStructure: LayoutSection[]; theme: string;
-  xp: number; level: number; loginStreak: number; customCSS?: string; customJS?: string; analyticsCode?: string;
+// --- Interfaces (must match your storage and API) ---
+interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  hidden?: boolean;
+}
+
+interface LinkItem {
+  id: string;
+  url: string;
+  title: string;
+  icon?: string;
+  position: number;
+}
+
+interface WidgetItem {
+  id: string;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
+  title?: string;
+  content?: string;
+  url?: string;
+  position: number;
+}
+
+interface LayoutSection {
+  id: string;
+  type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text';
+  widgetId?: string;
+  content?: string;
+  styling?: { [key: string]: string };
+  visibleLinks?: string[];
+  height?: number; // for spacer
+}
+
+interface UserData {
+  name: string;
+  username: string;
+  avatar: string;
+  profileBanner: string;
+  pageBackground: string;
+  bio: string;
+  location: string;
+  badges: Badge[];
+  isBanned: boolean;
+  profileViews: number;
+  links: LinkItem[];
+  widgets: WidgetItem[];
+  layoutStructure: LayoutSection[];
+  theme: string;
+  xp: number;
+  level: number;
+  loginStreak: number;
+  customCSS?: string;
+  customJS?: string;
+  analyticsCode?: string;
 }
 
 export const dynamic = 'force-dynamic';
 
-export default async function UserPage({ params }: { params: { username: string } }) {
-  const { username } = params;
+// ✅ Correct Next.js 13.4+ App Router signature
+export default async function UserPage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
+  const { username } = await params;
 
   let userData: UserData | null = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${username}`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error('Not found');
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${username}`,
+      {
+        next: { revalidate: 60 },
+      }
+    );
+    if (!res.ok) throw new Error('User not found');
     userData = await res.json();
   } catch {
     notFound();
   }
 
-  if (userData!.isBanned) {
+  // Handle banned accounts
+  if (userData.isBanned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <h1 className="text-4xl font-bold text-red-500">Account Banned</h1>
@@ -37,15 +93,22 @@ export default async function UserPage({ params }: { params: { username: string 
     );
   }
 
-  const pageBg = userData!.pageBackground || '';
+  const pageBg = userData.pageBackground || '';
   const isVideoBg = /\.(mp4|webm|ogg)$/i.test(pageBg);
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative">
       {/* Background */}
       {isVideoBg ? (
-        <video autoPlay muted loop playsInline className="fixed top-0 left-0 w-full h-full object-cover z-[-1]">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
+        >
           <source src={pageBg} type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
       ) : pageBg ? (
         <div
@@ -57,27 +120,43 @@ export default async function UserPage({ params }: { params: { username: string 
       )}
 
       {/* Profile Banner */}
-      {userData!.profileBanner && (
+      {userData.profileBanner && (
         <div
           className="w-full h-40 md:h-56 rounded-b-2xl overflow-hidden"
-          style={{ backgroundImage: `url(${userData!.profileBanner})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{
+            backgroundImage: `url(${userData.profileBanner})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
         />
       )}
 
-      {/* Content */}
+      {/* Main Content */}
       <div className="relative max-w-2xl mx-auto px-4 py-8 md:py-12">
-        {userData!.layoutStructure.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">This profile is empty.</div>
+        {userData.layoutStructure.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            This profile is empty.
+          </div>
         ) : (
-          userData!.layoutStructure.map((section) => (
-            <BlockRenderer key={section.id} section={section} user={userData!} links={userData!.links} widgets={userData!.widgets} />
+          userData.layoutStructure.map((section) => (
+            <BlockRenderer
+              key={section.id}
+              section={section}
+              user={userData!}
+              links={userData!.links}
+              widgets={userData!.widgets}
+            />
           ))
         )}
       </div>
 
-      {/* Custom CSS & Analytics */}
-      {userData!.customCSS && <style dangerouslySetInnerHTML={{ __html: userData!.customCSS }} />}
-      {userData!.analyticsCode && <script dangerouslySetInnerHTML={{ __html: userData!.analyticsCode }} />}
+      {/* Inject Custom CSS & Analytics */}
+      {userData.customCSS && (
+        <style dangerouslySetInnerHTML={{ __html: userData.customCSS }} />
+      )}
+      {userData.analyticsCode && (
+        <script dangerouslySetInnerHTML={{ __html: userData.analyticsCode }} />
+      )}
     </div>
   );
 }

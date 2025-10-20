@@ -31,7 +31,7 @@ interface Styling {
   borderRadius?: string;
   border?: string;
   fontSize?: string;
-  textAlign?: React.CSSProperties['textAlign']; // Use React.CSSProperties['textAlign'] for correct type
+  textAlign?: React.CSSProperties['textAlign'];
 }
 
 interface Section {
@@ -58,7 +58,7 @@ interface Props {
 }
 
 export default function BlockRenderer({ section, user, links, widgets }: Props) {
-  const style = section.styling || {};
+  const style = section.stying || {};
 
   const baseStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || 'transparent',
@@ -96,8 +96,8 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
         </div>
       );
     case 'links':
-      const visibleLinks = section.visibleLinks
-        ? links.filter((l) => section.visibleLinks.includes(l.id))
+      const visibleLinks = section.visibleLinks && Array.isArray(section.visibleLinks)
+        ? links.filter((l) => section.visibleLinks!.includes(l.id))
         : links;
       return (
         <div style={baseStyle} className="block">

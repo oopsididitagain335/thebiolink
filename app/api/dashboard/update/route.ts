@@ -12,33 +12,41 @@ export async function PUT(request: NextRequest) {
   try {
     const { profile, links, widgets } = await request.json();
 
-    if (profile) {
-      await updateUserProfile(user._id, {
-        name: profile.name?.substring(0, 100) || '',
-        username: profile.username?.toLowerCase() || '',
-        avatar: profile.avatar || '',
-        profileBanner: profile.profileBanner || '',
-        pageBackground: profile.pageBackground || '',
-        bio: profile.bio?.substring(0, 500) || '',
-        location: profile.location?.substring(0, 100) || '',
-        theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) 
-          ? profile.theme 
-          : 'indigo',
-        layoutStructure: profile.layoutStructure || [],
-        customCSS: '',
-        customJS: '',
-        seoMeta: profile.seoMeta || { title: '', description: '', keywords: '' },
-        analyticsCode: profile.analyticsCode || '',
-        discordId: profile.discordId,
-      });
+    // Validate and sanitize profile fields
+    const updateData: any = {
+      name: typeof profile.name === 'string' ? profile.name.substring(0, 100) : '',
+      username: typeof profile.username === 'string' ? profile.username.toLowerCase().substring(0, 30) : '',
+      avatar: typeof profile.avatar === 'string' ? profile.avatar : '',
+      profileBanner: typeof profile.profileBanner === 'string' ? profile.profileBanner : '',
+      pageBackground: typeof profile.pageBackground === 'string' ? profile.pageBackground : '',
+      bio: typeof profile.bio === 'string' ? profile.bio.substring(0, 500) : '',
+      location: typeof profile.location === 'string' ? profile.location.substring(0, 100) : '',
+      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) ? profile.theme : 'indigo',
+      discordId: typeof profile.discordId === 'string' ? profile.discordId : '',
+      customCSS: typeof profile.customCSS === 'string' ? profile.customCSS : '',
+      customJS: typeof profile.customJS === 'string' ? profile.customJS : '',
+      analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode : '',
+      seoMeta: {
+        title: typeof profile.seoMeta?.title === 'string' ? profile.seoMeta.title.substring(0, 100) : '',
+        description: typeof profile.seoMeta?.description === 'string' ? profile.seoMeta.description.substring(0, 200) : '',
+        keywords: typeof profile.seoMeta?.keywords === 'string' ? profile.seoMeta.keywords.substring(0, 200) : '',
+      },
+      layoutStructure: Array.isArray(profile.layoutStructure) ? profile.layoutStructure : [],
+    };
+
+    await updateUserProfile(user._id, updateData);
+
+    if (Array.isArray(links)) {
+      await saveUserLinks(user._id, links);
     }
 
-    if (Array.isArray(links)) await saveUserLinks(user._id, links);
-    if (Array.isArray(widgets)) await saveUserWidgets(user._id, widgets);
+    if (Array.isArray(widgets)) {
+      await saveUserWidgets(user._id, widgets);
+    }
 
     return Response.json({ success: true });
-  } catch (error: any) {
-    console.error('Update error:', error);
-    return Response.json({ error: 'Update failed' }, { status: 400 });
+  } catch (error) {
+    console.error('Dashboard update error:', error);
+    return Response.json({ error: 'Update failed' }, { status: 500 });
   }
 }

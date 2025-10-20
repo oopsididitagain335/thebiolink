@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import BlockRenderer from '@/components/BlockRenderer';
 
+// --- Interfaces (same as your dashboard) ---
 interface Badge {
   id: string;
   name: string;
@@ -19,7 +20,7 @@ interface LinkItem {
 
 interface WidgetItem {
   id: string;
-  type: string;
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
@@ -31,9 +32,8 @@ interface LayoutSection {
   type: string;
   widgetId?: string;
   content?: string;
-  styling?: any;
+  styling?: { [key: string]: string };
   visibleLinks?: string[];
-  height?: number;
 }
 
 interface UserData {
@@ -59,17 +59,20 @@ interface UserData {
   analyticsCode?: string;
 }
 
+// ✅ Correct: No manual props typing — let Next.js infer
 export default async function UserPage({ params }: { params: { username: string } }) {
-  let userData: UserData | null = null;
+  const { username } = params;
 
+  // Fetch user data
+  let userData: UserData | null = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${params.username}`, {
-      next: { revalidate: 60 }, // ISR
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${username}`, {
+      next: { revalidate: 60 }, // ISR for performance
     });
     if (!res.ok) throw new Error('Not found');
     userData = await res.json();
   } catch (e) {
-    notFound();
+    notFound(); // Show 404 if user not found
   }
 
   if (userData.isBanned) {
@@ -83,38 +86,7 @@ export default async function UserPage({ params }: { params: { username: string 
   }
 
   const pageBg = userData.pageBackground || '';
-  const isVideoBg = /\.(mp4|webm)$/i.test(pageBg);
-
-  // Inject custom code safely (only on client)
-  if (typeof window !== 'undefined') {
-    if (userData.customCSS) {
-      let style = document.getElementById('custom-css') as HTMLStyleElement;
-      if (!style) {
-        style = document.createElement('style');
-        style.id = 'custom-css';
-        document.head.appendChild(style);
-      }
-      style.textContent = userData.customCSS;
-    }
-    if (userData.customJS) {
-      let script = document.getElementById('custom-js') as HTMLScriptElement;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = 'custom-js';
-        document.body.appendChild(script);
-      }
-      script.textContent = userData.customJS;
-    }
-    if (userData.analyticsCode) {
-      let analytics = document.getElementById('custom-analytics') as HTMLScriptElement;
-      if (!analytics) {
-        analytics = document.createElement('script');
-        analytics.id = 'custom-analytics';
-        document.head.appendChild(analytics);
-      }
-      analytics.textContent = userData.analyticsCode;
-    }
-  }
+  const isVideoBg = /\.(mp4|webm|ogg)$/i.test(pageBg);
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative">
@@ -154,8 +126,7 @@ export default async function UserPage({ params }: { params: { username: string 
       <div className="relative max-w-2xl mx-auto px-4 py-8 md:py-12">
         {userData.layoutStructure.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
-            <p className="text-lg">This profile is a blank canvas.</p>
-            <p className="mt-2 text-sm">The owner can build it from their dashboard.</p>
+            <p>This profile is empty.</p>
           </div>
         ) : (
           userData.layoutStructure.map((section) => (
@@ -169,6 +140,14 @@ export default async function UserPage({ params }: { params: { username: string 
           ))
         )}
       </div>
+
+      {/* Inject custom code (client-side only) */}
+      {userData.customCSS && (
+        <style id="custom-css" dangerouslySetInnerHTML={{ __html: userData.customCSS }} />
+      )}
+      {userData.analyticsCode && (
+        <script id="analytics" dangerouslySetInnerHTML={{ __html: userData.analyticsCode }} />
+      )}
     </div>
   );
 }

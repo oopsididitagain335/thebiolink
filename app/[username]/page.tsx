@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import BlockRenderer from '@/components/BlockRenderer';
 
-// --- Interfaces (same as your dashboard) ---
+// --- Interfaces ---
 interface Badge {
   id: string;
   name: string;
@@ -59,23 +59,34 @@ interface UserData {
   analyticsCode?: string;
 }
 
-// ✅ Correct: No manual props typing — let Next.js infer
-export default async function UserPage({ params }: { params: { username: string } }) {
+// Optional: force dynamic rendering (ISR can also be added if needed)
+export const dynamic = 'force-dynamic';
+
+interface UserPageProps {
+  params: {
+    username: string;
+  };
+}
+
+export default async function UserPage({ params }: UserPageProps) {
   const { username } = params;
 
   // Fetch user data
   let userData: UserData | null = null;
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${username}`, {
-      next: { revalidate: 60 }, // ISR for performance
+      next: { revalidate: 60 }, // ISR
     });
+
     if (!res.ok) throw new Error('Not found');
+
     userData = await res.json();
   } catch (e) {
-    notFound(); // Show 404 if user not found
+    notFound();
   }
 
-  if (userData.isBanned) {
+  // Show banned message
+  if (userData!.isBanned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -85,7 +96,7 @@ export default async function UserPage({ params }: { params: { username: string 
     );
   }
 
-  const pageBg = userData.pageBackground || '';
+  const pageBg = userData!.pageBackground || '';
   const isVideoBg = /\.(mp4|webm|ogg)$/i.test(pageBg);
 
   return (
@@ -111,11 +122,11 @@ export default async function UserPage({ params }: { params: { username: string 
       )}
 
       {/* Profile Banner */}
-      {userData.profileBanner && (
+      {userData!.profileBanner && (
         <div
           className="w-full h-40 md:h-56 rounded-b-2xl overflow-hidden"
           style={{
-            backgroundImage: `url(${userData.profileBanner})`,
+            backgroundImage: `url(${userData!.profileBanner})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -124,12 +135,12 @@ export default async function UserPage({ params }: { params: { username: string 
 
       {/* Content */}
       <div className="relative max-w-2xl mx-auto px-4 py-8 md:py-12">
-        {userData.layoutStructure.length === 0 ? (
+        {userData!.layoutStructure.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <p>This profile is empty.</p>
           </div>
         ) : (
-          userData.layoutStructure.map((section) => (
+          userData!.layoutStructure.map((section) => (
             <BlockRenderer
               key={section.id}
               section={section}
@@ -141,12 +152,12 @@ export default async function UserPage({ params }: { params: { username: string 
         )}
       </div>
 
-      {/* Inject custom code (client-side only) */}
-      {userData.customCSS && (
-        <style id="custom-css" dangerouslySetInnerHTML={{ __html: userData.customCSS }} />
+      {/* Custom CSS & Analytics */}
+      {userData!.customCSS && (
+        <style id="custom-css" dangerouslySetInnerHTML={{ __html: userData!.customCSS }} />
       )}
-      {userData.analyticsCode && (
-        <script id="analytics" dangerouslySetInnerHTML={{ __html: userData.analyticsCode }} />
+      {userData!.analyticsCode && (
+        <script id="analytics" dangerouslySetInnerHTML={{ __html: userData!.analyticsCode }} />
       )}
     </div>
   );

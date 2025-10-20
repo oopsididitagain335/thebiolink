@@ -16,7 +16,15 @@ interface Link {
 
 interface Widget {
   id: string;
-  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
+  type:
+    | 'spotify'
+    | 'youtube'
+    | 'twitter'
+    | 'custom'
+    | 'form'
+    | 'ecommerce'
+    | 'api'
+    | 'calendar';
   url?: string;
   title?: string;
   content?: string;
@@ -58,7 +66,8 @@ interface Props {
 }
 
 export default function BlockRenderer({ section, user, links, widgets }: Props) {
-  const style = section.stying || {};
+  // ✅ Fixed typo: 'stying' → 'styling'
+  const style = section.styling || {};
 
   const baseStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || 'transparent',
@@ -75,30 +84,43 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     case 'name':
       return (
         <div style={baseStyle} className="block">
-          <h1 className="font-bold text-2xl">{user.name || user.username}</h1>
+          <h1 className="font-bold text-2xl">
+            {user.name || user.username}
+          </h1>
         </div>
       );
+
     case 'bio':
       return (
         <div style={baseStyle} className="block">
           <p>{user.bio}</p>
         </div>
       );
+
     case 'badges':
       return (
         <div style={baseStyle} className="block">
-          {(user.badges || []).filter((badge: Badge) => !badge.hidden).map((badge: Badge) => (
-            <span key={badge.id} className="inline-block mr-2">
-              <img src={badge.icon} alt={badge.name} className="inline w-5 h-5 rounded-full" />
-              {badge.name}
-            </span>
-          ))}
+          {(user.badges || [])
+            .filter((badge: Badge) => !badge.hidden)
+            .map((badge: Badge) => (
+              <span key={badge.id} className="inline-block mr-2">
+                <img
+                  src={badge.icon}
+                  alt={badge.name}
+                  className="inline w-5 h-5 rounded-full"
+                />{' '}
+                {badge.name}
+              </span>
+            ))}
         </div>
       );
-    case 'links':
-      const visibleLinks = section.visibleLinks && Array.isArray(section.visibleLinks)
-        ? links.filter((l) => section.visibleLinks!.includes(l.id))
-        : links;
+
+    case 'links': {
+      const visibleLinks =
+        section.visibleLinks && Array.isArray(section.visibleLinks)
+          ? links.filter((l) => section.visibleLinks!.includes(l.id))
+          : links;
+
       return (
         <div style={baseStyle} className="block">
           {visibleLinks.map((link) => (
@@ -114,11 +136,16 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           ))}
         </div>
       );
-    case 'widget':
+    }
+
+    case 'widget': {
       const widget = widgets.find((w) => w.id === section.widgetId);
       if (!widget) return null;
+
       if (widget.type === 'youtube' && widget.url) {
-        const id = widget.url.split('v=')[1]?.split('&')[0] || widget.url.split('/').pop();
+        const id =
+          widget.url.split('v=')[1]?.split('&')[0] ||
+          widget.url.split('/').pop();
         return id ? (
           <div style={baseStyle} className="block">
             <iframe
@@ -129,6 +156,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           </div>
         ) : null;
       }
+
       if (widget.type === 'spotify' && widget.url) {
         const url = widget.url.includes('embed')
           ? widget.url
@@ -139,17 +167,26 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           </div>
         );
       }
+
       return (
         <div style={baseStyle} className="block">
           {widget.title || widget.content || `Widget: ${widget.type}`}
         </div>
       );
+    }
+
     case 'text':
       return (
-        <div style={baseStyle} className="block" dangerouslySetInnerHTML={{ __html: section.content || '' }} />
+        <div
+          style={baseStyle}
+          className="block"
+          dangerouslySetInnerHTML={{ __html: section.content || '' }}
+        />
       );
+
     case 'spacer':
       return <div style={{ height: section.height || 20 }} />;
+
     default:
       return null;
   }

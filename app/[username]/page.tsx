@@ -2,11 +2,10 @@
 import { notFound } from 'next/navigation';
 import BlockRenderer from '@/components/BlockRenderer';
 
-// --- Interfaces (unchanged) ---
 interface Badge { id: string; name: string; icon: string; hidden?: boolean }
 interface LinkItem { id: string; url: string; title: string; icon?: string; position: number }
 interface WidgetItem { id: string; type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar'; title?: string; content?: string; url?: string; position: number }
-interface LayoutSection { id: string; type: string; widgetId?: string; content?: string; styling?: { [key: string]: string }; visibleLinks?: string[] }
+interface LayoutSection { id: string; type: string; widgetId?: string; content?: string; styling?: { [key: string]: string }; visibleLinks?: string[]; height?: number }
 interface UserData { 
   name: string; username: string; avatar: string; profileBanner: string; pageBackground: string;
   bio: string; location: string; badges: Badge[]; isBanned: boolean; profileViews: number;
@@ -14,27 +13,22 @@ interface UserData {
   xp: number; level: number; loginStreak: number; customCSS?: string; customJS?: string; analyticsCode?: string;
 }
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// ✅ No explicit type for params; let TS infer it
-export default async function UserPage({ params }: any) {
+export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
 
-  // Fetch user data
   let userData: UserData | null = null;
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/links/${username}`, {
       next: { revalidate: 60 },
     });
-
     if (!res.ok) throw new Error('Not found');
     userData = await res.json();
   } catch {
     notFound();
   }
 
-  // Banned user
   if (userData!.isBanned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">

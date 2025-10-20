@@ -2,7 +2,6 @@
 import { notFound } from 'next/navigation';
 import BlockRenderer from '@/components/BlockRenderer';
 
-// --- Interfaces (must match your storage and API) ---
 interface Badge {
   id: string;
   name: string;
@@ -34,7 +33,7 @@ interface LayoutSection {
   content?: string;
   styling?: { [key: string]: string };
   visibleLinks?: string[];
-  height?: number; // for spacer
+  height?: number;
 }
 
 interface UserData {
@@ -62,7 +61,6 @@ interface UserData {
 
 export const dynamic = 'force-dynamic';
 
-// ✅ Correct Next.js 13.4+ App Router signature
 export default async function UserPage({
   params,
 }: {
@@ -78,13 +76,17 @@ export default async function UserPage({
         next: { revalidate: 60 },
       }
     );
-    if (!res.ok) throw new Error('User not found');
+    if (!res.ok) throw new Error('Not found');
     userData = await res.json();
   } catch {
     notFound();
   }
 
-  // Handle banned accounts
+  // ✅ Critical: ensure userData is not null before accessing
+  if (!userData) {
+    notFound();
+  }
+
   if (userData.isBanned) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -108,7 +110,6 @@ export default async function UserPage({
           className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
         >
           <source src={pageBg} type="video/mp4" />
-          Your browser does not support the video tag.
         </video>
       ) : pageBg ? (
         <div
@@ -131,7 +132,7 @@ export default async function UserPage({
         />
       )}
 
-      {/* Main Content */}
+      {/* Content */}
       <div className="relative max-w-2xl mx-auto px-4 py-8 md:py-12">
         {userData.layoutStructure.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
@@ -142,15 +143,15 @@ export default async function UserPage({
             <BlockRenderer
               key={section.id}
               section={section}
-              user={userData!}
-              links={userData!.links}
-              widgets={userData!.widgets}
+              user={userData}
+              links={userData.links}
+              widgets={userData.widgets}
             />
           ))
         )}
       </div>
 
-      {/* Inject Custom CSS & Analytics */}
+      {/* Custom CSS & Analytics */}
       {userData.customCSS && (
         <style dangerouslySetInnerHTML={{ __html: userData.customCSS }} />
       )}

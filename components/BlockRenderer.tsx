@@ -8,18 +8,21 @@ interface Badge {
   hidden?: boolean;
 }
 
-interface Link {
+interface LinkItem {
   id: string;
-  title: string;
   url: string;
+  title: string;
+  icon?: string;
+  position: number;
 }
 
-interface Widget {
+interface WidgetItem {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
-  url?: string;
   title?: string;
   content?: string;
+  url?: string;
+  position: number;
 }
 
 interface Styling {
@@ -33,42 +36,43 @@ interface Styling {
   textAlign?: React.CSSProperties['textAlign'];
 }
 
-interface Section {
+interface LayoutSection {
   id: string;
-  type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'text' | 'spacer';
-  styling?: Styling;
-  content?: string;
-  height?: number;
-  visibleLinks?: string[];
+  type: string;
   widgetId?: string;
+  content?: string;
+  styling?: Styling;
+  visibleLinks?: string[];
 }
 
-interface User {
-  name?: string;
-  username?: string;
-  bio?: string;
-  badges?: Badge[];
+interface UserData {
+  name: string;
+  username: string;
+  bio: string;
+  badges: Badge[];
 }
 
 interface Props {
-  section: Section;
-  user: User;
-  links: Link[];
-  widgets: Widget[];
+  section: LayoutSection;
+  user: UserData;
+  links: LinkItem[];
+  widgets: WidgetItem[];
 }
 
 export default function BlockRenderer({ section, user, links, widgets }: Props) {
   const style = section.styling || {};
 
   const baseStyle: React.CSSProperties = {
-    backgroundColor: style.backgroundColor || 'transparent',
-    color: style.color || 'inherit',
-    padding: style.padding || '12px',
-    margin: style.margin || '8px 0',
-    borderRadius: style.borderRadius || '8px',
-    border: style.border || 'none',
+    backgroundColor: style.backgroundColor || 'rgba(31, 41, 55, 0.6)',
+    color: style.color || '#f9fafb',
+    padding: style.padding || '16px',
+    margin: style.margin || '12px 0',
+    borderRadius: style.borderRadius || '12px',
+    border: style.border || '1px solid rgba(255,255,255,0.1)',
     fontSize: style.fontSize || '1rem',
-    textAlign: style.textAlign || 'left',
+    textAlign: style.textAlign || 'center',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     width: '100%',
     boxSizing: 'border-box',
   };
@@ -77,9 +81,9 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     case 'name':
       return (
         <div style={baseStyle} className="block">
-          <h1 className="font-bold text-2xl">
+          <h1 className="font-extrabold text-3xl md:text-4xl">
             {user.name || user.username || (
-              <span className="text-gray-400 italic">Your Name</span>
+              <span className="text-gray-400 font-normal italic">Your Name</span>
             )}
           </h1>
         </div>
@@ -88,8 +92,8 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     case 'bio':
       return (
         <div style={baseStyle} className="block">
-          <p className={user.bio ? '' : 'text-gray-400 italic'}>
-            {user.bio || 'Add a short bio...'}
+          <p className={`leading-relaxed ${user.bio ? '' : 'text-gray-400 italic'}`}>
+            {user.bio || 'Add a short bio to tell the world who you are.'}
           </p>
         </div>
       );
@@ -99,16 +103,24 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
       if (visibleBadges.length === 0) {
         return (
           <div style={baseStyle} className="block text-gray-400 italic">
-            No visible badges
+            No badges to display
           </div>
         );
       }
       return (
-        <div style={baseStyle} className="block flex flex-wrap gap-2">
+        <div style={baseStyle} className="block flex flex-wrap justify-center gap-2">
           {visibleBadges.map((badge) => (
-            <span key={badge.id} className="inline-flex items-center gap-1 bg-gray-800 px-2 py-1 rounded">
-              <img src={badge.icon} alt={badge.name} className="w-4 h-4 rounded-full" />
-              <span>{badge.name}</span>
+            <span
+              key={badge.id}
+              className="inline-flex items-center gap-1.5 bg-gray-800/70 px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              <img
+                src={badge.icon}
+                alt={badge.name}
+                className="w-5 h-5 rounded-full"
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+              {badge.name}
             </span>
           ))}
         </div>
@@ -116,13 +128,15 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
 
     case 'links': {
       const visibleLinks = section.visibleLinks?.length
-        ? links.filter(l => section.visibleLinks!.includes(l.id))
-        : links;
+        ? links
+            .filter((l) => section.visibleLinks!.includes(l.id))
+            .sort((a, b) => a.position - b.position)
+        : links.sort((a, b) => a.position - b.position);
 
       if (visibleLinks.length === 0) {
         return (
           <div style={baseStyle} className="block text-center text-gray-400 italic">
-            No links added
+            No links configured
           </div>
         );
       }
@@ -135,7 +149,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full my-2 py-3 px-4 rounded bg-gray-800 hover:bg-gray-700 transition text-center"
+              className="block w-full my-2 py-3.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200 font-medium"
             >
               {link.title || 'Untitled Link'}
             </a>
@@ -145,11 +159,11 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
     }
 
     case 'widget': {
-      const widget = widgets.find(w => w.id === section.widgetId);
+      const widget = widgets.find((w) => w.id === section.widgetId);
       if (!widget) {
         return (
-          <div style={baseStyle} className="block text-gray-400 italic">
-            Widget not found
+          <div style={baseStyle} className="block text-center text-gray-400 italic">
+            Widget not configured
           </div>
         );
       }
@@ -164,9 +178,10 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
             <div style={baseStyle} className="block">
               <iframe
                 src={`https://www.youtube.com/embed/${id}`}
-                className="w-full h-64 rounded-lg"
+                className="w-full h-60 md:h-72 rounded-xl"
                 allowFullScreen
-                title="YouTube video"
+                title="YouTube"
+                loading="lazy"
               />
             </div>
           );
@@ -181,18 +196,21 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           <div style={baseStyle} className="block">
             <iframe
               src={embedUrl}
-              height="380"
-              className="w-full rounded-lg"
+              height="352"
+              className="w-full rounded-xl"
               title="Spotify"
+              loading="lazy"
             />
           </div>
         );
       }
 
       return (
-        <div style={baseStyle} className="block p-4 bg-gray-800 rounded">
-          <h3 className="font-semibold">{widget.title || `Widget: ${widget.type}`}</h3>
-          {widget.content && <p className="mt-2">{widget.content}</p>}
+        <div style={baseStyle} className="block p-4">
+          <h3 className="font-bold text-lg mb-1">
+            {widget.title || `Widget: ${widget.type}`}
+          </h3>
+          {widget.content && <p className="opacity-90">{widget.content}</p>}
         </div>
       );
     }
@@ -203,13 +221,15 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
           style={baseStyle}
           className="block prose prose-invert max-w-none"
           dangerouslySetInnerHTML={{
-            __html: section.content || '<p class="text-gray-400 italic">Add your custom text...</p>',
+            __html:
+              section.content ||
+              '<p class="text-gray-400 italic">Add your custom message, announcement, or HTML content here.</p>',
           }}
         />
       );
 
     case 'spacer':
-      return <div style={{ height: section.height || 20 }} />;
+      return <div style={{ height: section.height || 24 }} />;
 
     default:
       return null;

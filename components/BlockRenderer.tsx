@@ -36,15 +36,50 @@ interface Styling {
   textAlign?: React.CSSProperties['textAlign'];
 }
 
-interface LayoutSection {
+// ------------------
+// Type-safe LayoutSection
+// ------------------
+interface BaseSection {
   id: string;
   type: string;
-  widgetId?: string;
-  content?: string;
   styling?: Styling;
   visibleLinks?: string[];
 }
 
+interface NameSection extends BaseSection {
+  type: 'name';
+}
+
+interface BioSection extends BaseSection {
+  type: 'bio';
+}
+
+interface BadgesSection extends BaseSection {
+  type: 'badges';
+}
+
+interface LinksSection extends BaseSection {
+  type: 'links';
+}
+
+interface WidgetSection extends BaseSection {
+  type: 'widget';
+  widgetId: string;
+}
+
+interface TextSection extends BaseSection {
+  type: 'text';
+  content?: string;
+}
+
+interface SpacerSection extends BaseSection {
+  type: 'spacer';
+  height?: number;
+}
+
+type LayoutSection = NameSection | BioSection | BadgesSection | LinksSection | WidgetSection | TextSection | SpacerSection;
+
+// ------------------
 interface UserData {
   name: string;
   username: string;

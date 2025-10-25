@@ -1,5 +1,4 @@
 // lib/storage.ts
-
 import { MongoClient, ObjectId, Db, PushOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -120,6 +119,18 @@ interface ProfileVisitDoc {
   userId: ObjectId;
   clientId: string;
   visitedAt: Date;
+}
+
+interface NewsPostDoc {
+  _id: ObjectId;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  authorId: ObjectId;
+  authorName: string;
+  publishedAt: Date;
+  likes: number;
+  comments?: { email: string; content: string; createdAt: Date }[];
 }
 
 async function getUserWidgets(userId: ObjectId) {
@@ -616,7 +627,6 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- Other exports (unchanged, kept for completeness) ---
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
   const post = {
@@ -628,6 +638,7 @@ export async function createNewsPost(title: string, content: string, imageUrl: s
     authorName: authorName.trim(),
     publishedAt: new Date(),
     likes: 0,
+    comments: [],
   };
   await db.collection('news').insertOne(post);
   return {
@@ -638,6 +649,7 @@ export async function createNewsPost(title: string, content: string, imageUrl: s
     authorName: post.authorName,
     publishedAt: post.publishedAt.toISOString(),
     likes: post.likes,
+    comments: [],
   };
 }
 
@@ -652,8 +664,94 @@ export async function getAllNewsPosts() {
     authorName: p.authorName,
     publishedAt: p.publishedAt.toISOString(),
     likes: p.likes,
-    comments: [],
+    comments: (p.comments || []).map(c => ({
+      email: c.email,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+    })),
   }));
+}
+
+export async function getNewsPostById(id: string) {
+  const db = await connectDB();
+  try {
+    const post = await db.collection<NewsPostDoc>('news').findOne({ _id: new ObjectId(id) });
+    if (!post) return null;
+    return {
+      id: post._id.toString(),
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl || '',
+      authorName: post.authorName,
+      publishedAt: post.publishedAt.toISOString(),
+      likes: post.likes,
+      comments: (post.comments || []).map(c => ({
+        email: c.email,
+        content: c.content,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    };
+  } catch (error) {
+    console.error('Error fetching news post by ID:', error);
+    return null;
+  }
+}
+
+export async function addNewsInteraction(postId: string, email: string, type: 'like' | 'comment', content?: string) {
+  const db = await connectDB();
+  const postObjectId = new ObjectId(postId);
+
+  try {
+    const post = await db.collection<NewsPostDoc>('news').findOne({ _id: postObjectId });
+    if (!post) throw new Error('Post not found');
+
+    if (type === 'like') {
+      // Check if user has already liked (optional, depending on your requirements)
+      const user = await db.collection<UserDoc>('users').findOne({ email });
+      if (!user) throw new Error('User not found');
+
+      // Increment likes (assuming one like per user, you can modify to check for duplicates)
+      await db.collection('news').updateOne(
+        { _id: postObjectId },
+        { $inc: { likes: 1 } }
+      );
+    } else if (type === 'comment') {
+      if (!content?.trim()) throw new Error('Comment content is required');
+      const comment = {
+        email,
+        content: content.trim(),
+        createdAt: new Date(),
+      };
+      await db.collection('news').updateOne(
+        { _id: postObjectId },
+        { $push: { comments: comment } as PushOperator<NewsPostDoc> }
+      );
+    } else {
+      throw new Error('Invalid interaction type');
+    }
+
+    // Fetch updated post
+    const updatedPost = await db.collection<NewsPostDoc>('news').findOne({ _id: postObjectId });
+    if (!updatedPost) throw new Error('Post not found after update');
+
+    return {
+      id: updatedPost._id.toString(),
+      title: updatedPost.title,
+      content: updatedPost.content,
+      imageUrl: updatedPost.imageUrl || '',
+      authorName: updatedPost.authorName,
+      publishedAt: updatedPost.publishedAt.toISOString(),
+      likes: updatedPost.likes,
+      comments: (updatedPost.comments || []).map(c => ({
+        email: c.email,
+        content: c.content,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    };
+  } catch (error: any) {
+    console.error('Error adding news interaction:', error);
+    throw new Error(error.message || 'Failed to add interaction');
+  }
 }
 
 export async function getAllUsers() {

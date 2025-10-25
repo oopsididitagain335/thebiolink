@@ -57,7 +57,7 @@ interface User {
 }
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'page';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
   widgetId?: string;
   height?: number;
   content?: string;

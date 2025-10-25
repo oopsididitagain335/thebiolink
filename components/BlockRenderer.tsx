@@ -17,12 +17,13 @@ interface Link {
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
-  url?: string; // Made optional to match WidgetItem
-  title?: string; // Added to align with WidgetItem
-  content?: string; // Added to align with WidgetItem
-  position?: number; // Added to align with WidgetItem
+  url?: string;
+  title?: string;
+  content?: string;
+  position?: number;
 }
 
+// ✅ Fix: Use correct CSS property types
 interface Styling {
   backgroundColor?: string;
   color?: string;
@@ -31,7 +32,7 @@ interface Styling {
   borderRadius?: string;
   border?: string;
   fontSize?: string;
-  textAlign?: string;
+  textAlign?: React.CSSProperties['textAlign']; // ✅ Correct type
 }
 
 interface Section {
@@ -97,7 +98,7 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
       );
     case 'links':
       const visibleLinks = section.visibleLinks
-        ? links.filter((l) => section.visibleLinks.includes(l.id))
+        ? links.filter((l) => section.visibleLinks?.includes(l.id))
         : links;
       return (
         <div style={baseStyle} className="block">
@@ -147,7 +148,11 @@ export default function BlockRenderer({ section, user, links, widgets }: Props) 
       );
     case 'text':
       return (
-        <div style={baseStyle} className="block" dangerouslySetInnerHTML={{ __html: section.content || '' }} />
+        <div
+          style={baseStyle}
+          className="block"
+          dangerouslySetInnerHTML={{ __html: section.content || '' }}
+        />
       );
     case 'spacer':
       return <div style={{ height: section.height || 20 }} />;

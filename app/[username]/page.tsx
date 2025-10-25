@@ -42,7 +42,6 @@ interface UserData {
   username: string;
   name: string;
   avatar: string;
-  profileBanner: string;
   pageBackground: string;
   bio: string;
   location: string;
@@ -301,19 +300,6 @@ export default function UserPage() {
       )}
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Profile Banner */}
-        {userData.profileBanner && (
-          <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-2xl mb-8 overflow-hidden shadow-lg border border-white/10 transform transition-transform duration-300 hover:scale-[1.02]">
-            <img
-              src={userData.profileBanner}
-              alt="Profile Banner"
-              className="w-full h-full object-cover"
-              onError={() => setBackgroundError(true)}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          </div>
-        )}
-
         <div className="text-center mb-8">
           {/* Avatar */}
           {userData.avatar ? (

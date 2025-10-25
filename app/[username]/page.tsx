@@ -1,429 +1,417 @@
-'use client';
+// app/[username]/page.tsx
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-import { useEffect, useState } from 'react';
+import { headers } from 'next/headers';
+import { getUserByUsername } from '@/lib/storage';
+import Avatar from '@/components/Avatar';
+import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
-import { useParams } from 'next/navigation';
 
-interface Badge {
+async function getUserByUsernameForMetadata(username: string) {
+  try {
+    const user = await getUserByUsername(username, '0.0.0.0');
+    if (!user) return null;
+    return {
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      isBanned: user.isBanned,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const getThemeBackground = (theme: string) => {
+  const base = 'radial-gradient(circle at 50% 0%, ';
+  switch (theme) {
+    case 'purple': return `${base}#581c87, #000000)`;
+    case 'green': return `${base}#065f46, #000000)`;
+    case 'red': return `${base}#991b1b, #000000)`;
+    case 'halloween':
+      return `
+        radial-gradient(circle at 30% 30%, #ea580c, #000000),
+        repeating-conic-gradient(transparent 0deg 10deg, rgba(255,165,0,0.03) 10deg 20deg)
+      `;
+    default: return `${base}#312e81, #000000)`;
+  }
+};
+
+function getYouTubeId(url: string): string {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
+  return match ? match[1] : '';
+}
+
+function getSpotifyId(url: string): string {
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  return match ? `${match[1]}/${match[2]}` : '';
+}
+
+function getSpecialProfileTag(username: string): string | null {
+  switch (username.toLowerCase()) {
+    case 'xsetnews': return 'Biggest Sponsored Member';
+    case 'ceosolace': return 'Founder of BioLinkHQ';
+    default: return null;
+  }
+}
+
+type LegacyBadge = {
   id: string;
   name: string;
   icon: string;
-  hidden?: boolean;
-}
+  awardedAt: string;
+};
 
-interface LinkItem {
+type Badge = {
   id: string;
-  url: string;
-  title: string;
-  icon?: string;
-  position: number;
-}
-
-interface WidgetItem {
-  id: string;
-  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
-  title?: string;
-  content?: string;
-  url?: string;
-  position: number;
-}
-
-interface LayoutSection {
-  id: string;
-  type: string;
-  widgetId?: string;
-  height?: number;
-  content?: string;
-  pagePath?: string;
-  children?: LayoutSection[];
-}
-
-interface UserData {
-  username: string;
   name: string;
-  avatar: string;
-  pageBackground: string;
-  bio: string;
-  location: string;
-  badges: Badge[];
-  isBanned: boolean;
-  profileViews: number;
-  links: LinkItem[];
-  widgets: WidgetItem[];
-  layoutStructure: LayoutSection[];
-  theme: string;
-  xp: number;
-  level: number;
-  loginStreak: number;
-  customCSS?: string;
-  customJS?: string;
-  analyticsCode?: string;
-}
+  icon: string;
+  awardedAt?: string;
+  earnedAt?: string;
+  hidden?: boolean;
+};
 
-export default function UserPage() {
-  const params = useParams<{ username: string; subPath?: string[] }>();
-  const { username, subPath } = params;
-  const subPathString = subPath?.join('/') || '';
+export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
+  const resolvedParams = await params;
+  const { username } = resolvedParams;
+  const headersList = await headers();
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
 
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [backgroundError, setBackgroundError] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // Fetch profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch(`/api/links/${username}`);
-        if (!res.ok) {
-          setNotFound(res.status === 404);
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-        setUserData(data);
-      } catch (err) {
-        console.error('Network error:', err);
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (username) {
-      fetchProfile();
-    }
-  }, [username]);
-
-  // Set isClient flag
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Inject custom CSS
-  useEffect(() => {
-    if (userData?.customCSS) {
-      const style = document.createElement('style');
-      style.textContent = userData.customCSS;
-      document.head.appendChild(style);
-      return () => {
-        document.head.removeChild(style);
-      };
-    }
-  }, [userData?.customCSS]);
-
-  // Inject custom JS
-  useEffect(() => {
-    if (userData?.customJS && isClient) {
-      const script = document.createElement('script');
-      script.textContent = userData.customJS;
-      document.body.appendChild(script);
-      return () => {
-        document.body.removeChild(script);
-      };
-    }
-  }, [userData?.customJS, isClient]);
-
-  // Inject analytics
-  useEffect(() => {
-    if (userData?.analyticsCode && isClient) {
-      const script = document.createElement('script');
-      script.textContent = userData.analyticsCode;
-      document.head.appendChild(script);
-      return () => {
-        document.head.removeChild(script);
-      };
-    }
-  }, [userData?.analyticsCode, isClient]);
-
-  // Validate background media
-  useEffect(() => {
-    if (!userData?.pageBackground) return;
-    const pageBg = userData.pageBackground;
-    const isImage = /\.(png|jpe?g|webp|gif)$/i.test(pageBg);
-    const isVideo = /\.(mp4|webm)$/i.test(pageBg);
-    if (!isImage && !isVideo) {
-      const img = new Image();
-      img.src = pageBg;
-      img.onerror = () => setBackgroundError(true);
-    }
-  }, [userData?.pageBackground]);
-
-  // Early returns
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
-
-  if (notFound || !userData) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
-        <div className="text-center">
-          <h1 className="text-xl font-bold mb-2">Profile Not Found</h1>
-          <p>No BioLink exists for @{username}</p>
-          <a href="/" className="mt-4 inline-block text-indigo-400 hover:underline">Create yours</a>
+  try {
+    const userData = await getUserByUsername(username, ip);
+    if (!userData) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-indigo-600/20 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m2 0a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4v4m0 0v4m0-4h4m-4 0H7" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-white mb-2">Profile Not Found</h1>
+            <p className="text-gray-400 mb-4">No BioLink exists for <span className="font-semibold">@{username}</span>.</p>
+            <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
+              Create Yours
+            </a>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  if (userData.isBanned) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-red-500 mb-4">BANNED</h1>
-          <WhackTheBanHammerGame />
-          <a href="/" className="mt-6 inline-block text-red-400 hover:underline">Return home</a>
-        </div>
-      </div>
-    );
-  }
-
-  // Safe data processing
-  const layoutStructure = userData.layoutStructure || [];
-  const currentPageStructure = subPathString
-    ? layoutStructure.filter((s) => s.pagePath === subPathString)
-    : layoutStructure.filter((s) => !s.pagePath || s.pagePath === 'home');
-
-  const visibleBadges = (userData.badges || []).filter((b) => !b.hidden);
-  const sortedLinks = [...(userData.links || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  const widgetMap = new Map((userData.widgets || []).map((w) => [w.id, w]));
-
-  const pageBg = userData.pageBackground || '';
-  const hasPageBackground = !!pageBg;
-  const isImageBg = /\.(png|jpe?g|webp)$/i.test(pageBg);
-  const isGifBg = /\.gif$/i.test(pageBg);
-  const isVideoBg = /\.(mp4|webm)$/i.test(pageBg);
-
-  const specialTag =
-    username.toLowerCase() === 'xsetnews'
-      ? 'Biggest Sponsored Member'
-      : username.toLowerCase() === 'ceosolace'
-        ? 'Founder of BioLinkHQ'
-        : null;
-
-  const renderWidget = (widget: WidgetItem) => {
-    const { type, url, content, title } = widget;
-    if (type === 'youtube' && url) {
-      const cleanUrl = url.trim();
-      const videoId = cleanUrl.split('v=')[1]?.split('&')[0] || cleanUrl.split('/').pop();
-      return videoId ? (
-        <iframe
-          key={videoId}
-          width="100%"
-          height="315"
-          src={`https://www.youtube.com/embed/${videoId}`}
-          title={title || 'YouTube video'}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="rounded-lg w-full"
-        />
-      ) : null;
-    }
-    if (type === 'spotify' && url) {
-      const embedUrl = url.includes('embed')
-        ? url
-        : url.replace('open.spotify.com', 'open.spotify.com/embed');
-      return (
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          width="100%"
-          height="380"
-          allow="encrypted-media"
-          className="rounded-lg w-full"
-        />
       );
     }
-    if (type === 'custom' && content) {
-      return (
-        <div
-          key="custom"
-          dangerouslySetInnerHTML={{ __html: content }}
-          className="prose prose-invert max-w-none"
-        />
-      );
-    }
-    if (type === 'twitter' && url) {
-      return (
-        <blockquote key="twitter" className="twitter-tweet">
-          <a href={url.trim()}></a>
-        </blockquote>
-      );
-    }
-    return <div key="unsupported" className="text-gray-400 italic">Unsupported widget: {type}</div>;
-  };
 
-  return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Background */}
-      {hasPageBackground && (
-        <>
-          {isVideoBg ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="fixed top-0 left-0 w-full h-full object-cover z-[-1] opacity-80"
-              onError={() => setBackgroundError(true)}
+    if (userData.isBanned) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+          {/* Falling Ash */}
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-red-500/20 rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: '-10px',
+                  opacity: Math.random(),
+                  animation: `floatAsh ${15 + Math.random() * 20}s linear infinite`,
+                  animationDelay: `${Math.random() * 5}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Global Animations */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes floatAsh {
+              0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+              10% { opacity: ${0.3 + Math.random() * 0.4}; }
+              90% { opacity: ${0.2 + Math.random() * 0.3}; }
+              100% { transform: translateY(100vh) rotate(${360 * Math.random()}deg); opacity: 0; }
+            }
+          ` }} />
+
+          {/* Fog & Atmosphere */}
+          <div className="absolute inset-0 bg-gradient-to-b from-red-900/3 to-black pointer-events-none z-0" />
+
+          <div className="max-w-md w-full bg-gray-900/85 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-800/50 relative z-10">
+            {/* Personalized Tombstone */}
+            <div className="mb-6 relative">
+              <svg width="80" height="100" viewBox="0 0 80 100" className="text-red-900/20 mx-auto">
+                <rect x="30" y="15" width="20" height="60" rx="3" />
+                <rect x="15" y="65" width="50" height="10" rx="2" />
+                <path d="M25 25 L55 25 L52 40 L28 40 Z" fill="currentColor" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center mt-8">
+                <span className="text-red-500/70 text-xs font-mono tracking-wider">@{username}</span>
+              </div>
+            </div>
+
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-800 mb-2 tracking-tighter">
+              BANNED
+            </h1>
+            <p className="text-gray-400 text-sm mb-6">
+              This account violated our community standards.<br />
+              <span className="text-red-400/80">No appeals accepted.</span>
+            </p>
+
+            <div className="bg-black/30 rounded-xl p-4 mb-6 border border-red-900/30">
+              <WhackTheBanHammerGame />
+            </div>
+
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-red-700/30 to-red-900/30 hover:from-red-700/40 hover:to-red-900/40 backdrop-blur-sm border border-red-800/50 text-red-300 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
             >
-              <source src={pageBg} type="video/mp4" />
-              <source src={pageBg} type="video/webm" />
-            </video>
-          ) : isGifBg ? (
-            <img
-              src={pageBg}
-              alt="Background"
-              className="fixed top-0 left-0 w-full h-full object-cover z-[-1] opacity-80"
-              onError={() => setBackgroundError(true)}
-            />
-          ) : isImageBg ? (
-            <div
-              className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1] opacity-80"
-              style={{ backgroundImage: `url(${pageBg})` }}
-            />
-          ) : (
-            <div className="fixed top-0 left-0 w-full h-full bg-gray-900 z-[-1]" />
-          )}
-        </>
-      )}
-
-      {backgroundError && (
-        <div className="fixed top-4 right-4 bg-red-500/80 text-white text-xs px-2 py-1 rounded">
-          Background failed to load
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Return to Safety
+            </a>
+          </div>
         </div>
-      )}
+      );
+    }
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-8">
-          {/* Avatar */}
-          {userData.avatar ? (
-            <img
-              src={userData.avatar}
-              alt={userData.name}
-              loading="lazy"
-              className="w-28 h-28 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-md"
-            />
-          ) : (
-            <div className="w-28 h-28 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-              <span className="text-4xl text-white font-bold">
-                {userData.name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          )}
+    const {
+      name = '',
+      avatar = '',
+      bio = '',
+      location = '',
+      background = '',
+      backgroundVideo = '',
+      backgroundAudio = '',
+      badges = [] as (LegacyBadge | Badge)[],
+      links = [],
+      widgets = [],
+      layoutStructure = [
+        { id: 'bio', type: 'bio' },
+        { id: 'spacer-1', type: 'spacer', height: 24 },
+        { id: 'links', type: 'links' },
+      ],
+      profileViews = 0,
+      theme = 'indigo',
+    } = userData;
 
-          {/* Name */}
-          <h1 className="text-3xl font-bold text-white">{userData.name || username}</h1>
+    const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-          {/* Location */}
-          {userData.location && <p className="text-gray-300 text-sm mt-2">{userData.location}</p>}
+    const isValidGif = background && /\.gif$/i.test(background);
+    const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
+    const isValidImage = background && /\.(png|jpg|jpeg|webp)$/i.test(background);
+    const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-          {/* Special Tag */}
-          {specialTag && (
-            <span className="inline-block mt-3 px-4 py-1 bg-amber-500/20 text-amber-400 text-sm rounded-full border border-amber-500/30">
-              {specialTag}
-            </span>
-          )}
+    const themeGlowMap: Record<string, string> = {
+      indigo: 'shadow-[0_0_20px_rgba(99,102,241,0.6)]',
+      purple: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
+      green: 'shadow-[0_0_20px_rgba(34,197,94,0.6)]',
+      red: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
+      halloween: 'shadow-[0_0_20px_rgba(234,88,12,0.6)]',
+    };
+    const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
-          {/* Badges */}
-          {visibleBadges.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-3 mt-4">
-              {visibleBadges.map((badge) => (
-                <div
-                  key={badge.id}
-                  className="flex items-center gap-2 bg-gray-800/50 px-3 py-1 rounded-full border border-white/10"
-                  title={badge.name}
-                >
-                  <img src={badge.icon} alt={badge.name} className="w-6 h-6 rounded-full" />
-                  <span className="text-sm text-gray-200">{badge.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Bio */}
-        {userData.bio && (
-          <p className="text-center text-gray-200 text-base max-w-xl mx-auto mb-8">{userData.bio}</p>
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-black">
+        {!isValidGif && !isValidBackgroundVideo && !isValidImage && (
+          <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
+        {isValidBackgroundVideo && (
+          <video
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={backgroundVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        )}
+        {isValidImage && !isValidBackgroundVideo && (
+          <div
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${background})` }}
+          />
+        )}
+        {isValidGif && (
+          <img
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={background}
+            alt="Animated background"
+          />
+        )}
+        {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
 
-        {/* Stats */}
-        <div className="flex justify-center gap-6 text-sm text-gray-300 mb-10">
-          <span>Level {userData.level}</span>
-          <span>•</span>
-          <span>{userData.profileViews} views</span>
-          <span>•</span>
-          <span>{userData.loginStreak} day streak</span>
-        </div>
+        <div className="absolute inset-0 bg-black/60 z-10" />
 
-        {/* Render layout structure */}
-        <div className="space-y-8">
-          {currentPageStructure.map((section) => {
-            if (section.type === 'bio') return null;
+        <div className="relative z-20 flex justify-center p-4 min-h-screen">
+          <div className="w-full max-w-md space-y-4">
+            <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
+              <div className="relative inline-block mb-4">
+                <Avatar name={name} avatar={avatar} />
+              </div>
 
-            if (section.type === 'links' && sortedLinks.length > 0) {
-              return (
-                <div key={section.id} className="space-y-4">
-                  {sortedLinks.map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3 shadow-sm"
+              <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
+
+              {visibleBadges.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
+                  {visibleBadges.map((badge) => (
+                    <span
+                      key={badge.id}
+                      className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
+                      title={`Awarded: ${new Date(badge.awardedAt ?? (('earnedAt' in badge) ? badge.earnedAt : undefined) ?? Date.now()).toLocaleDateString()}`}
                     >
-                      {link.icon && (
-                        <img
-                          src={link.icon}
-                          alt=""
-                          className="w-6 h-6 rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                      {badge.icon && (
+                        <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />
                       )}
-                      <span>{link.title}</span>
-                    </a>
+                      {badge.name}
+                    </span>
                   ))}
                 </div>
-              );
-            }
+              )}
 
-            if (section.type === 'widget' && section.widgetId) {
-              const widget = widgetMap.get(section.widgetId);
-              if (widget) {
-                return (
-                  <div key={section.id} className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50 shadow-md">
-                    {widget.title && <h3 className="text-xl font-semibold text-white mb-3">{widget.title}</h3>}
-                    {renderWidget(widget)}
+              {bio && <TypingBio bio={bio} />}
+
+              <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
+                {location && (
+                  <div className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{location}</span>
                   </div>
-                );
-              }
-            }
+                )}
+                <span>👁️ {profileViews.toLocaleString()}</span>
+                {links.length > 0 && <span>🔗 {links.length}</span>}
+              </div>
 
-            if (section.type === 'spacer') {
-              return <div key={section.id} style={{ height: section.height || 24 }} />;
-            }
+              {getSpecialProfileTag(username) && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
+                    🏆 {getSpecialProfileTag(username)}
+                  </span>
+                </div>
+              )}
+            </div>
 
-            if (section.type === 'custom' && section.content) {
-              return (
-                <div
-                  key={section.id}
-                  dangerouslySetInnerHTML={{ __html: section.content }}
-                  className="prose prose-invert max-w-none"
-                />
-              );
-            }
+            {sortedLinks.length > 0 && (
+              <div className="space-y-2">
+                {sortedLinks.map((link) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full py-3.5 px-4 rounded-xl font-medium text-white text-center transition-all duration-200 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:shadow-lg hover:-translate-y-0.5"
+                  >
+                    {link.icon ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <img src={link.icon} alt="" className="w-5 h-5" />
+                        <span>{link.title}</span>
+                      </div>
+                    ) : (
+                      link.title
+                    )}
+                  </a>
+                ))}
+              </div>
+            )}
 
-            return null;
-          })}
+            {sortedWidgets.length > 0 && (
+              <div className="space-y-4">
+                {sortedWidgets.map((widget) => (
+                  <div key={widget.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
+                    {widget.title && <h3 className="text-lg font-semibold text-white mb-2">{widget.title}</h3>}
+                    {widget.type === 'youtube' && widget.url && (
+                      <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(widget.url)}`}
+                          title={widget.title || 'YouTube video'}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    )}
+                    {widget.type === 'spotify' && widget.url && (
+                      <div className="aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg">
+                        <iframe
+                          src={`https://open.spotify.com/embed/${getSpotifyId(widget.url)}`}
+                          title={widget.title || 'Spotify embed'}
+                          frameBorder="0"
+                          allowTransparency
+                          allow="encrypted-media"
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                    )}
+                    {widget.type === 'twitter' && widget.url && (
+                      <a
+                        href={widget.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-blue-300 hover:underline text-center mt-2"
+                      >
+                        View on Twitter
+                      </a>
+                    )}
+                    {widget.type === 'custom' && widget.content && (
+                      <div dangerouslySetInnerHTML={{ __html: widget.content }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="text-center text-gray-500 text-xs pt-4 border-t border-white/10 mt-4">
+              <p className="mb-1">Powered by The BioLink</p>
+              <a href="/" className="text-indigo-300 hover:text-indigo-200 hover:underline">Create your own</a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error: any) {
+    console.error('UserPage error:', { username, error: error.message });
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-2">Oops!</h2>
+          <p className="text-gray-400 mb-4">Something went wrong loading this profile.</p>
+          <a href="/" className="inline-block bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2.5 rounded-xl font-medium transition-all">
+            Go Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const resolvedParams = await params;
+  const { username } = resolvedParams;
+  try {
+    const userData = await getUserByUsernameForMetadata(username);
+    if (!userData || userData.isBanned) {
+      return { title: 'Banned | The BioLink' };
+    }
+    return {
+      title: `${userData.name || username} | The BioLink`,
+      description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
+      openGraph: {
+        title: `${userData.name || username} | The BioLink`,
+        description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
+        images: userData.avatar ? [userData.avatar] : [],
+        url: `https://thebiolink.lol/${username}`,
+        siteName: 'The BioLink',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${userData.name || username} | The BioLink`,
+        description: userData.bio?.substring(0, 160) || `Check out ${userData.name || username}'s BioLink`,
+        images: userData.avatar ? [userData.avatar] : [],
+      },
+    };
+  } catch (error: any) {
+    console.error('Metadata error:', { username, error: error.message });
+    return { title: 'Not Found | The BioLink' };
+  }
 }

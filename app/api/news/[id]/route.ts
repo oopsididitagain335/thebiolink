@@ -1,3 +1,4 @@
+// app/api/news/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getNewsPostById } from '@/lib/storage';
 

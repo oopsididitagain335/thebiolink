@@ -1023,39 +1023,6 @@ const ProfileBuilderTab = ({
   );
 };
 
-const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
-    setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
-  };
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
-      <div className="space-y-4">
-        <input
-          type="text"
-          value={user.seoMeta?.title || ''}
-          onChange={(e) => handleMetaChange('title', e.target.value)}
-          placeholder="Custom Title"
-          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
-        />
-        <textarea
-          value={user.seoMeta?.description || ''}
-          onChange={(e) => handleMetaChange('description', e.target.value)}
-          placeholder="Meta Description"
-          rows={3}
-          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
-        />
-        <input
-          type="text"
-          value={user.seoMeta?.keywords || ''}
-          onChange={(e) => handleMetaChange('keywords', e.target.value)}
-          placeholder="Keywords (comma-separated)"
-          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white"
-        />
-      </div>
-    </div>
-  );
-};
 
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (

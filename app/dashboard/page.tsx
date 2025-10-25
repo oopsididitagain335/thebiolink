@@ -445,7 +445,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -457,9 +457,9 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
             </button>
             <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-.426 1.043-.426 1.468 0l1.58 1.58c1.043 1.043 1.043 2.734 0 3.777l-1.58 1.58c-.426.426-1.043.426-1.468 0l-1.58-1.58c-1.043-1.043-1.043-2.734 0-3.777l1.58-1.58z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.933 10.933c1.043 1.043 1.043 2.734 0 3.777l-1.58 1.58c-1.043 1.043-2.734 1.043-3.777 0l-1.58-1.58c-1.043-1.043-1.043-2.734 0-3.777l1.58-1.58c1.043-1.043 2.734-1.043 3.777 0l1.58 1.58z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h1m8-8v1m0 16v-1m-8-8h1m8 8h1m-8 0v-1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m......
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Customize Profile
             </button>
           </div>
         </div>

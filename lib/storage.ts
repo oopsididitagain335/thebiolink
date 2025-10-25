@@ -655,7 +655,7 @@ export async function createNewsPost(title: string, content: string, imageUrl: s
 
 export async function getAllNewsPosts() {
   const db = await connectDB();
-  const posts = await db.collection('news').find({}).sort({ publishedAt: -1 }).toArray();
+  const posts = await db.collection<NewsPostDoc>('news').find({}).sort({ publishedAt: -1 }).toArray();
   return posts.map(p => ({
     id: p._id.toString(),
     title: p.title,
@@ -664,7 +664,7 @@ export async function getAllNewsPosts() {
     authorName: p.authorName,
     publishedAt: p.publishedAt.toISOString(),
     likes: p.likes,
-    comments: (p.comments || []).map(c => ({
+    comments: (p.comments || []).map((c: { email: string; content: string; createdAt: Date }) => ({
       email: c.email,
       content: c.content,
       createdAt: c.createdAt.toISOString(),
@@ -685,7 +685,7 @@ export async function getNewsPostById(id: string) {
       authorName: post.authorName,
       publishedAt: post.publishedAt.toISOString(),
       likes: post.likes,
-      comments: (post.comments || []).map(c => ({
+      comments: (post.comments || []).map((c: { email: string; content: string; createdAt: Date }) => ({
         email: c.email,
         content: c.content,
         createdAt: c.createdAt.toISOString(),
@@ -742,7 +742,7 @@ export async function addNewsInteraction(postId: string, email: string, type: 'l
       authorName: updatedPost.authorName,
       publishedAt: updatedPost.publishedAt.toISOString(),
       likes: updatedPost.likes,
-      comments: (updatedPost.comments || []).map(c => ({
+      comments: (updatedPost.comments || []).map((c: { email: string; content: string; createdAt: Date }) => ({
         email: c.email,
         content: c.content,
         createdAt: c.createdAt.toISOString(),

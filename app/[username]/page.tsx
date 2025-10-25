@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -119,7 +118,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             ))}
           </div>
 
-          {/* Global Animations */}
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes floatAsh {
               0% { transform: translateY(0) rotate(0deg); opacity: 0; }
@@ -129,11 +127,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             }
           ` }} />
 
-          {/* Fog & Atmosphere */}
           <div className="absolute inset-0 bg-gradient-to-b from-red-900/3 to-black pointer-events-none z-0" />
 
           <div className="max-w-md w-full bg-gray-900/85 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 text-center border border-red-800/50 relative z-10">
-            {/* Personalized Tombstone */}
             <div className="mb-6 relative">
               <svg width="80" height="100" viewBox="0 0 80 100" className="text-red-900/20 mx-auto">
                 <rect x="30" y="15" width="20" height="60" rx="3" />
@@ -176,7 +172,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       avatar = '',
       bio = '',
       location = '',
-      background = '',
+      pageBackground = '', // ✅ Correct field name
       backgroundVideo = '',
       backgroundAudio = '',
       badges = [] as (LegacyBadge | Badge)[],
@@ -193,9 +189,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-    const isValidGif = background && /\.gif$/i.test(background);
+    // ✅ Use pageBackground consistently
+    const isValidGif = pageBackground && /\.gif$/i.test(pageBackground);
     const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
-    const isValidImage = background && /\.(png|jpg|jpeg|webp)$/i.test(background);
+    const isValidImage = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground);
+
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
@@ -226,13 +224,13 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         {isValidImage && !isValidBackgroundVideo && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${background})` }}
+            style={{ backgroundImage: `url(${pageBackground})` }} // ✅
           />
         )}
         {isValidGif && (
           <img
             className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={background}
+            src={pageBackground} // ✅
             alt="Animated background"
           />
         )}

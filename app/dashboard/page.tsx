@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
-import DOMPurify from 'dompurify';
 import Editor from '@monaco-editor/react';
 
 // --- Interfaces ---
@@ -43,15 +42,12 @@ interface User {
   theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
-  discordId?: string;
   xp?: number;
   level?: number;
   loginStreak?: number;
   lastLogin?: string;
   loginHistory?: string[];
   lastMonthlyBadge?: string;
-  customCSS?: string;
-  customJS?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
 }
@@ -96,7 +92,6 @@ const WIDGET_TYPES = [
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
 
-// ✅ NEW: 12+ Templates
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -163,12 +158,6 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   ]},
 ];
 
-const CHALLENGES = [
-  { id: 'updateProfile', name: 'Update your profile', xp: 50, completed: false },
-  { id: 'addLink', name: 'Add a link', xp: 20, completed: false },
-  { id: 'addWidget', name: 'Add a widget', xp: 30, completed: false },
-];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
@@ -190,7 +179,6 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   return await res.json();
 };
 
-// --- FIXED REDUCER ---
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
     case 'SAVE':
@@ -202,9 +190,8 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Help Center Types ---
+// --- Help Center ---
 type HelpCategory = 'Getting Started' | 'General' | 'How-To Guides';
-
 const CATEGORIES = {
   'Getting Started': [
     { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
@@ -222,21 +209,17 @@ const CATEGORIES = {
   ],
   'How-To Guides': [
     { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
-    { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
     { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
     { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
   ],
 } satisfies Record<HelpCategory, { id: string; title: string; content: string }[]>;
 
-// ✅ HELP CENTER TAB (TypeScript-safe)
 const HelpCenterTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<HelpCategory>('Getting Started');
-
   const filteredArticles = Object.entries(CATEGORIES).flatMap(([category, articles]) =>
     articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-6">
@@ -259,7 +242,6 @@ const HelpCenterTab = () => {
           )}
         </div>
       </div>
-      {/* Sidebar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gray-900/30 p-4 rounded-lg">
           <nav>
@@ -289,12 +271,11 @@ const HelpCenterTab = () => {
             ))}
           </nav>
         </div>
-        {/* Main Content */}
         <div className="md:col-span-3">
           <div className="bg-gray-900/30 p-6 rounded-lg">
             <h3 className="text-2xl font-bold text-white mb-4">How can we help you?</h3>
             <p className="text-gray-300 mb-6">
-              Need help? Start by searching for answers to common questions. Whether you're setting up your page, adding social media links, or exploring premium features, we've got you covered.
+              Need help? Start by searching for answers to common questions.
             </p>
             {searchQuery ? (
               <div>
@@ -315,46 +296,6 @@ const HelpCenterTab = () => {
             ) : (
               <>
                 <h4 className="text-lg font-medium text-white mb-4">Guides & Tutorials</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3" />
-                    </svg>
-                    Account Support
-                  </button>
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 15H12" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v3M12 15a3 3 0 100-6 3 3 0 000 6z" />
-                    </svg>
-                    How-To Guides
-                  </button>
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9M5 11V9m2 2a2 2 0 104 0 2 2 0 00-4 0z" />
-                    </svg>
-                    How To Upload Assets
-                  </button>
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                    Premium Guides
-                  </button>
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 6v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2h10a2 2 0 012 2z" />
-                    </svg>
-                    Policies & Security
-                  </button>
-                  <button className="p-4 bg-purple-600/20 text-white rounded-lg flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 17h.01M12 13h.01M12 21h.01M12 3h.01M12 7h.01M12 11h.01M12 15h.01M12 19h.01M12 5h.01" />
-                    </svg>
-                    Troubleshooting & Issues
-                  </button>
-                </div>
-                <h4 className="text-lg font-medium text-white mb-4">Popular Articles</h4>
                 <div className="space-y-4">
                   {Object.entries(CATEGORIES).flatMap(([category, articles]) =>
                     articles.slice(0, 3).map((article) => (
@@ -374,91 +315,6 @@ const HelpCenterTab = () => {
   );
 };
 
-const DiscordTab = ({ user }: { user: User }) => {
-  const [code, setCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const generateCode = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/api/discord/generate-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCode(data.code);
-        setMessage({ type: 'success', text: 'Code generated! Use it in Discord within 10 minutes.' });
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to generate code' });
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Network error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
-      {user.discordId ? (
-        <div className="p-4 bg-green-900/20 border border-green-800 rounded-lg">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center mr-3">
-              <span className="text-white text-lg">✓</span>
-            </div>
-            <div>
-              <p className="text-green-300 font-medium">Discord Linked</p>
-              <p className="text-green-500 text-sm">Your account is connected to Discord.</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <p className="text-gray-400 mb-4">
-            Link your Discord to unlock exclusive features and badges.
-          </p>
-          {code ? (
-            <div className="mb-4 p-4 bg-indigo-900/30 border border-indigo-700 rounded-lg">
-              <p className="text-indigo-200 text-sm mb-2">Your code:</p>
-              <div className="flex items-center justify-between">
-                <code className="text-xl font-bold text-white bg-black/30 px-3 py-2 rounded">
-                  {code}
-                </code>
-                <button
-                  onClick={() => navigator.clipboard.writeText(code)}
-                  className="text-indigo-300 hover:text-white text-sm"
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="text-indigo-400 text-xs mt-2">
-                Expires in 10 minutes. Use: <code className="bg-black/40 px-1 rounded">!connect {code}</code>
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={generateCode}
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-70"
-            >
-              {loading ? 'Generating...' : 'Generate Link Code'}
-            </button>
-          )}
-          {message && (
-            <div className={`mt-4 p-3 rounded ${message.type === 'success' ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'}`}>
-              {message.text}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -466,7 +322,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
-
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -475,7 +330,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -518,20 +372,15 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
-
   const handleAccountSecurity = () => {
     alert('Please confirm your email and set a password for improved security.');
   };
-
   const handleUpgrade = () => {
     window.location.href = '/premium';
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -594,7 +443,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -609,7 +457,6 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -649,7 +496,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ] as const;
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -682,7 +528,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -723,7 +568,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -738,7 +582,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -881,14 +724,12 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
 
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
-
   const moveLink = (fromIndex: number, toIndex: number) => {
     const newLinks = [...links];
     const [movedItem] = newLinks.splice(fromIndex, 1);
     newLinks.splice(toIndex, 0, movedItem);
     setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
   };
-
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     setLinks(links.map((link, i) => 
       i === index 
@@ -896,7 +737,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         : link
     ));
   };
-
   const addLink = () => {
     const preset = FAMOUS_LINKS.find(l => l.title === newLinkTitle);
     setLinks([
@@ -911,11 +751,9 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     ]);
     setNewLinkTitle('');
   };
-
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1006,22 +844,18 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       }
     ]);
   };
-
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
-
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
-
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
     newWidgets.splice(to, 0, item);
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1123,15 +957,12 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
-
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
-
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
-
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -1143,14 +974,12 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
-
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
-
   const renderPreview = () => {
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
@@ -1165,7 +994,6 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1199,7 +1027,6 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
   };
-
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
@@ -1245,73 +1072,6 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
   );
 };
 
-const CustomCodeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Custom CSS Editor</h2>
-        <Editor
-          height="300px"
-          defaultLanguage="css"
-          value={user.customCSS || ''}
-          onChange={(value) => setUser({ ...user, customCSS: value })}
-          theme="vs-dark"
-        />
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Custom JS Editor (Premium)</h2>
-        <Editor
-          height="300px"
-          defaultLanguage="javascript"
-          value={user.customJS || ''}
-          onChange={(value) => setUser({ ...user, customJS: value })}
-          theme="vs-dark"
-          options={{ readOnly: user.plan !== 'premium' }}
-        />
-        {user.plan !== 'premium' && <p className="text-red-400 mt-2">Upgrade to premium for custom JS.</p>}
-      </div>
-    </div>
-  );
-};
-
-const ProgressTab = ({ user, completeChallenge }: { user: User; completeChallenge: (id: string) => void }) => {
-  const xpToNextLevel = (user.level! * user.level! * 100) - user.xp!;
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Your Progress</h2>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-gray-300">Level {user.level}</h3>
-            <div className="w-full bg-gray-700 rounded-full h-2.5">
-              <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${(user.xp! % (user.level! * user.level! * 100)) / (user.level! * user.level! * 100) * 100}%` }}></div>
-            </div>
-            <p className="text-gray-400 text-sm">{xpToNextLevel} XP to next level</p>
-          </div>
-          <div>
-            <h3 className="text-gray-300">Login Streak: {user.loginStreak} days</h3>
-          </div>
-          <div>
-            <h3 className="text-gray-300 mb-2">Challenges</h3>
-            {CHALLENGES.map(challenge => (
-              <div key={challenge.id} className="flex justify-between items-center mb-2">
-                <span className="text-white">{challenge.name} (+{challenge.xp} XP)</span>
-                <button 
-                  onClick={() => completeChallenge(challenge.id)}
-                  disabled={challenge.completed}
-                  className="bg-green-600 text-white px-3 py-1 rounded-lg disabled:opacity-50"
-                >
-                  {challenge.completed ? 'Completed' : 'Complete'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // --- Main Dashboard Component ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1329,19 +1089,15 @@ export default function Dashboard() {
     theme: 'indigo',
     badges: [],
     email: '',
-    discordId: undefined,
     xp: 0,
     level: 1,
     loginStreak: 0,
     lastLogin: '',
     loginHistory: [],
     lastMonthlyBadge: '',
-    customCSS: '',
-    customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
-
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1349,13 +1105,11 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
-
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
   const router = useRouter();
 
   useEffect(() => {
@@ -1385,19 +1139,15 @@ export default function Dashboard() {
           theme: (data.user.theme as User['theme']) || 'indigo',
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
-          discordId: data.user.discordId,
           xp: data.user.xp || 0,
           level: data.user.level || 1,
           loginStreak: data.user.loginStreak || 0,
           lastLogin: data.user.lastLogin || '',
           loginHistory: data.user.loginHistory || [],
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
-          customCSS: data.user.customCSS || '',
-          customJS: data.user.customJS || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1411,7 +1161,6 @@ export default function Dashboard() {
               }))
             : []
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1424,7 +1173,6 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1437,7 +1185,6 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, [router]);
 
@@ -1451,31 +1198,15 @@ export default function Dashboard() {
     }
   };
 
-  const completeChallenge = async (id: string) => {
-    try {
-      await fetch('/api/dashboard/update', {
-        method: 'PUT',
-        body: JSON.stringify({ challengeId: id })
-      });
-      const res = await fetch('/api/dashboard/data');
-      const data = await res.json();
-      setUser(data.user);
-    } catch (error) {
-      console.error('Challenge error', error);
-    }
-  };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
-
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
-
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1486,7 +1217,6 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
-
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -1495,7 +1225,6 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1511,18 +1240,14 @@ export default function Dashboard() {
             plan: user.plan || 'free',
             theme: user.theme || 'indigo',
             layoutStructure,
-            customCSS: user.customCSS,
-            customJS: user.customJS,
             seoMeta: user.seoMeta,
             analyticsCode: user.analyticsCode,
             email: user.email,
-            discordId: user.discordId,
           },
           links: linksToSend,
           widgets: widgetsToSend,
         }),
       });
-
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1552,12 +1277,9 @@ export default function Dashboard() {
     { id: 'themes', name: 'Themes' },
     { id: 'seo', name: 'SEO & Meta' },
     { id: 'analytics_integration', name: 'Analytics Integration' },
-    { id: 'custom_code', name: 'Custom Code' },
-    { id: 'progress', name: 'Progress & Challenges' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
     { id: 'badges', name: 'Badges' },
-    { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
     { id: 'help_center', name: 'Help Center' },
   ];
@@ -1634,12 +1356,9 @@ export default function Dashboard() {
             {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
             {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
-            {activeTab === 'custom_code' && <CustomCodeTab user={user} setUser={setUser} />}
-            {activeTab === 'progress' && <ProgressTab user={user} completeChallenge={completeChallenge} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
-            {activeTab === 'discord' && <DiscordTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>

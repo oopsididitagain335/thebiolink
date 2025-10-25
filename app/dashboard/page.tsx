@@ -80,6 +80,7 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -90,6 +91,7 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
+
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -155,13 +157,16 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
+
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
+
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -173,6 +178,7 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
+
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
     case 'SAVE':
@@ -184,201 +190,227 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Affiliate Program Tab ---
-const AffiliateProgramTab = () => {
-  const [formData, setFormData] = useState({
-    discordUsername: '',
-    biolinkUsername: '',
-    socials: '',
-    communities: '',
-    position: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+// --- TAB COMPONENTS ---
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+// ✅ CustomizeTab: Banner input/upload REMOVED
+const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-
-    try {
-      const res = await fetch('/api/affiliate/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setSubmitStatus('success');
-        setFormData({
-          discordUsername: '',
-          biolinkUsername: '',
-          socials: '',
-          communities: '',
-          position: '',
-        });
-      } else {
-        setSubmitStatus('error');
-        alert(data.error || 'Submission failed. Please try again.');
-      }
-    } catch (err) {
-      setSubmitStatus('error');
-      alert('Network error. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (name === 'username') {
+      const safeValue = value.replace(/[^a-zA-Z0-9_-]/g, '');
+      setUser({ ...user, [name]: safeValue });
+    } else if (name.startsWith('seo.')) {
+      const seoField = name.split('.')[1] as keyof User['seoMeta'];
+      setUser({ ...user, seoMeta: { ...user.seoMeta, [seoField]: value } });
+    } else {
+      setUser({ ...user, [name]: value });
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      let folder = 'biolink';
+      if (field === 'avatar') folder = 'avatars';
+      if (field === 'pageBackground') folder = 'backgrounds';
+      // ❌ profileBanner upload REMOVED
+      const { url } = await uploadToCloudinary(file, folder);
+      setUser({ ...user, [field]: url });
+    } catch (err) {
+      alert(`Failed to upload ${field}`);
+    }
+  };
+
+  const handleThemeChange = (theme: User['theme']) => {
+    setUser({ ...user, theme });
+  };
+
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-white mb-2">Affiliate Program</h2>
-        <p className="text-gray-400">
-          Apply to become a sponsored creator and unlock exclusive monetization features.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <h3 className="font-medium text-white flex items-center gap-2">
-            <span>✅</span> Sponsorship Requirements
-          </h3>
-          <ul className="mt-2 text-gray-300 list-disc pl-5 space-y-1 text-sm">
-            <li>Be a content creator, business owner, or esports manager.</li>
-            <li>Have an established following.</li>
-            <li>Be recognized in at least three communities.</li>
-            <li>Provide a resume demonstrating your experience and credibility.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="font-medium text-white flex items-center gap-2">
-            <span>📌</span> Partnered Creator Requirements
-          </h3>
-          <ul className="mt-2 text-gray-300 list-disc pl-5 space-y-1 text-sm">
-            <li>Secure at least 3 subscribers before being fully accepted.</li>
-            <li>Commit to providing meaningful exclusive content for your subscribers.</li>
-          </ul>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Discord Username *
-          </label>
-          <input
-            type="text"
-            name="discordUsername"
-            value={formData.discordUsername}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., Strive#1234 or @Strive"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            BioLink Username *
-          </label>
-          <input
-            type="text"
-            name="biolinkUsername"
-            value={formData.biolinkUsername}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-            placeholder="Your thebiolink.lol/username"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Social Media Links *
-          </label>
-          <textarea
-            name="socials"
-            value={formData.socials}
-            onChange={handleChange}
-            required
-            rows={2}
-            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., YouTube: https://..., Instagram: https://..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Names of Communities You're Known In (at least 3) *
-          </label>
-          <textarea
-            name="communities"
-            value={formData.communities}
-            onChange={handleChange}
-            required
-            rows={2}
-            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., Fortnite Community, Twitch Streamers, TikTok Creators"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Your Position / Role *
-          </label>
-          <input
-            type="text"
-            name="position"
-            value={formData.position}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., Content Creator, Esports Manager, Business Owner"
-          />
-        </div>
-
-        {submitStatus === 'success' && (
-          <div className="p-3 bg-green-900/30 border border-green-800 text-green-300 rounded-lg text-sm">
-            ✅ Application submitted successfully! We’ll review it shortly.
+    <div id="tab-customize" className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+            <input
+              type="text"
+              name="name"
+              value={user.name}
+              onChange={handleProfileChange}
+              maxLength={100}
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="John Doe"
+            />
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90 disabled:opacity-70"
-        >
-          {isSubmitting ? 'Submitting...' : 'Apply for Affiliate Program'}
-        </button>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+            <div className="flex">
+              <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
+                thebiolink.lol/
+              </span>
+              <input
+                type="text"
+                name="username"
+                value={user.username}
+                onChange={handleProfileChange}
+                maxLength={30}
+                className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="yourname"
+              />
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Letters, numbers, underscores, hyphens only (3–30 chars)
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Location (optional)</label>
+            <input
+              type="text"
+              name="location"
+              value={user.location || ''}
+              onChange={handleProfileChange}
+              maxLength={100}
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., Los Angeles, Tokyo, Berlin"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Avatar</label>
+            <div className="flex items-center gap-3">
+              {user.avatar && (
+                <img src={user.avatar} alt="Avatar preview" className="w-12 h-12 rounded-full object-cover" />
+              )}
+              <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                Upload Avatar
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'avatar')}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <input
+              type="url"
+              name="avatar"
+              value={user.avatar}
+              onChange={handleProfileChange}
+              className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Or paste URL"
+            />
+          </div>
+
+          {/* ❌ BANNER SECTION REMOVED */}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Page Background</label>
+            <div className="flex items-center gap-3">
+              {user.pageBackground && (
+                <div className="w-16 h-16 bg-cover bg-center rounded border border-gray-600" style={{ backgroundImage: `url(${user.pageBackground})` }} />
+              )}
+              <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                Upload Background
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => handleFileUpload(e, 'pageBackground')}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <input
+              type="url"
+              name="pageBackground"
+              value={user.pageBackground}
+              onChange={handleProfileChange}
+              className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Supports .jpg, .png, .gif, .mp4"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+            <textarea
+              name="bio"
+              value={user.bio}
+              onChange={handleProfileChange}
+              maxLength={500}
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Tell people about yourself"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-lg font-medium text-white">SEO Meta Tags</h3>
+            <input
+              type="text"
+              name="seo.title"
+              value={user.seoMeta.title || ''}
+              onChange={handleProfileChange}
+              placeholder="Page Title"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400"
+            />
+            <textarea
+              name="seo.description"
+              value={user.seoMeta.description || ''}
+              onChange={handleProfileChange}
+              placeholder="Page Description"
+              rows={2}
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400"
+            />
+            <input
+              type="text"
+              name="seo.keywords"
+              value={user.seoMeta.keywords || ''}
+              onChange={handleProfileChange}
+              placeholder="Keywords (comma separated)"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Theme</label>
+            <div className="flex gap-2 flex-wrap">
+              {(['indigo', 'purple', 'green', 'red', 'halloween'] as const).map((theme) => (
+                <button
+                  key={theme}
+                  onClick={() => handleThemeChange(theme)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                    user.theme === theme
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-// --- Overview Tab (Redesigned) ---
+// ✅ OverviewTab: Fixed SVG + id="tab-overview"
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
-
-  // Mock stats — replace with real API data in production
   const stats = {
     profileViews: user.profileViews || 0,
     totalLinks: links.length,
     last7Days: 97,
     growth: '+22 views since last week',
   };
-
   return (
-    <div className="space-y-6">
+    <div id="tab-overview" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -390,7 +422,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
         </div>
         <p className="text-gray-400">Check out information about your account.</p>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
@@ -408,7 +439,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
             </div>
           </div>
         </div>
-
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-gray-300 text-sm font-medium">Profile Views</h3>
@@ -424,7 +454,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
             <span className="text-xs text-green-400 mb-1">{stats.growth}</span>
           </div>
         </div>
-
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-gray-300 text-sm font-medium">Plan</h3>
@@ -444,8 +473,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           </div>
         </div>
       </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -479,688 +507,167 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   );
 };
 
-// --- Remaining Tabs (Unchanged from your original) ---
-const HelpCenterTab = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'Getting Started' | 'General' | 'How-To Guides'>('Getting Started');
-  const CATEGORIES = {
-    'Getting Started': [
-      { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
-      { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
-      { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
-      { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
-      { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
-    ],
-    'General': [
-      { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
-      { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
-      { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
-      { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
-      { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
-    ],
-    'How-To Guides': [
-      { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
-      { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
-      { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
-    ],
-  };
-  const filteredArticles = Object.entries(CATEGORIES).flatMap(([category, articles]) =>
-    articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-  return (
+// ✅ Other Tabs: Added id="tab-..."
+const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
+  <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">Help Center</h2>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search documentation..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-80 px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-gray-900/30 p-4 rounded-lg">
-          <nav>
-            {(Object.keys(CATEGORIES) as ('Getting Started' | 'General' | 'How-To Guides')[]).map((category) => (
-              <div key={category} className="mb-4">
-                <button
-                  onClick={() => setActiveCategory(category)}
-                  className={`w-full text-left py-2 px-3 rounded-md ${activeCategory === category ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
-                >
-                  {category}
-                </button>
-                {activeCategory === category && (
-                  <ul className="mt-2 space-y-1">
-                    {CATEGORIES[category].map((article) => (
-                      <li key={article.id}>
-                        <button
-                          onClick={() => {}}
-                          className="w-full text-left py-1 px-4 text-sm text-gray-400 hover:text-white"
-                        >
-                          {article.title}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </nav>
-        </div>
-        <div className="md:col-span-3">
-          <div className="bg-gray-900/30 p-6 rounded-lg">
-            <h3 className="text-2xl font-bold text-white mb-4">How can we help you?</h3>
-            <p className="text-gray-300 mb-6">
-              Need help? Start by searching for answers to common questions.
-            </p>
-            {searchQuery ? (
-              <div>
-                <h4 className="text-lg font-medium text-white mb-4">Search Results</h4>
-                {filteredArticles.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredArticles.map((article) => (
-                      <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
-                        <h5 className="text-white font-medium">{article.title}</h5>
-                        <p className="text-gray-400 mt-2">{article.content.substring(0, 100)}...</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400">No results found.</p>
-                )}
-              </div>
-            ) : (
-              <>
-                <h4 className="text-lg font-medium text-white mb-4">Guides & Tutorials</h4>
-                <div className="space-y-4">
-                  {Object.entries(CATEGORIES).flatMap(([category, articles]) =>
-                    articles.slice(0, 3).map((article) => (
-                      <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
-                        <h5 className="text-white font-medium">{article.title}</h5>
-                        <p className="text-gray-400 mt-2">{article.content.substring(0, 100)}...</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const toggleBadgeVisibility = (badgeId: string) => {
-    const updatedBadges = user.badges?.map(badge => 
-      badge.id === badgeId ? { ...badge, hidden: !badge.hidden } : badge
-    ) || [];
-    setUser({ ...user, badges: updatedBadges });
-  };
-  if (!user.badges || user.badges.length === 0) {
-    return (
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-        <p className="text-gray-400">You haven't earned any badges yet.</p>
-      </div>
-    );
-  }
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {user.badges.map(badge => (
-          <div 
-            key={badge.id} 
-            className={`p-4 rounded-xl border ${
-              badge.hidden 
-                ? 'border-gray-700 bg-gray-900/30 opacity-50' 
-                : 'border-indigo-500 bg-indigo-900/20'
-            }`}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <h2 className="text-xl font-semibold text-white">Link Manager</h2>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={''}
+            onChange={() => {}}
+            className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
-                <span className="text-white font-medium">{badge.name}</span>
+            <option value="">Custom Link</option>
+            {FAMOUS_LINKS.map((link, i) => (
+              <option key={i} value={link.title}>{link.title}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setLinks([...links, { id: Date.now().toString(), url: '', title: 'New Link', icon: '', position: links.length }])}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+          >
+            + Add Link
+          </button>
+        </div>
+      </div>
+      <div className="space-y-4">
+        {links.map((link, index) => (
+          <div key={link.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={link.title}
+                  onChange={(e) => setLinks(links.map((l, i) => i === index ? { ...l, title: e.target.value } : l))}
+                  maxLength={100}
+                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
+                <input
+                  type="url"
+                  value={link.url}
+                  onChange={(e) => setLinks(links.map((l, i) => i === index ? { ...l, url: e.target.value } : l))}
+                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <input
+                type="text"
+                value={link.icon}
+                onChange={(e) => setLinks(links.map((l, i) => i === index ? { ...l, icon: e.target.value } : l))}
+                className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
+                placeholder="Icon URL (optional)"
+              />
               <button
-                onClick={() => toggleBadgeVisibility(badge.id)}
-                className={`px-2 py-1 text-xs rounded ${
-                  badge.hidden 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
+                onClick={() => setLinks(links.filter((_, i) => i !== index).map((l, i) => ({ ...l, position: i })))}
+                className="text-red-400 hover:text-red-300 font-medium"
               >
-                {badge.hidden ? 'Show' : 'Hide'}
+                Remove
               </button>
             </div>
-            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
-            <p className="text-xs text-gray-500">
-              Earned: {new Date(badge.earnedAt).toLocaleDateString()}
-            </p>
           </div>
         ))}
-      </div>
-    </div>
-  );
-};
-
-const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const [email, setEmail] = useState('');
-  useEffect(() => {
-    if (user.email) setEmail(user.email);
-  }, [user.email]);
-  const handleAccountSecurity = () => {
-    alert('Please confirm your email and set a password for improved security.');
-  };
-  const handleUpgrade = () => {
-    window.location.href = '/premium';
-  };
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
-        <p className="text-gray-400 mb-4">
-          {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
-        </p>
-        <button
-          onClick={handleAccountSecurity}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm"
-        >
-          {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
-        </button>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
-        <div className="flex items-start">
-          <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
-            <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
-            </svg>
+        {links.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No links added yet</p>
           </div>
-          <div>
-            <h3 className="text-white font-medium">Upgrade to Premium</h3>
-            <p className="text-gray-400 text-sm mt-1">
-              Unlock custom domains, advanced analytics, priority support, and more.
-            </p>
-            <button
-              onClick={handleUpgrade}
-              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
-  <div className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
-          <p className="text-3xl font-bold text-white">
-            {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
-          </p>
-        </div>
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
-          <p className="text-3xl font-bold text-white">{links.length}</p>
-        </div>
+        )}
       </div>
     </div>
   </div>
 );
 
-const NewsTab = () => {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const res = await fetch('/api/news');
-        const data = await res.json();
-        setPosts(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to load news', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNews();
-  }, []);
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
+  <div id="tab-widgets" className="space-y-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
+      <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {WIDGET_TYPES.map((w) => (
+          <button
+            key={w.id}
+            onClick={() => setWidgets([...widgets, { id: Date.now().toString(), type: w.id as any, title: '', content: '', url: '', position: widgets.length }])}
+            disabled={w.id === 'custom' && user.plan !== 'premium'}
+            className={`bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white ${w.id === 'custom' && user.plan !== 'premium' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className="text-2xl mb-1">{w.icon}</div>
+            <div className="text-xs">{w.name}</div>
+          </button>
+        ))}
+      </div>
+      <div className="space-y-4">
+        {widgets.map((widget, index) => (
+          <div key={widget.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
+            <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Widget Title"
+                value={widget.title || ''}
+                onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, title: e.target.value } : w))}
+                className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+              />
+              <input
+                type="url"
+                placeholder="Embed URL (YouTube, Spotify, etc.)"
+                value={widget.url || ''}
+                onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, url: e.target.value } : w))}
+                className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+              />
+              {widget.type === 'custom' && (
+                <textarea
+                  placeholder="Paste HTML or embed code"
+                  value={widget.content || ''}
+                  onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, content: e.target.value } : w))}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                />
+              )}
+            </div>
+            <button
+              onClick={() => setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })))}
+              className="mt-3 text-red-400 text-sm"
+            >
+              Remove Widget
+            </button>
           </div>
-        ) : posts.length === 0 ? (
-          <p className="text-gray-400 text-center py-6">No news available.</p>
-        ) : (
-          <div className="space-y-4">
-            {posts.slice(0, 5).map((post: any) => (
-              <div key={post.id} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
-                <h3 className="text-white font-medium">{post.title}</h3>
-                <p className="text-gray-400 text-sm mt-1">
-                  {new Date(post.publishedAt).toLocaleDateString()} • {post.authorName}
-                </p>
-                <p className="text-gray-300 mt-2 text-sm">{post.content.substring(0, 100)}...</p>
-              </div>
-            ))}
+        ))}
+        {widgets.length === 0 && (
+          <div className="text-center py-6 text-gray-500">
+            No widgets added. Choose one above to get started.
           </div>
         )}
-        <a href="/news" className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium">
-          View all news →
-        </a>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
-const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name === 'username') {
-      const safeValue = value.replace(/[^a-zA-Z0-9_-]/g, '');
-      setUser({ ...user, [name]: safeValue });
-    } else {
-      setUser({ ...user, [name]: value });
-    }
-  };
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      let folder = 'biolink';
-      if (field === 'avatar') folder = 'avatars';
-      if (field === 'profileBanner') folder = 'banners';
-      if (field === 'pageBackground') folder = 'backgrounds';
-      const { url } = await uploadToCloudinary(file, folder);
-      setUser({ ...user, [field]: url });
-    } catch (err) {
-      alert(`Failed to upload ${field}`);
-    }
-  };
-  return (
+const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => (
+  <div id="tab-templates" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
-      <div className="space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-          <input
-            type="text"
-            name="name"
-            value={user.name}
-            onChange={handleProfileChange}
-            maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="John Doe"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
-          <div className="flex">
-            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-600 bg-gray-700/50 text-gray-400">
-              thebiolink.lol/
-            </span>
-            <input
-              type="text"
-              name="username"
-              value={user.username}
-              onChange={handleProfileChange}
-              maxLength={30}
-              className="flex-1 min-w-0 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-r-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="yourname"
-            />
-          </div>
-          <p className="mt-2 text-xs text-gray-500">
-            Letters, numbers, underscores, hyphens only (3–30 chars)
-          </p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Location (optional)</label>
-          <input
-            type="text"
-            name="location"
-            value={user.location || ''}
-            onChange={handleProfileChange}
-            maxLength={100}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="e.g., Los Angeles, Tokyo, Berlin"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Avatar</label>
-          <div className="flex items-center gap-3">
-            {user.avatar && (
-              <img src={user.avatar} alt="Avatar preview" className="w-12 h-12 rounded-full object-cover" />
-            )}
-            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-              Upload Avatar
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, 'avatar')}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <input
-            type="url"
-            name="avatar"
-            value={user.avatar}
-            onChange={handleProfileChange}
-            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Or paste URL"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Profile Banner</label>
-          <div className="flex items-center gap-3">
-            {user.profileBanner && (
-              <img src={user.profileBanner} alt="Banner preview" className="w-24 h-8 object-cover rounded" />
-            )}
-            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-              Upload Banner
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, 'profileBanner')}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <input
-            type="url"
-            name="profileBanner"
-            value={user.profileBanner}
-            onChange={handleProfileChange}
-            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Or paste URL (1200x300 recommended)"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Page Background</label>
-          <div className="flex items-center gap-3">
-            {user.pageBackground && (
-              <div className="w-16 h-16 bg-cover bg-center rounded border border-gray-600" style={{ backgroundImage: `url(${user.pageBackground})` }} />
-            )}
-            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-              Upload Background
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => handleFileUpload(e, 'pageBackground')}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <input
-            type="url"
-            name="pageBackground"
-            value={user.pageBackground}
-            onChange={handleProfileChange}
-            className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Supports .jpg, .png, .gif, .mp4"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
-          <textarea
-            name="bio"
-            value={user.bio}
-            onChange={handleProfileChange}
-            maxLength={500}
-            rows={3}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Tell people about yourself"
-          />
-        </div>
+      <h2 className="text-xl font-semibold mb-4 text-white">Template Gallery</h2>
+      <p className="text-gray-400 mb-6">Select a template to get started quickly. You can customize it in the builder.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {TEMPLATES.map((template) => (
+          <button
+            key={template.id}
+            onClick={() => setLayoutStructure(template.config)}
+            className="p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl text-left"
+          >
+            <h3 className="text-white font-medium">{template.name}</h3>
+            <p className="text-gray-400 text-sm">Pre-built layout for {template.name.toLowerCase()} profiles.</p>
+          </button>
+        ))}
       </div>
     </div>
-  );
-};
-
-const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
-  const [newLinkTitle, setNewLinkTitle] = useState('');
-  const moveLink = (fromIndex: number, toIndex: number) => {
-    const newLinks = [...links];
-    const [movedItem] = newLinks.splice(fromIndex, 1);
-    newLinks.splice(toIndex, 0, movedItem);
-    setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
-  };
-  const handleLinkChange = (index: number, field: keyof Link, value: string) => {
-    setLinks(links.map((link, i) => 
-      i === index 
-        ? { ...link, [field]: field === 'url' && value && !/^https?:\/\//i.test(value) ? 'https://' + value : value } 
-        : link
-    ));
-  };
-  const addLink = () => {
-    const preset = FAMOUS_LINKS.find(l => l.title === newLinkTitle);
-    setLinks([
-      ...links,
-      {
-        id: Date.now().toString(),
-        url: '',
-        title: newLinkTitle || 'New Link',
-        icon: preset?.icon || '',
-        position: links.length,
-      }
-    ]);
-    setNewLinkTitle('');
-  };
-  const removeLink = (index: number) => {
-    setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
-  };
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h2 className="text-xl font-semibold text-white">Link Manager</h2>
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={newLinkTitle}
-              onChange={(e) => setNewLinkTitle(e.target.value)}
-              className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-            >
-              <option value="">Custom Link</option>
-              {FAMOUS_LINKS.map((link, i) => (
-                <option key={i} value={link.title}>{link.title}</option>
-              ))}
-            </select>
-            <button
-              onClick={addLink}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-            >
-              + Add Link
-            </button>
-          </div>
-        </div>
-        <div className="space-y-4">
-          {links.map((link, index) => (
-            <div key={link.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={link.title}
-                    onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
-                    maxLength={100}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
-                  <input
-                    type="url"
-                    value={link.url}
-                    onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white placeholder-gray-400"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <input
-                  type="text"
-                  value={link.icon}
-                  onChange={(e) => handleLinkChange(index, 'icon', e.target.value)}
-                  className="px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 flex-1 mr-3"
-                  placeholder="Icon URL (optional)"
-                />
-                <button
-                  onClick={() => removeLink(index)}
-                  className="text-red-400 hover:text-red-300 font-medium"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
-          {links.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No links added yet</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
-  const addWidget = (type: Widget['type']) => {
-    setWidgets([
-      ...widgets,
-      {
-        id: Date.now().toString(),
-        type,
-        title: type === 'spotify' ? 'My Playlist' : type === 'youtube' ? 'Featured Video' : '',
-        content: '',
-        url: '',
-        position: widgets.length,
-      }
-    ]);
-  };
-  const updateWidget = (index: number, field: keyof Widget, value: string) => {
-    setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
-  };
-  const removeWidget = (index: number) => {
-    setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
-  };
-  const moveWidget = (from: number, to: number) => {
-    const newWidgets = [...widgets];
-    const [item] = newWidgets.splice(from, 1);
-    newWidgets.splice(to, 0, item);
-    setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
-  };
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
-        <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          {WIDGET_TYPES.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => addWidget(w.id as Widget['type'])}
-              disabled={w.id === 'custom' && user.plan !== 'premium'}
-              className={`bg-gray-700/50 hover:bg-gray-700 p-3 rounded-lg text-center text-white ${w.id === 'custom' && user.plan !== 'premium' ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div className="text-2xl mb-1">{w.icon}</div>
-              <div className="text-xs">{w.name}</div>
-            </button>
-          ))}
-        </div>
-        <div className="space-y-4">
-          {widgets.map((widget, index) => (
-            <div key={widget.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
-              <div className="font-medium text-white mb-2 capitalize">{widget.type} Widget</div>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Widget Title"
-                  value={widget.title || ''}
-                  onChange={(e) => updateWidget(index, 'title', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
-                />
-                <input
-                  type="url"
-                  placeholder="Embed URL (YouTube, Spotify, etc.)"
-                  value={widget.url || ''}
-                  onChange={(e) => updateWidget(index, 'url', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
-                />
-                {widget.type === 'custom' && (
-                  <textarea
-                    placeholder="Paste HTML or embed code"
-                    value={widget.content || ''}
-                    onChange={(e) => updateWidget(index, 'content', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
-                  />
-                )}
-              </div>
-              <button
-                onClick={() => removeWidget(index)}
-                className="mt-3 text-red-400 text-sm"
-              >
-                Remove Widget
-              </button>
-            </div>
-          ))}
-          {widgets.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
-              No widgets added. Choose one above to get started.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Template Gallery</h2>
-        <p className="text-gray-400 mb-6">Select a template to get started quickly. You can customize it in the builder.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              onClick={() => setLayoutStructure(template.config)}
-              className="p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl text-left"
-            >
-              <h3 className="text-white font-medium">{template.name}</h3>
-              <p className="text-gray-400 text-sm">Pre-built layout for {template.name.toLowerCase()} profiles.</p>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+  </div>
+);
 
 const ProfileBuilderTab = ({ 
   layoutStructure, 
@@ -1212,7 +719,7 @@ const ProfileBuilderTab = ({
     );
   };
   return (
-    <div className="space-y-6">
+    <div id="tab-builder" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
         <p className="text-gray-400 mb-4">Edit the JSON config for your layout. Use templates for starting points.</p>
@@ -1240,20 +747,179 @@ const ProfileBuilderTab = ({
   );
 };
 
-const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  return (
+const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-analytics_integration" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
+    <textarea
+      value={user.analyticsCode || ''}
+      onChange={(e) => setUser({ ...user, analyticsCode: e.target.value })}
+      placeholder="Paste Google Analytics script or similar"
+      rows={5}
+      className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono"
+    />
+  </div>
+);
+
+const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
+  <div id="tab-analytics" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
-      <textarea
-        value={user.analyticsCode || ''}
-        onChange={(e) => setUser({ ...user, analyticsCode: e.target.value })}
-        placeholder="Paste Google Analytics script or similar"
-        rows={5}
-        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono"
-      />
+      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-900/50 p-5 rounded-xl">
+          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
+          <p className="text-3xl font-bold text-white">
+            {user.profileViews != null ? user.profileViews.toLocaleString() : '—'}
+          </p>
+        </div>
+        <div className="bg-gray-900/50 p-5 rounded-xl">
+          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
+          <p className="text-3xl font-bold text-white">{links.length}</p>
+        </div>
+      </div>
     </div>
-  );
-};
+  </div>
+);
+
+const NewsTab = () => (
+  <div id="tab-news" className="space-y-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+      <p className="text-gray-400 text-center py-6">No news available.</p>
+    </div>
+  </div>
+);
+
+const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
+    {user.badges && user.badges.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {user.badges.map(badge => (
+          <div 
+            key={badge.id} 
+            className={`p-4 rounded-xl border ${
+              badge.hidden 
+                ? 'border-gray-700 bg-gray-900/30 opacity-50' 
+                : 'border-indigo-500 bg-indigo-900/20'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
+                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
+                <span className="text-white font-medium">{badge.name}</span>
+              </div>
+              <button
+                onClick={() => setUser({ ...user, badges: user.badges?.map(b => b.id === badge.id ? { ...b, hidden: !b.hidden } : b) })}
+                className={`px-2 py-1 text-xs rounded ${
+                  badge.hidden 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {badge.hidden ? 'Show' : 'Hide'}
+              </button>
+            </div>
+            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
+            <p className="text-xs text-gray-500">
+              Earned: {new Date(badge.earnedAt).toLocaleDateString()}
+            </p>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-400">You haven't earned any badges yet.</p>
+    )}
+  </div>
+);
+
+const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-settings" className="space-y-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
+      <p className="text-gray-400 mb-4">
+        {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
+      </p>
+      <button
+        onClick={() => alert('Security setup')}
+        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm"
+      >
+        {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
+      </button>
+    </div>
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
+      <div className="flex items-start">
+        <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
+          <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-white font-medium">Upgrade to Premium</h3>
+          <p className="text-gray-400 text-sm mt-1">
+            Unlock custom domains, advanced analytics, priority support, and more.
+          </p>
+          <button
+            onClick={() => window.location.href = '/premium'}
+            className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            Upgrade Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const HelpCenterTab = () => (
+  <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
+    <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
+  </div>
+);
+
+const AffiliateProgramTab = () => (
+  <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
+    <div>
+      <h2 className="text-xl font-semibold text-white mb-2">Affiliate Program</h2>
+      <p className="text-gray-400">
+        Apply to become a sponsored creator and unlock exclusive monetization features.
+      </p>
+    </div>
+    <form className="space-y-4">
+      <input
+        type="text"
+        placeholder="Discord Username"
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+      />
+      <input
+        type="text"
+        placeholder="BioLink Username"
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+      />
+      <textarea
+        placeholder="Social Media Links"
+        rows={2}
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+      />
+      <textarea
+        placeholder="Communities"
+        rows={2}
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+      />
+      <input
+        type="text"
+        placeholder="Position / Role"
+        className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+      />
+      <button
+        type="submit"
+        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90"
+      >
+        Apply for Affiliate Program
+      </button>
+    </form>
+  </div>
+);
 
 // --- Main Dashboard Component ---
 export default function Dashboard() {
@@ -1262,7 +928,7 @@ export default function Dashboard() {
     name: '',
     username: '',
     avatar: '',
-    profileBanner: '',
+    profileBanner: '', // kept for data integrity, but not editable
     pageBackground: '',
     bio: '',
     location: '',
@@ -1281,6 +947,7 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
+
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1288,11 +955,13 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
+
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -1416,7 +1085,7 @@ export default function Dashboard() {
             name: user.name.trim().substring(0, 100),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
-            profileBanner: user.profileBanner?.trim() || '',
+            // ❌ profileBanner NOT sent
             pageBackground: user.pageBackground?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             location: user.location?.trim().substring(0, 100) || '',
@@ -1450,7 +1119,7 @@ export default function Dashboard() {
     setShowGuidelinesModal(true);
   };
 
-  // ✅ Updated tabs: removed 'themes', added 'affiliate'
+  // ✅ Sidebar Tabs
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1458,7 +1127,7 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'affiliate', name: 'Affiliate Program' }, // ✅ Replaces 'Themes'
+    { id: 'affiliate', name: 'Affiliate Program' },
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1512,33 +1181,40 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="border-b border-gray-700 mb-8 overflow-x-auto">
-          <nav className="flex space-x-6 pb-4">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-indigo-500 text-white'
-                    : 'border-transparent text-gray-400 hover:text-gray-300'
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </nav>
-        </div>
+        {/* ✅ SIDEBAR + MAIN + PREVIEW LAYOUT */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar */}
+          <div className="lg:w-64 flex-shrink-0">
+            <nav className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4">
+              <h2 className="text-lg font-semibold text-white mb-4">Navigation</h2>
+              <ul className="space-y-2">
+                {tabs.map((tab) => (
+                  <li key={tab.id}>
+                    <button
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === tab.id
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`}
+                    >
+                      {tab.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+          {/* Main Content */}
+          <div className="flex-1">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
             {activeTab === 'templates' && <TemplatesTab setLayoutStructure={setLayoutStructure} />}
             {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
-            {activeTab === 'affiliate' && <AffiliateProgramTab />} {/* ✅ Render new tab */}
+            {activeTab === 'affiliate' && <AffiliateProgramTab />}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
@@ -1547,8 +1223,9 @@ export default function Dashboard() {
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          {/* Preview Panel */}
+          <div className="lg:w-80">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
                 {user.pageBackground && (
@@ -1576,16 +1253,7 @@ export default function Dashboard() {
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20 space-y-4">
-                  {user.profileBanner && (
-                    <div className="relative rounded-xl overflow-hidden mb-4">
-                      <img
-                        src={user.profileBanner}
-                        alt="Profile banner"
-                        className="w-full h-32 object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                    </div>
-                  )}
+                  {/* ❌ Banner preview REMOVED */}
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -1633,6 +1301,7 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Messages */}
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1645,6 +1314,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Compliance Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

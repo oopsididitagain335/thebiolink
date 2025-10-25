@@ -101,7 +101,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (userData.isBanned) {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-          {/* Falling Ash */}
           <div className="absolute inset-0 pointer-events-none">
             {Array.from({ length: 20 }).map((_, i) => (
               <div
@@ -167,14 +166,13 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       );
     }
 
+    // ✅ Only destructure fields that exist in your user model
     const {
       name = '',
       avatar = '',
       bio = '',
       location = '',
-      pageBackground = '', // ✅ Correct field name
-      backgroundVideo = '',
-      backgroundAudio = '',
+      pageBackground = '',
       badges = [] as (LegacyBadge | Badge)[],
       links = [],
       widgets = [],
@@ -189,9 +187,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-    // ✅ Use pageBackground consistently
+    // ✅ Only support image/GIF backgrounds (no video/audio)
     const isValidGif = pageBackground && /\.gif$/i.test(pageBackground);
-    const isValidBackgroundVideo = backgroundVideo && /\.(mp4|webm|ogg)$/i.test(backgroundVideo);
     const isValidImage = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground);
 
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -208,33 +205,22 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {!isValidGif && !isValidBackgroundVideo && !isValidImage && (
+        {!isValidGif && !isValidImage && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
-        {isValidBackgroundVideo && (
-          <video
-            className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={backgroundVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        )}
-        {isValidImage && !isValidBackgroundVideo && (
+        {isValidImage && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${pageBackground})` }} // ✅
+            style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
         {isValidGif && (
           <img
             className="absolute inset-0 z-0 object-cover w-full h-full"
-            src={pageBackground} // ✅
+            src={pageBackground}
             alt="Animated background"
           />
         )}
-        {backgroundAudio && <audio autoPlay loop><source src={backgroundAudio} type="audio/mpeg" /></audio>}
 
         <div className="absolute inset-0 bg-black/60 z-10" />
 

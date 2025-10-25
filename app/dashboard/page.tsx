@@ -2,7 +2,6 @@
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
-
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -61,12 +60,10 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
-
 // --- History Action Type ---
 type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
-
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -80,7 +77,6 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -91,7 +87,6 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
-
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -157,16 +152,13 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
-
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
-
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
-
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -178,7 +170,6 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
-
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
     case 'SAVE':
@@ -189,7 +180,6 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
       return state;
   }
 };
-
 // --- Help Center ---
 type HelpCategory = 'Getting Started' | 'General' | 'How-To Guides';
 const CATEGORIES = {
@@ -213,7 +203,6 @@ const CATEGORIES = {
     { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
   ],
 } satisfies Record<HelpCategory, { id: string; title: string; content: string }[]>;
-
 const HelpCenterTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<HelpCategory>('Getting Started');
@@ -314,7 +303,6 @@ const HelpCenterTab = () => {
     </div>
   );
 };
-
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -369,7 +357,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   useEffect(() => {
@@ -419,7 +406,6 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
-
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -439,7 +425,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
-
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -487,7 +472,6 @@ const NewsTab = () => {
     </div>
   );
 };
-
 const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const themes = [
     { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
@@ -519,7 +503,6 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
-
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const completion = Math.round(
@@ -557,7 +540,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -721,7 +703,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -829,7 +810,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
-
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -921,7 +901,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   );
 };
-
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
   return (
     <div className="space-y-6">
@@ -944,7 +923,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   );
 };
-
 const ProfileBuilderTab = ({ 
   layoutStructure, 
   setLayoutStructure,
@@ -1022,8 +1000,6 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
-
-
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1038,7 +1014,6 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
     </div>
   );
 };
-
 // --- Main Dashboard Component ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1078,7 +1053,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1154,7 +1128,6 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1164,7 +1137,6 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1229,11 +1201,10 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-
+  // ✅ REMOVED 'seo' from tabs list
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1242,7 +1213,7 @@ export default function Dashboard() {
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'themes', name: 'Themes' },
-    { id: 'seo', name: 'SEO & Meta' },
+    // { id: 'seo', name: 'SEO & Meta' }, ← REMOVED
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1250,7 +1221,6 @@ export default function Dashboard() {
     { id: 'settings', name: 'Settings' },
     { id: 'help_center', name: 'Help Center' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1258,7 +1228,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1321,7 +1290,7 @@ export default function Dashboard() {
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
-            {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />}
+            {/* {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />} ← REMOVED */}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}

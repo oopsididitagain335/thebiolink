@@ -57,7 +57,7 @@ interface User {
 }
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'page';
   widgetId?: string;
   height?: number;
   content?: string;
@@ -202,37 +202,38 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Tabs ---
+// --- Help Center Types ---
+type HelpCategory = 'Getting Started' | 'General' | 'How-To Guides';
 
-// ✅ HELP CENTER TAB (guns.lol style)
+const CATEGORIES = {
+  'Getting Started': [
+    { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
+    { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
+    { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
+    { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
+    { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
+  ],
+  'General': [
+    { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
+    { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
+    { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
+    { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
+    { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
+  ],
+  'How-To Guides': [
+    { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
+    { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
+    { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
+    { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
+  ],
+} satisfies Record<HelpCategory, { id: string; title: string; content: string }[]>;
+
+// ✅ HELP CENTER TAB (TypeScript-safe)
 const HelpCenterTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Getting Started');
+  const [activeCategory, setActiveCategory] = useState<HelpCategory>('Getting Started');
 
-  const categories = {
-    'Getting Started': [
-      { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
-      { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
-      { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
-      { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
-      { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
-    ],
-    'General': [
-      { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
-      { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
-      { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
-      { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
-      { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
-    ],
-    'How-To Guides': [
-      { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
-      { id: 'discord-connection', title: 'Discord Connection', content: 'How to connect your Discord account for exclusive badges.' },
-      { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
-      { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
-    ],
-  };
-
-  const filteredArticles = Object.entries(categories).flatMap(([category, articles]) =>
+  const filteredArticles = Object.entries(CATEGORIES).flatMap(([category, articles]) =>
     articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -258,12 +259,11 @@ const HelpCenterTab = () => {
           )}
         </div>
       </div>
-
       {/* Sidebar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gray-900/30 p-4 rounded-lg">
           <nav>
-            {Object.keys(categories).map((category) => (
+            {(Object.keys(CATEGORIES) as HelpCategory[]).map((category) => (
               <div key={category} className="mb-4">
                 <button
                   onClick={() => setActiveCategory(category)}
@@ -273,7 +273,7 @@ const HelpCenterTab = () => {
                 </button>
                 {activeCategory === category && (
                   <ul className="mt-2 space-y-1">
-                    {categories[category].map((article) => (
+                    {CATEGORIES[category].map((article) => (
                       <li key={article.id}>
                         <button
                           onClick={() => {}}
@@ -289,7 +289,6 @@ const HelpCenterTab = () => {
             ))}
           </nav>
         </div>
-
         {/* Main Content */}
         <div className="md:col-span-3">
           <div className="bg-gray-900/30 p-6 rounded-lg">
@@ -297,7 +296,6 @@ const HelpCenterTab = () => {
             <p className="text-gray-300 mb-6">
               Need help? Start by searching for answers to common questions. Whether you're setting up your page, adding social media links, or exploring premium features, we've got you covered.
             </p>
-
             {searchQuery ? (
               <div>
                 <h4 className="text-lg font-medium text-white mb-4">Search Results</h4>
@@ -356,10 +354,9 @@ const HelpCenterTab = () => {
                     Troubleshooting & Issues
                   </button>
                 </div>
-
                 <h4 className="text-lg font-medium text-white mb-4">Popular Articles</h4>
                 <div className="space-y-4">
-                  {Object.entries(categories).flatMap(([category, articles]) =>
+                  {Object.entries(CATEGORIES).flatMap(([category, articles]) =>
                     articles.slice(0, 3).map((article) => (
                       <div key={article.id} className="p-4 bg-gray-800/50 rounded-lg">
                         <h5 className="text-white font-medium">{article.title}</h5>
@@ -381,6 +378,7 @@ const DiscordTab = ({ user }: { user: User }) => {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const generateCode = async () => {
     setLoading(true);
     setMessage(null);
@@ -402,6 +400,7 @@ const DiscordTab = ({ user }: { user: User }) => {
       setLoading(false);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Connect Discord</h2>
@@ -467,6 +466,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     ) || [];
     setUser({ ...user, badges: updatedBadges });
   };
+
   if (!user.badges || user.badges.length === 0) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -475,6 +475,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
       </div>
     );
   }
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -518,15 +519,19 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   useEffect(() => {
     if (user.email) setEmail(user.email);
   }, [user.email]);
+
   const handleAccountSecurity = () => {
     alert('Please confirm your email and set a password for improved security.');
   };
+
   const handleUpgrade = () => {
     window.location.href = '/premium';
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -589,6 +594,7 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -603,6 +609,7 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -642,6 +649,7 @@ const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     { id: 'red', name: 'Red', color: '#ef4444' },
     { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
   ] as const;
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -674,6 +682,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const planDisplay = user.plan 
     ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
     : 'Free';
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -714,6 +723,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -728,6 +738,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-6 text-white">Profile Settings</h2>
@@ -870,12 +881,14 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
 
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
+
   const moveLink = (fromIndex: number, toIndex: number) => {
     const newLinks = [...links];
     const [movedItem] = newLinks.splice(fromIndex, 1);
     newLinks.splice(toIndex, 0, movedItem);
     setLinks(newLinks.map((link, i) => ({ ...link, position: i })));
   };
+
   const handleLinkChange = (index: number, field: keyof Link, value: string) => {
     setLinks(links.map((link, i) => 
       i === index 
@@ -883,6 +896,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
         : link
     ));
   };
+
   const addLink = () => {
     const preset = FAMOUS_LINKS.find(l => l.title === newLinkTitle);
     setLinks([
@@ -897,9 +911,11 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     ]);
     setNewLinkTitle('');
   };
+
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index).map((link, i) => ({ ...link, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -990,18 +1006,22 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       }
     ]);
   };
+
   const updateWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => i === index ? { ...w, [field]: value } : w));
   };
+
   const removeWidget = (index: number) => {
     setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })));
   };
+
   const moveWidget = (from: number, to: number) => {
     const newWidgets = [...widgets];
     const [item] = newWidgets.splice(from, 1);
     newWidgets.splice(to, 0, item);
     setWidgets(newWidgets.map((w, i) => ({ ...w, position: i })));
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1103,12 +1123,15 @@ const ProfileBuilderTab = ({
   const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+
   useEffect(() => {
     setConfigJson(JSON.stringify(layoutStructure, null, 2));
   }, [layoutStructure]);
+
   const handleConfigChange = (value: string | undefined) => {
     setConfigJson(value || '');
   };
+
   const applyConfig = () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -1120,12 +1143,14 @@ const ProfileBuilderTab = ({
       alert('Invalid JSON config');
     }
   };
+
   const undo = () => {
     if (history.length > 1) {
       dispatchHistory({ type: 'UNDO' });
       setLayoutStructure(history[history.length - 2]);
     }
   };
+
   const renderPreview = () => {
     const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
     return (
@@ -1140,6 +1165,7 @@ const ProfileBuilderTab = ({
       </div>
     );
   };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1173,6 +1199,7 @@ const SEOTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }
   const handleMetaChange = (field: keyof User['seoMeta'], value: string) => {
     setUser({ ...user, seoMeta: { ...user.seoMeta, [field]: value } });
   };
+
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-white">SEO & Meta Tags</h2>
@@ -1314,6 +1341,7 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
+
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1321,11 +1349,13 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
+
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -1367,6 +1397,7 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
+
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1380,6 +1411,7 @@ export default function Dashboard() {
               }))
             : []
         );
+
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1392,6 +1424,7 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
+
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1404,6 +1437,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchUserData();
   }, [router]);
 
@@ -1435,11 +1469,13 @@ export default function Dashboard() {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
+
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
+
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1450,6 +1486,7 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
+
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -1458,6 +1495,7 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
+
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1484,6 +1522,7 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
+
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1520,7 +1559,7 @@ export default function Dashboard() {
     { id: 'badges', name: 'Badges' },
     { id: 'discord', name: 'Discord' },
     { id: 'settings', name: 'Settings' },
-    { id: 'help_center', name: 'Help Center' }, // ✅ Added Help Center Tab
+    { id: 'help_center', name: 'Help Center' },
   ];
 
   if (loading) {
@@ -1602,7 +1641,7 @@ export default function Dashboard() {
             {activeTab === 'badges' && <BadgesTab user={user} setUser={setUser} />}
             {activeTab === 'discord' && <DiscordTab user={user} />}
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
-            {activeTab === 'help_center' && <HelpCenterTab />} {/* ✅ Help Center Tab */}
+            {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

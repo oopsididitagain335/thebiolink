@@ -780,14 +780,84 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   </div>
 );
 
-const NewsTab = () => (
-  <div id="tab-news" className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
-      <p className="text-gray-400 text-center py-6">No news available.</p>
+const NewsTab = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch('https://www.thebiolink.lol/api/news');
+        if (!res.ok) throw new Error('Failed to fetch news');
+        const data = await res.json();
+        setPosts(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        console.error('News fetch error:', err);
+        setError(err.message || 'Unable to load news at this time.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  return (
+    <div id="tab-news" className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-6 text-red-400">
+            <p>⚠️ {error}</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <p className="text-gray-400 text-center py-6">No news available at the moment.</p>
+        ) : (
+          <div className="space-y-4">
+            {posts.slice(0, 5).map((post: any) => (
+              <div key={post.id || post.title} className="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
+                <h3 className="text-white font-medium">{post.title}</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                  {post.publishedAt
+                    ? new Date(post.publishedAt).toLocaleDateString()
+                    : 'Date unknown'} • {post.authorName || 'The BioLink Team'}
+                </p>
+                <p className="text-gray-300 mt-2 text-sm">
+                  {post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'No content available.'}
+                </p>
+                {post.url && (
+                  <a
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                  >
+                    Read more →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <a
+          href="https://www.thebiolink.lol/news"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-block text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+        >
+          View all news →
+        </a>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">

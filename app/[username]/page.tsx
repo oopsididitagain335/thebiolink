@@ -47,6 +47,10 @@ function getSpotifyId(url: string): string {
   return match ? `${match[1]}/${match[2]}` : '';
 }
 
+function isMediaEmbedUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be|spotify\.com/.test(url);
+}
+
 function getSpecialProfileTag(username: string): string | null {
   switch (username.toLowerCase()) {
     case 'xsetnews': return 'Biggest Sponsored Member';
@@ -166,7 +170,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       );
     }
 
-    // ✅ Only destructure fields that exist in your user model
     const {
       name = '',
       avatar = '',
@@ -187,9 +190,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
 
-    // ✅ Only support image/GIF backgrounds (no video/audio)
-    const isValidGif = pageBackground && /\.gif$/i.test(pageBackground);
-    const isValidImage = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground);
+    // ✅ Enhanced validation: reject YouTube/Spotify URLs as backgrounds
+    const isInvalidBackground = pageBackground && isMediaEmbedUrl(pageBackground);
+    const isValidGif = pageBackground && /\.gif$/i.test(pageBackground) && !isInvalidBackground;
+    const isValidImage = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground) && !isInvalidBackground;
 
     const sortedLinks = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const sortedWidgets = [...widgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -205,15 +209,33 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {!isValidGif && !isValidImage && (
+        {/* Default theme background */}
+        {!isValidGif && !isValidImage && !isInvalidBackground && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
+
+        {/* Invalid background fallback */}
+        {isInvalidBackground && (
+          <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
+            <div className="text-center p-6 bg-gray-900/80 rounded-xl max-w-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 17h.01M12 12h.01M12 15h.01M12 18h.01M12 21h.01M12 3h.01M12 6h.01" />
+              </svg>
+              <p className="text-white font-medium">Invalid Background</p>
+              <p className="text-gray-300 text-sm mt-1">Media URLs cannot be used as page backgrounds.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Valid image background */}
         {isValidImage && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
+
+        {/* Valid GIF background (ensures animation) */}
         {isValidGif && (
           <img
             className="absolute inset-0 z-0 object-cover w-full h-full"

@@ -66,7 +66,6 @@ export default function UserPage() {
   const { username, subPath } = params;
   const subPathString = subPath?.join('/') || '';
 
-  // ✅ ALL HOOKS AT TOP — NO EXCEPTIONS
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -139,7 +138,7 @@ export default function UserPage() {
     }
   }, [userData?.analyticsCode, isClient]);
 
-  // Validate background image
+  // Validate background media
   useEffect(() => {
     if (!userData?.pageBackground) return;
     const pageBg = userData.pageBackground;
@@ -152,7 +151,7 @@ export default function UserPage() {
     }
   }, [userData?.pageBackground]);
 
-  // --- EARLY RETURNS AFTER HOOKS ---
+  // Early returns
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -185,7 +184,7 @@ export default function UserPage() {
     );
   }
 
-  // --- SAFE DATA PROCESSING ---
+  // Safe data processing
   const layoutStructure = userData.layoutStructure || [];
   const currentPageStructure = subPathString
     ? layoutStructure.filter((s) => s.pagePath === subPathString)
@@ -197,7 +196,8 @@ export default function UserPage() {
 
   const pageBg = userData.pageBackground || '';
   const hasPageBackground = !!pageBg;
-  const isImageBg = /\.(png|jpe?g|webp|gif)$/i.test(pageBg);
+  const isImageBg = /\.(png|jpe?g|webp)$/i.test(pageBg);
+  const isGifBg = /\.gif$/i.test(pageBg);
   const isVideoBg = /\.(mp4|webm)$/i.test(pageBg);
 
   const specialTag =
@@ -260,27 +260,38 @@ export default function UserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Background */}
-      {isVideoBg ? (
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
-          onError={() => setBackgroundError(true)}
-        >
-          <source src={pageBg} type="video/mp4" />
-          <source src={pageBg} type="video/webm" />
-        </video>
-      ) : isImageBg ? (
-        <div
-          className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1]"
-          style={{ backgroundImage: `url(${pageBg})` }}
-        />
-      ) : (
-        <div className="fixed top-0 left-0 w-full h-full bg-gray-900 z-[-1]" />
+      {hasPageBackground && (
+        <>
+          {isVideoBg ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="fixed top-0 left-0 w-full h-full object-cover z-[-1] opacity-80"
+              onError={() => setBackgroundError(true)}
+            >
+              <source src={pageBg} type="video/mp4" />
+              <source src={pageBg} type="video/webm" />
+            </video>
+          ) : isGifBg ? (
+            <img
+              src={pageBg}
+              alt="Background"
+              className="fixed top-0 left-0 w-full h-full object-cover z-[-1] opacity-80"
+              onError={() => setBackgroundError(true)}
+            />
+          ) : isImageBg ? (
+            <div
+              className="fixed top-0 left-0 w-full h-full bg-cover bg-center z-[-1] opacity-80"
+              style={{ backgroundImage: `url(${pageBg})` }}
+            />
+          ) : (
+            <div className="fixed top-0 left-0 w-full h-full bg-gray-900 z-[-1]" />
+          )}
+        </>
       )}
 
       {backgroundError && (
@@ -289,60 +300,61 @@ export default function UserPage() {
         </div>
       )}
 
-      <div className="relative max-w-2xl mx-auto px-4 py-12">
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Profile Banner */}
         {userData.profileBanner && (
-          <div
-            className="w-full h-32 md:h-48 rounded-xl mb-6 overflow-hidden"
-            style={{
-              backgroundImage: `url(${userData.profileBanner})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
+          <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-2xl mb-8 overflow-hidden shadow-lg border border-white/10 transform transition-transform duration-300 hover:scale-[1.02]">
+            <img
+              src={userData.profileBanner}
+              alt="Profile Banner"
+              className="w-full h-full object-cover"
+              onError={() => setBackgroundError(true)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          </div>
         )}
 
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           {/* Avatar */}
           {userData.avatar ? (
             <img
               src={userData.avatar}
               alt={userData.name}
               loading="lazy"
-              className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
+              className="w-28 h-28 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-md"
             />
           ) : (
-            <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl text-white font-bold">
+            <div className="w-28 h-28 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+              <span className="text-4xl text-white font-bold">
                 {userData.name?.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
 
           {/* Name */}
-          <h1 className="text-2xl font-bold">{userData.name || username}</h1>
+          <h1 className="text-3xl font-bold text-white">{userData.name || username}</h1>
 
           {/* Location */}
-          {userData.location && <p className="text-gray-400 text-sm mt-1">{userData.location}</p>}
+          {userData.location && <p className="text-gray-300 text-sm mt-2">{userData.location}</p>}
 
           {/* Special Tag */}
           {specialTag && (
-            <span className="inline-block mt-2 px-3 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full border border-amber-500/30">
+            <span className="inline-block mt-3 px-4 py-1 bg-amber-500/20 text-amber-400 text-sm rounded-full border border-amber-500/30">
               {specialTag}
             </span>
           )}
 
           {/* Badges */}
           {visibleBadges.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
               {visibleBadges.map((badge) => (
                 <div
                   key={badge.id}
-                  className="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded-full border border-white/10"
+                  className="flex items-center gap-2 bg-gray-800/50 px-3 py-1 rounded-full border border-white/10"
                   title={badge.name}
                 >
-                  <img src={badge.icon} alt={badge.name} className="w-5 h-5 rounded-full" />
-                  <span className="text-xs text-gray-300">{badge.name}</span>
+                  <img src={badge.icon} alt={badge.name} className="w-6 h-6 rounded-full" />
+                  <span className="text-sm text-gray-200">{badge.name}</span>
                 </div>
               ))}
             </div>
@@ -350,10 +362,12 @@ export default function UserPage() {
         </div>
 
         {/* Bio */}
-        {userData.bio && <p className="text-center text-gray-300 mb-6">{userData.bio}</p>}
+        {userData.bio && (
+          <p className="text-center text-gray-200 text-base max-w-xl mx-auto mb-8">{userData.bio}</p>
+        )}
 
         {/* Stats */}
-        <div className="flex justify-center gap-4 text-sm text-gray-400 mb-8">
+        <div className="flex justify-center gap-6 text-sm text-gray-300 mb-10">
           <span>Level {userData.level}</span>
           <span>•</span>
           <span>{userData.profileViews} views</span>
@@ -362,26 +376,26 @@ export default function UserPage() {
         </div>
 
         {/* Render layout structure */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {currentPageStructure.map((section) => {
             if (section.type === 'bio') return null;
 
             if (section.type === 'links' && sortedLinks.length > 0) {
               return (
-                <div key={section.id} className="space-y-3">
+                <div key={section.id} className="space-y-4">
                   {sortedLinks.map((link) => (
                     <a
                       key={link.id}
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2"
+                      className="block w-full text-center py-3 rounded-xl font-medium transition-all bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3 shadow-sm"
                     >
                       {link.icon && (
                         <img
                           src={link.icon}
                           alt=""
-                          className="w-5 h-5 rounded"
+                          className="w-6 h-6 rounded"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
@@ -398,8 +412,8 @@ export default function UserPage() {
               const widget = widgetMap.get(section.widgetId);
               if (widget) {
                 return (
-                  <div key={section.id} className="bg-gray-800/30 p-4 rounded-xl border border-gray-700">
-                    {widget.title && <h3 className="text-white font-medium mb-2">{widget.title}</h3>}
+                  <div key={section.id} className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50 shadow-md">
+                    {widget.title && <h3 className="text-xl font-semibold text-white mb-3">{widget.title}</h3>}
                     {renderWidget(widget)}
                   </div>
                 );

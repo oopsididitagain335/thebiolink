@@ -2,6 +2,7 @@
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
+
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -60,10 +61,12 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
+
 // --- History Action Type ---
 type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -180,32 +183,327 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
       return state;
   }
 };
-// --- Help Center ---
-type HelpCategory = 'Getting Started' | 'General' | 'How-To Guides';
-const CATEGORIES = {
-  'Getting Started': [
-    { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
-    { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
-    { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
-    { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
-    { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
-  ],
-  'General': [
-    { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
-    { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
-    { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
-    { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
-    { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
-  ],
-  'How-To Guides': [
-    { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
-    { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
-    { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
-  ],
-} satisfies Record<HelpCategory, { id: string; title: string; content: string }[]>;
+
+// --- Affiliate Program Tab ---
+const AffiliateProgramTab = () => {
+  const [formData, setFormData] = useState({
+    discordUsername: '',
+    biolinkUsername: '',
+    socials: '',
+    communities: '',
+    position: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      const res = await fetch('/api/affiliate/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSubmitStatus('success');
+        setFormData({
+          discordUsername: '',
+          biolinkUsername: '',
+          socials: '',
+          communities: '',
+          position: '',
+        });
+      } else {
+        setSubmitStatus('error');
+        alert(data.error || 'Submission failed. Please try again.');
+      }
+    } catch (err) {
+      setSubmitStatus('error');
+      alert('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-2">Affiliate Program</h2>
+        <p className="text-gray-400">
+          Apply to become a sponsored creator and unlock exclusive monetization features.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-white flex items-center gap-2">
+            <span>✅</span> Sponsorship Requirements
+          </h3>
+          <ul className="mt-2 text-gray-300 list-disc pl-5 space-y-1 text-sm">
+            <li>Be a content creator, business owner, or esports manager.</li>
+            <li>Have an established following.</li>
+            <li>Be recognized in at least three communities.</li>
+            <li>Provide a resume demonstrating your experience and credibility.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-medium text-white flex items-center gap-2">
+            <span>📌</span> Partnered Creator Requirements
+          </h3>
+          <ul className="mt-2 text-gray-300 list-disc pl-5 space-y-1 text-sm">
+            <li>Secure at least 3 subscribers before being fully accepted.</li>
+            <li>Commit to providing meaningful exclusive content for your subscribers.</li>
+          </ul>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Discord Username *
+          </label>
+          <input
+            type="text"
+            name="discordUsername"
+            value={formData.discordUsername}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g., Strive#1234 or @Strive"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            BioLink Username *
+          </label>
+          <input
+            type="text"
+            name="biolinkUsername"
+            value={formData.biolinkUsername}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            placeholder="Your thebiolink.lol/username"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Social Media Links *
+          </label>
+          <textarea
+            name="socials"
+            value={formData.socials}
+            onChange={handleChange}
+            required
+            rows={2}
+            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g., YouTube: https://..., Instagram: https://..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Names of Communities You're Known In (at least 3) *
+          </label>
+          <textarea
+            name="communities"
+            value={formData.communities}
+            onChange={handleChange}
+            required
+            rows={2}
+            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g., Fortnite Community, Twitch Streamers, TikTok Creators"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Your Position / Role *
+          </label>
+          <input
+            type="text"
+            name="position"
+            value={formData.position}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g., Content Creator, Esports Manager, Business Owner"
+          />
+        </div>
+
+        {submitStatus === 'success' && (
+          <div className="p-3 bg-green-900/30 border border-green-800 text-green-300 rounded-lg text-sm">
+            ✅ Application submitted successfully! We’ll review it shortly.
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90 disabled:opacity-70"
+        >
+          {isSubmitting ? 'Submitting...' : 'Apply for Affiliate Program'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+// --- Overview Tab (Redesigned) ---
+const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
+  const bioLinkUrl = getBioLinkUrl(user.username);
+  const planDisplay = user.plan 
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
+    : 'Free';
+
+  // Mock stats — replace with real API data in production
+  const stats = {
+    profileViews: user.profileViews || 0,
+    totalLinks: links.length,
+    last7Days: 97,
+    growth: '+22 views since last week',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h-2v-2a6 6 0 00-5.356-5.356L9 9H7v2H5V9M15 19h2v2a6 6 0 015.356 5.356L21 21h2v-2m-2 2h-2v-2a6 6 0 01-5.356-5.356L15 15H9M9 19V5l2-2 2 2v14l-2 2-2-2z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white">Account Overview</h2>
+        </div>
+        <p className="text-gray-400">Check out information about your account.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-gray-300 text-sm font-medium">Username</h3>
+            <div className="bg-gray-700/50 p-1 rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10v6H7V8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h6v6h-6v-6z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600/20 text-blue-400 px-2 py-1 rounded text-sm font-medium">
+              {user.username}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-gray-300 text-sm font-medium">Profile Views</h3>
+            <div className="bg-gray-700/50 p-1 rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-end gap-1">
+            <span className="text-2xl font-bold text-white">{stats.profileViews}</span>
+            <span className="text-xs text-green-400 mb-1">{stats.growth}</span>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-gray-300 text-sm font-medium">Plan</h3>
+            <div className="bg-gray-700/50 p-1 rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9M5 11V9m2 2a2 2 0 104 0 2 2 0 004 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="bg-purple-600/20 text-purple-400 px-2 py-1 rounded text-sm font-medium">
+              {planDisplay}
+            </div>
+            {user.plan !== 'premium' && (
+              <button className="text-xs text-indigo-400 hover:text-indigo-300 underline">Upgrade</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
+              </svg>
+              Manage Links
+            </button>
+            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-.426 1.043-.426 1.468 0l1.58 1.58c1.043 1.043 1.043 2.734 0 3.777l-1.58 1.58c-.426.426-1.043.426-1.468 0l-1.58-1.58c-1.043-1.043-1.043-2.734 0-3.777l1.58-1.58z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.933 10.933c1.043 1.043 1.043 2.734 0 3.777l-1.58 1.58c-1.043 1.043-2.734 1.043-3.777 0l-1.58-1.58c-1.043-1.043-1.043-2.734 0-3.777l1.58-1.58c1.043-1.043 2.734-1.043 3.777 0l1.58 1.58z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h1m8-8v1m0 16v-1m-8-8h1m8 8h1m-8 0v-1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m-8 0h1m8 0h1m......
+            </button>
+          </div>
+        </div>
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Your BioLink</h3>
+          <a
+            href={bioLinkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-indigo-400 hover:underline break-all block"
+          >
+            {bioLinkUrl}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Remaining Tabs (Unchanged from your original) ---
 const HelpCenterTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<HelpCategory>('Getting Started');
+  const [activeCategory, setActiveCategory] = useState<'Getting Started' | 'General' | 'How-To Guides'>('Getting Started');
+  const CATEGORIES = {
+    'Getting Started': [
+      { id: 'introduction', title: 'Introduction', content: 'Welcome to The BioLink! This is where you start.' },
+      { id: 'customize-profile', title: 'Customize Your Profile', content: 'Learn how to personalize your BioLink with themes, banners, and widgets.' },
+      { id: 'adding-social-media', title: 'Adding Your Social Media', content: 'How to add Instagram, Twitter, YouTube, and more.' },
+      { id: 'share-profile', title: 'Share Your Profile', content: 'Best practices for sharing your BioLink on social media and in emails.' },
+      { id: 'explore-premium', title: 'Explore Premium', content: 'Unlock advanced features like custom domains and analytics.' },
+    ],
+    'General': [
+      { id: 'account-support', title: 'Account Support', content: 'Forgot password? Need to change email? We’ve got you covered.' },
+      { id: 'troubleshooting', title: 'Troubleshooting & Issues', content: 'Fix common problems like broken links or missing images.' },
+      { id: 'policies-security', title: 'Policies & Security', content: 'Read our Terms of Service and Privacy Policy.' },
+      { id: 'contact-support', title: 'Contact Support', content: 'Reach out to our team for help.' },
+      { id: 'profile-analytics', title: 'Profile Analytics', content: 'Understand your traffic and engagement.' },
+    ],
+    'How-To Guides': [
+      { id: 'list-of-guides', title: 'List of All Guides', content: 'A complete list of every guide we offer.' },
+      { id: 'profile-assets', title: 'Profile Assets', content: 'How to upload and manage your avatar, banner, and background.' },
+      { id: 'profile-audio', title: 'Profile Audio', content: 'Add background music to your profile.' },
+    ],
+  };
   const filteredArticles = Object.entries(CATEGORIES).flatMap(([category, articles]) =>
     articles.filter(article => article.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -234,7 +532,7 @@ const HelpCenterTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gray-900/30 p-4 rounded-lg">
           <nav>
-            {(Object.keys(CATEGORIES) as HelpCategory[]).map((category) => (
+            {(Object.keys(CATEGORIES) as ('Getting Started' | 'General' | 'How-To Guides')[]).map((category) => (
               <div key={category} className="mb-4">
                 <button
                   onClick={() => setActiveCategory(category)}
@@ -303,6 +601,7 @@ const HelpCenterTab = () => {
     </div>
   );
 };
+
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const toggleBadgeVisibility = (badgeId: string) => {
     const updatedBadges = user.badges?.map(badge => 
@@ -357,6 +656,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     </div>
   );
 };
+
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [email, setEmail] = useState('');
   useEffect(() => {
@@ -406,6 +706,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   );
 };
+
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -425,6 +726,7 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
+
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -472,74 +774,7 @@ const NewsTab = () => {
     </div>
   );
 };
-const ThemesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
-  const themes = [
-    { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
-    { id: 'purple', name: 'Purple', color: '#7c3aed' },
-    { id: 'green', name: 'Green', color: '#10b981' },
-    { id: 'red', name: 'Red', color: '#ef4444' },
-    { id: 'halloween', name: '🎃 Halloween', color: '#f97316' },
-  ] as const;
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Theme</h2>
-        <p className="text-gray-400 mb-6">Choose a base theme. Customize further in Advanced tab.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {themes.map((theme) => (
-            <button
-              key={theme.id}
-              onClick={() => setUser({ ...user, theme: theme.id })}
-              className={`p-4 rounded-xl text-white flex flex-col items-center ${
-                user.theme === theme.id ? 'ring-2 ring-white ring-opacity-60' : 'bg-gray-700/50'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }}></div>
-              <span className="text-sm font-medium">{theme.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
-  const bioLinkUrl = getBioLinkUrl(user.username);
-  const completion = Math.round(
-    ([user.name, user.username, user.avatar || user.bio, user.pageBackground].filter(Boolean).length / 4) * 100
-  );
-  const planDisplay = user.plan 
-    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
-    : 'Free';
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Your BioLink</h3>
-            <a
-              href={bioLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-indigo-400 hover:underline break-all"
-            >
-              {bioLinkUrl}
-            </a>
-          </div>
-          <div>
-            <h3 className="text-gray-300 text-sm font-medium mb-1">Stats</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-400">Total Links</span><span className="text-white font-medium">{links.length}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Profile Completion</span><span className="text-white font-medium">{completion}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-purple-400 font-medium">{planDisplay}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -703,6 +938,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const moveLink = (fromIndex: number, toIndex: number) => {
@@ -810,6 +1046,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   );
 };
+
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const addWidget = (type: Widget['type']) => {
     setWidgets([
@@ -901,6 +1138,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   );
 };
+
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => {
   return (
     <div className="space-y-6">
@@ -923,6 +1161,7 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   );
 };
+
 const ProfileBuilderTab = ({ 
   layoutStructure, 
   setLayoutStructure,
@@ -1000,6 +1239,7 @@ const ProfileBuilderTab = ({
     </div>
   );
 };
+
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1014,6 +1254,7 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
     </div>
   );
 };
+
 // --- Main Dashboard Component ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1053,6 +1294,7 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1128,6 +1370,7 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1137,6 +1380,7 @@ export default function Dashboard() {
       router.push('/auth/login');
     }
   };
+
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1201,10 +1445,12 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
+
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-  // ✅ REMOVED 'seo' tab
+
+  // ✅ Updated tabs: removed 'themes', added 'affiliate'
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1212,8 +1458,7 @@ export default function Dashboard() {
     { id: 'builder', name: 'Profile Builder' },
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
-    { id: 'themes', name: 'Themes' },
-    // { id: 'seo', name: 'SEO & Meta' }, ← REMOVED
+    { id: 'affiliate', name: 'Affiliate Program' }, // ✅ Replaces 'Themes'
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1221,6 +1466,7 @@ export default function Dashboard() {
     { id: 'settings', name: 'Settings' },
     { id: 'help_center', name: 'Help Center' },
   ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1228,6 +1474,7 @@ export default function Dashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1264,6 +1511,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="border-b border-gray-700 mb-8 overflow-x-auto">
           <nav className="flex space-x-6 pb-4">
             {tabs.map((tab) => (
@@ -1281,6 +1529,7 @@ export default function Dashboard() {
             ))}
           </nav>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
@@ -1289,8 +1538,7 @@ export default function Dashboard() {
             {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
-            {activeTab === 'themes' && <ThemesTab user={user} setUser={setUser} />}
-            {/* {activeTab === 'seo' && <SEOTab user={user} setUser={setUser} />} ← REMOVED */}
+            {activeTab === 'affiliate' && <AffiliateProgramTab />} {/* ✅ Render new tab */}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
@@ -1298,11 +1546,11 @@ export default function Dashboard() {
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
+
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
-                {/* ✅ Enhanced GIF + Video + Image support */}
                 {user.pageBackground && (
                   /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
                     <video
@@ -1384,6 +1632,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         {message && (
           <div
             className={`fixed bottom-6 right-6 p-4 rounded-xl ${
@@ -1395,6 +1644,7 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
+
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

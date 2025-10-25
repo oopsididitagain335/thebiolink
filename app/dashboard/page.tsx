@@ -1204,7 +1204,7 @@ export default function Dashboard() {
   const handleSave = () => {
     setShowGuidelinesModal(true);
   };
-  // ✅ REMOVED 'seo' from tabs list
+  // ✅ REMOVED 'seo' tab
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1302,6 +1302,7 @@ export default function Dashboard() {
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
               <div className="bg-gray-900/50 rounded-xl p-6 text-center relative overflow-hidden min-h-[500px]">
+                {/* ✅ Enhanced GIF + Video + Image support */}
                 {user.pageBackground && (
                   /\.(mp4|webm|ogg)$/i.test(user.pageBackground) ? (
                     <video
@@ -1311,6 +1312,12 @@ export default function Dashboard() {
                       loop
                       muted
                       playsInline
+                    />
+                  ) : /\.gif$/i.test(user.pageBackground) ? (
+                    <img
+                      src={user.pageBackground}
+                      alt="Animated background"
+                      className="absolute inset-0 z-0 object-cover w-full h-full"
                     />
                   ) : (
                     <div

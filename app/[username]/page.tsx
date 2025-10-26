@@ -16,6 +16,7 @@ async function getUserByUsernameForMetadata(username: string) {
       avatar: user.avatar,
       bio: user.bio,
       isBanned: user.isBanned,
+      audioUrl: user.audioUrl, // ← NEW
     };
   } catch {
     return null;
@@ -74,6 +75,39 @@ type Badge = {
   earnedAt?: string;
   hidden?: boolean;
 };
+
+// ✅ Audio Player Component
+function AudioPlayer({ audioUrl }: { audioUrl: string }) {
+  return (
+    <>
+      <audio
+        id="background-audio"
+        src={audioUrl}
+        autoPlay
+        loop
+        muted
+        className="hidden"
+      />
+      <button
+        onClick={() => {
+          const audio = document.getElementById('background-audio') as HTMLAudioElement;
+          if (audio) {
+            audio.muted = !audio.muted;
+            const button = document.getElementById('audio-toggle') as HTMLButtonElement;
+            if (button) {
+              button.innerText = audio.muted ? '🔇' : '🔊';
+            }
+          }
+        }}
+        id="audio-toggle"
+        className="fixed bottom-4 right-4 z-30 bg-gray-800/80 hover:bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-lg shadow-lg backdrop-blur-sm border border-gray-600 transition-all"
+        aria-label={audioUrl ? "Toggle audio" : "No audio"}
+      >
+        🔇
+      </button>
+    </>
+  );
+}
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
@@ -186,6 +220,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       ],
       profileViews = 0,
       theme = 'indigo',
+      audioUrl = '', // ← NEW
     } = userData;
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
@@ -209,12 +244,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
     return (
       <div className="min-h-screen relative overflow-hidden bg-black">
-        {/* Default theme background */}
+        {/* Background layers */}
         {!isValidGif && !isValidImage && !isInvalidBackground && (
           <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
         )}
-
-        {/* Invalid background fallback */}
         {isInvalidBackground && (
           <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
             <div className="text-center p-6 bg-gray-900/80 rounded-xl max-w-xs">
@@ -226,16 +259,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
           </div>
         )}
-
-        {/* Valid image background */}
         {isValidImage && (
           <div
             className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${pageBackground})` }}
           />
         )}
-
-        {/* Valid GIF background (ensures animation) */}
         {isValidGif && (
           <img
             className="absolute inset-0 z-0 object-cover w-full h-full"
@@ -245,6 +274,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         )}
 
         <div className="absolute inset-0 bg-black/60 z-10" />
+
+        {/* ✅ Render audio player if audioUrl exists */}
+        {audioUrl && <AudioPlayer audioUrl={audioUrl} />}
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">

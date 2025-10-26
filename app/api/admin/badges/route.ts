@@ -1,6 +1,6 @@
 // app/api/admin/badges/route.ts
 import { NextRequest } from 'next/server';
-import { getAllBadges, createBadge } from '@/lib/storage';
+import { getAllBadges, createBadge, deleteBadgeById } from '@/lib/storage';
 
 export async function GET() {
   try {
@@ -24,5 +24,21 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Failed to create badge:', error);
     return Response.json({ error: 'Failed to create badge' }, { status: 500 });
+  }
+}
+
+// Add DELETE support for badge deletion
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+    if (!id) {
+      return Response.json({ error: 'Badge ID required' }, { status: 400 });
+    }
+
+    await deleteBadgeById(id);
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete badge:', error);
+    return Response.json({ error: 'Failed to delete badge' }, { status: 500 });
   }
 }

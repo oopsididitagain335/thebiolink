@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import { deleteBadgeById } from '@/lib/storage';
 
-export async function DELETE(request: NextRequest, context: any) {
+export async function DELETE(_request: NextRequest, context: any) {
   try {
     const { id } = context.params;
 

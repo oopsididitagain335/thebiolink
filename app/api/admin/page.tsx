@@ -114,14 +114,14 @@ export default function AdminPanel() {
     fetchData();
   }, [fetchData]);
 
-  // Filter users
+  // 🔥 FIXED SEARCH: Safe field access
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users;
     const q = searchQuery.toLowerCase();
     return users.filter(user =>
-      user.name.toLowerCase().includes(q) ||
-      user.username.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q)
+      (user.name && user.name.toLowerCase().includes(q)) ||
+      (user.username && user.username.toLowerCase().includes(q)) ||
+      (user.email && user.email.toLowerCase().includes(q))
     );
   }, [users, searchQuery]);
 

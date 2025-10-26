@@ -24,7 +24,7 @@ export async function connectDB() {
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
-  // Tenor: https://tenor.com/view/ID.gif   → https://media.tenor.com/ID.gif  
+  // Tenor: https://tenor.com/view/ID.gif → https://media.tenor.com/ID.gif
   if (clean.includes('tenor.com/view/')) {
     const match = clean.match(/\/view\/([^/]+)$/);
     if (match) {
@@ -44,7 +44,7 @@ function normalizeGifUrl(url: string): string {
 // ✅ CORRECT LayoutSection — matches frontend EXACTLY
 interface LayoutSection {
   id: string;
-  type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text' | 'audio'; // ← added 'audio'
+  type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text' | 'audio';
   widgetId?: string;
   content?: string;
   styling?: { [key: string]: string };
@@ -104,7 +104,6 @@ interface LinkDoc {
   position: number;
 }
 
-// ✅ Added 'audio' to widget types
 type WidgetType = 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'audio';
 
 interface WidgetDoc {
@@ -551,14 +550,13 @@ export async function saveUserLinks(userId: string, links: any[]) {
   }
 }
 
-// ✅ Updated to include 'audio' in valid types
 export async function saveUserWidgets(userId: string, widgets: any[]) {
   const db = await connectDB();
   const uid = new ObjectId(userId);
   await db.collection('widgets').deleteMany({ userId: uid });
   if (widgets.length > 0) {
     const valid = widgets
-      .filter(w => w.id && ['spotify', 'youtube', 'twitter', 'custom', 'form', 'ecommerce', 'api', 'calendar', 'audio'].includes(w.type)) // ← added 'audio'
+      .filter(w => w.id && ['spotify', 'youtube', 'twitter', 'custom', 'form', 'ecommerce', 'api', 'calendar', 'audio'].includes(w.type))
       .map((w, i) => ({
         _id: new ObjectId(),
         userId: uid,
@@ -591,18 +589,17 @@ export async function updateUserProfile(userId: string, updates: any) {
   let pageBackground = updates.pageBackground?.trim() || '';
   if (pageBackground) {
     pageBackground = normalizeGifUrl(pageBackground);
-    const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg|mp3|wav|m4a)$/i; // ← added audio extensions
+    const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg|mp3|wav|m4a)$/i;
     if (!validExtensions.test(pageBackground)) {
       console.warn('Invalid background URL format:', pageBackground);
       pageBackground = '';
     }
   }
 
-  // ✅ Ensure layoutStructure is saved as-is from frontend (with 'audio')
   const layoutStructure = Array.isArray(updates.layoutStructure)
     ? updates.layoutStructure.map((s: any) => ({
         id: String(s.id || ''),
-        type: ['name', 'bio', 'badges', 'links', 'widget', 'spacer', 'text', 'audio'].includes(s.type) ? s.type : 'text', // ← added 'audio'
+        type: ['name', 'bio', 'badges', 'links', 'widget', 'spacer', 'text', 'audio'].includes(s.type) ? s.type : 'text',
         widgetId: s.widgetId ? String(s.widgetId) : undefined,
         content: typeof s.content === 'string' ? s.content : undefined,
         styling: s.styling && typeof s.styling === 'object' ? s.styling : undefined,
@@ -638,9 +635,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// ... (rest of the file remains unchanged: news, badges, ban, discord code, etc.)
-// All other functions below are unchanged and do not require audioUrl
-// (They don't deal with user profile data)
+// --- News, Badges, Ban, Discord Code (unchanged) ---
 
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
@@ -769,7 +764,7 @@ export async function getAllUsers() {
   const db = await connectDB();
   const users = await db.collection<UserDoc>('users').find({ isBanned: { $ne: true } }).project({
     _id: 1, username: 1, name: 1, avatar: 1, profileBanner: 1, pageBackground: 1,
-    bio: 1, location: 1, isBanned: 1, badges: 1, plan: 1, discordId: 1, audioUrl: 1, // ← added audioUrl
+    bio: 1, location: 1, isBanned: 1, badges: 1, plan: 1, discordId: 1, audioUrl: 1,
   }).toArray();
 
   return users.map(user => ({
@@ -785,7 +780,7 @@ export async function getAllUsers() {
     plan: user.plan || 'free',
     badges: Array.isArray(user.badges) ? user.badges : [],
     discordId: user.discordId,
-    audioUrl: user.audioUrl || undefined, // ← NEW
+    audioUrl: user.audioUrl || undefined,
   }));
 }
 

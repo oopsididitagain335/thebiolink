@@ -19,7 +19,7 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// 🔧 Normalize Tenor/Giphy URLs to direct media links
+//  Normalize Tenor/Giphy URLs to direct media links
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
@@ -40,7 +40,7 @@ function normalizeGifUrl(url: string): string {
   return clean;
 }
 
-// ✅ CORRECT LayoutSection — matches frontend EXACTLY
+// FUCKING FIXED FINALLY LayoutSection — matches frontend EXACTLY
 interface LayoutSection {
   id: string;
   type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text' | 'audio';

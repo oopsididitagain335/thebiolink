@@ -1,48 +1,51 @@
-// src/app/api/upload/route.ts
+// src/app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
+import { getCurrentUser } from '@/lib/auth';
+import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || !user._id) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const folder = (formData.get('folder') as string) || 'uploads';
+    const { profile, links, widgets } = await request.json();
 
-    if (!file) {
-      return Response.json({ error: 'No file provided' }, { status: 400 });
+    // ✅ Add audioUrl support
+    const updateData: any = {
+      name: typeof profile.name === 'string' ? profile.name.substring(0, 100) : '',
+      username: typeof profile.username === 'string' ? profile.username.toLowerCase().substring(0, 30) : '',
+      avatar: typeof profile.avatar === 'string' ? profile.avatar : '',
+      // ❌ profileBanner is kept but not used (as per your preference)
+      profileBanner: typeof profile.profileBanner === 'string' ? profile.profileBanner : '',
+      pageBackground: typeof profile.pageBackground === 'string' ? profile.pageBackground : '',
+      bio: typeof profile.bio === 'string' ? profile.bio.substring(0, 500) : '',
+      location: typeof profile.location === 'string' ? profile.location.substring(0, 100) : '',
+      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) ? profile.theme : 'indigo',
+      seoMeta: {
+        title: typeof profile.seoMeta?.title === 'string' ? profile.seoMeta.title.substring(0, 100) : '',
+        description: typeof profile.seoMeta?.description === 'string' ? profile.seoMeta.description.substring(0, 200) : '',
+        keywords: typeof profile.seoMeta?.keywords === 'string' ? profile.seoMeta.keywords.substring(0, 200) : '',
+      },
+      layoutStructure: Array.isArray(profile.layoutStructure) ? profile.layoutStructure : [],
+      analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode : '',
+      email: typeof profile.email === 'string' ? profile.email : '',
+      // ✅ NEW: audioUrl field
+      audioUrl: typeof profile.audioUrl === 'string' ? profile.audioUrl : '',
+    };
+
+    await updateUserProfile(user._id, updateData);
+
+    if (Array.isArray(links)) {
+      await saveUserLinks(user._id, links);
+    }
+    if (Array.isArray(widgets)) {
+      await saveUserWidgets(user._id, widgets);
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder,
-            resource_type: 'auto', // handles image, video, **audio**
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        )
-        .end(buffer);
-    });
-
-    return Response.json({
-      url: (result as any).secure_url,
-      public_id: (result as any).public_id,
-      resource_type: (result as any).resource_type,
-    });
+    return Response.json({ success: true });
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
-    return Response.json({ error: 'Upload failed' }, { status: 500 });
+    console.error('Dashboard update error:', error);
+    return Response.json({ error: 'Update failed' }, { status: 500 });
   }
 }

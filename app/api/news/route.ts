@@ -19,13 +19,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Title and content required' }, { status: 400 });
     }
 
-    const newPost = await createNewsPost({
-      title,
-      content,
-      imageUrl: imageUrl?.trim() || undefined,
-      authorName: 'Admin', // or pull from session
-      publishedAt: new Date().toISOString(),
-    });
+    // Pass arguments individually (not as object)
+    const newPost = await createNewsPost(
+      title.trim(),
+      content.trim(),
+      imageUrl?.trim() || '',
+      '000000000000000000000000', // Temporary authorId (use real admin ID in production)
+      'Admin'
+    );
 
     return Response.json(newPost);
   } catch (error) {

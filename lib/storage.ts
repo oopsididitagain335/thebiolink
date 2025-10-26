@@ -940,8 +940,8 @@ export async function deleteBadgeById(id: string) {
 
   // Remove badge from all users who have it
   await db.collection('users').updateMany(
-    { 'badges.id': id },
-    { $pull: { badges: { id } } }
+    { "badges.id": id },
+    { $pull: { badges: { id: id } } }
   );
 
   // Delete the badge from the badges collection

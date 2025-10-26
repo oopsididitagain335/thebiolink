@@ -1,4 +1,4 @@
-// app/api/dashboard/data/route.ts
+// src/app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getUserById } from '@/lib/storage';
@@ -11,17 +11,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const userData = await getUserById(user._id.toString());
-
     if (!userData) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // Safe date formatter
-    const safeIso = (d: any) => {
-      if (!d) return '';
-      const date = new Date(d);
-      return isNaN(date.getTime()) ? '' : date.toISOString();
-    };
 
     return Response.json({
       success: true,
@@ -40,19 +32,17 @@ export async function GET(request: NextRequest) {
         theme: userData.theme || 'indigo',
         badges: Array.isArray(userData.badges) ? userData.badges : [],
         email: user.email || '',
-        discordId: userData.discordId || '',
         xp: userData.xp || 0,
         level: userData.level || 1,
         loginStreak: userData.loginStreak || 0,
-        lastLogin: safeIso(userData.lastLogin),
-        loginHistory: Array.isArray(userData.loginHistory)
-          ? userData.loginHistory.map(safeIso).filter(Boolean)
-          : [],
+        lastLogin: userData.lastLogin || '',
+        loginHistory: Array.isArray(userData.loginHistory) ? userData.loginHistory : [],
         lastMonthlyBadge: userData.lastMonthlyBadge || '',
         customCSS: userData.customCSS || '',
         customJS: userData.customJS || '',
         seoMeta: userData.seoMeta || { title: '', description: '', keywords: '' },
         analyticsCode: userData.analyticsCode || '',
+        audioUrl: userData.audioUrl || '', // ← NEW
       },
       links: userData.links || [],
       widgets: userData.widgets || [],

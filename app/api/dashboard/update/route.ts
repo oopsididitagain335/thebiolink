@@ -1,7 +1,7 @@
 // src/app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
+import { updateUserProfile } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
@@ -9,14 +9,12 @@ export async function PUT(request: NextRequest) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { profile, links, widgets } = await request.json();
+    const { profile } = await request.json();
 
-    // ✅ Add audioUrl support
-    const updateData: any = {
+    const updateData = {
       name: typeof profile.name === 'string' ? profile.name.substring(0, 100) : '',
       username: typeof profile.username === 'string' ? profile.username.toLowerCase().substring(0, 30) : '',
       avatar: typeof profile.avatar === 'string' ? profile.avatar : '',
-      // ❌ profileBanner is kept but not used (as per your preference)
       profileBanner: typeof profile.profileBanner === 'string' ? profile.profileBanner : '',
       pageBackground: typeof profile.pageBackground === 'string' ? profile.pageBackground : '',
       bio: typeof profile.bio === 'string' ? profile.bio.substring(0, 500) : '',
@@ -27,22 +25,12 @@ export async function PUT(request: NextRequest) {
         description: typeof profile.seoMeta?.description === 'string' ? profile.seoMeta.description.substring(0, 200) : '',
         keywords: typeof profile.seoMeta?.keywords === 'string' ? profile.seoMeta.keywords.substring(0, 200) : '',
       },
-      layoutStructure: Array.isArray(profile.layoutStructure) ? profile.layoutStructure : [],
       analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode : '',
       email: typeof profile.email === 'string' ? profile.email : '',
-      // ✅ NEW: audioUrl field
-      audioUrl: typeof profile.audioUrl === 'string' ? profile.audioUrl : '',
+      audioUrl: typeof profile.audioUrl === 'string' ? profile.audioUrl : '', // ← NEW
     };
 
     await updateUserProfile(user._id, updateData);
-
-    if (Array.isArray(links)) {
-      await saveUserLinks(user._id, links);
-    }
-    if (Array.isArray(widgets)) {
-      await saveUserWidgets(user._id, widgets);
-    }
-
     return Response.json({ success: true });
   } catch (error) {
     console.error('Dashboard update error:', error);

@@ -2,12 +2,9 @@
 import { NextRequest } from 'next/server';
 import { deleteBadgeById } from '@/lib/storage';
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, context: any) {
   try {
-    const { id } = params;
+    const { id } = context.params;
 
     if (!id) {
       return Response.json({ error: 'Badge ID is required' }, { status: 400 });

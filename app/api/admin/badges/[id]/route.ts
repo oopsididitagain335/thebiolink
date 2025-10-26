@@ -3,19 +3,23 @@ import { NextRequest } from 'next/server';
 import { deleteBadgeById } from '@/lib/storage';
 
 export async function DELETE(
-  request: NextRequest,
+  _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
+
     if (!id) {
-      return Response.json({ error: 'Badge ID required' }, { status: 400 });
+      return Response.json({ error: 'Badge ID is required' }, { status: 400 });
     }
 
     await deleteBadgeById(id);
     return Response.json({ success: true });
-  } catch (error) {
-    console.error('Failed to delete badge:', error);
-    return Response.json({ error: 'Failed to delete badge' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Delete badge error:', error);
+    return Response.json(
+      { error: error.message || 'Failed to delete badge' },
+      { status: 500 }
+    );
   }
 }

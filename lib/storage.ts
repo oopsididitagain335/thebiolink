@@ -635,7 +635,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- News, Badges, Ban, Discord Code (unchanged) ---
+// --- News Functions ---
 
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
@@ -707,6 +707,50 @@ export async function getNewsPostById(id: string) {
   }
 }
 
+export async function updateNewsPostById(id: string, updates: { title?: string; content?: string; imageUrl?: string }) {
+  const db = await connectDB();
+  const oid = new ObjectId(id);
+
+  const clean: any = {};
+  if (updates.title !== undefined) clean.title = (updates.title || '').trim();
+  if (updates.content !== undefined) clean.content = (updates.content || '').trim();
+  if (updates.imageUrl !== undefined) {
+    clean.imageUrl = updates.imageUrl?.trim() ? normalizeGifUrl(updates.imageUrl.trim()) : '';
+  }
+
+  const result = await db.collection('news').updateOne(
+    { _id: oid },
+    { $set: clean }
+  );
+
+  if (result.matchedCount === 0) return null;
+
+  const updated = await db.collection<NewsPostDoc>('news').findOne({ _id: oid });
+  if (!updated) return null;
+
+  return {
+    id: updated._id.toString(),
+    title: updated.title,
+    content: updated.content,
+    imageUrl: updated.imageUrl || '',
+    authorName: updated.authorName,
+    publishedAt: updated.publishedAt.toISOString(),
+    likes: updated.likes,
+    comments: (updated.comments || []).map((c: any) => ({
+      email: c.email,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+    })),
+  };
+}
+
+export async function deleteNewsPostById(id: string) {
+  const db = await connectDB();
+  const oid = new ObjectId(id);
+  const result = await db.collection('news').deleteOne({ _id: oid });
+  return result.deletedCount > 0;
+}
+
 export async function addNewsInteraction(postId: string, email: string, type: 'like' | 'comment', content?: string) {
   const db = await connectDB();
   const postObjectId = new ObjectId(postId);
@@ -760,6 +804,8 @@ export async function addNewsInteraction(postId: string, email: string, type: 'l
   }
 }
 
+// --- User Management ---
+
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db.collection<UserDoc>('users').find({ isBanned: { $ne: true } }).project({
@@ -783,6 +829,77 @@ export async function getAllUsers() {
     audioUrl: user.audioUrl || undefined,
   }));
 }
+
+export async function updateUserById(id: string, updates: { name?: string; username?: string; email?: string }) {
+  const db = await connectDB();
+  const uid = new ObjectId(id);
+
+  // Validate username uniqueness if provided
+  if (updates.username) {
+    const existing = await db.collection('users').findOne({
+      username: updates.username.trim().toLowerCase(),
+      _id: { $ne: uid }
+    });
+    if (existing) throw new Error('Username already taken');
+  }
+
+  // Validate email uniqueness if provided
+  if (updates.email) {
+    const existing = await db.collection('users').findOne({
+      email: updates.email.trim().toLowerCase(),
+      _id: { $ne: uid }
+    });
+    if (existing) throw new Error('Email already in use');
+  }
+
+  const cleanUpdates: any = {};
+  if (updates.name !== undefined) cleanUpdates.name = (updates.name || '').trim().substring(0, 100);
+  if (updates.username !== undefined) cleanUpdates.username = (updates.username || '').trim().toLowerCase();
+  if (updates.email !== undefined) cleanUpdates.email = (updates.email || '').trim().toLowerCase();
+
+  const result = await db.collection('users').updateOne(
+    { _id: uid },
+    { $set: cleanUpdates }
+  );
+
+  if (result.matchedCount === 0) return null;
+
+  const updatedUser = await db.collection<UserDoc>('users').findOne({ _id: uid });
+  if (!updatedUser) return null;
+
+  return {
+    id: updatedUser._id.toString(),
+    name: updatedUser.name || '',
+    username: updatedUser.username || '',
+    email: updatedUser.email,
+    avatar: updatedUser.avatar || '',
+    profileBanner: updatedUser.profileBanner || '',
+    pageBackground: normalizeGifUrl(updatedUser.pageBackground || '') || '',
+    bio: updatedUser.bio || '',
+    location: updatedUser.location || '',
+    isBanned: updatedUser.isBanned || false,
+    plan: updatedUser.plan || 'free',
+    badges: updatedUser.badges || [],
+    discordId: updatedUser.discordId,
+    audioUrl: updatedUser.audioUrl || '',
+  };
+}
+
+export async function deleteUserById(id: string) {
+  const db = await connectDB();
+  const uid = new ObjectId(id);
+
+  // Delete user's related data first
+  await db.collection('links').deleteMany({ userId: uid });
+  await db.collection('widgets').deleteMany({ userId: uid });
+  await db.collection('profile_visits').deleteMany({ userId: uid });
+
+  // Finally delete the user
+  const result = await db.collection('users').deleteOne({ _id: uid });
+  return result.deletedCount > 0;
+}
+
+// --- Badge Management ---
 
 export async function createBadge(name: string, icon: string) {
   const db = await connectDB();
@@ -815,6 +932,28 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
+/**
+ * Delete a badge by ID and remove it from all users
+ */
+export async function deleteBadgeById(id: string) {
+  const db = await connectDB();
+
+  // Remove badge from all users who have it
+  await db.collection('users').updateMany(
+    { 'badges.id': id },
+    { $pull: { badges: { id } } }
+  );
+
+  // Delete the badge from the badges collection
+  const result = await db.collection('badges').deleteOne({ id });
+
+  if (result.deletedCount === 0) {
+    throw new Error('Badge not found');
+  }
+}
+
+// --- Ban Management ---
+
 export async function banUser(userId: string) {
   const db = await connectDB();
   const objectId = new ObjectId(userId);
@@ -832,6 +971,8 @@ export async function unbanUser(userId: string) {
     { $set: { isBanned: false }, $unset: { bannedAt: "" } }
   );
 }
+
+// --- Discord Integration ---
 
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();

@@ -1,5 +1,4 @@
-// lib/storage.ts
-import { MongoClient, ObjectId, Db, PushOperator } from 'mongodb';
+import { MongoClient, ObjectId, Db, PushOperator, PullOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
 let cachedClient: MongoClient | null = null;
@@ -928,7 +927,7 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   const userObjectId = new ObjectId(userId);
   await db.collection<UserDoc>('users').updateOne(
     { _id: userObjectId },
-    { $pull: { badges: { id: badgeId } } }
+    { $pull: { badges: { id: badgeId } } as PullOperator<UserDoc> }
   );
 }
 
@@ -939,9 +938,9 @@ export async function deleteBadgeById(id: string) {
   const db = await connectDB();
 
   // Remove badge from all users who have it
-  await db.collection('users').updateMany(
+  await db.collection<UserDoc>('users').updateMany(
     { "badges.id": id },
-    { $pull: { badges: { id: id } } }
+    { $pull: { badges: { id } } as PullOperator<UserDoc> }
   );
 
   // Delete the badge from the badges collection

@@ -1,3 +1,4 @@
+// No 'use client' at top — this remains a Server Component
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -6,6 +7,7 @@ import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
+import AudioPlayer from '@/components/AudioPlayer'; // ← NEW IMPORT
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -16,7 +18,7 @@ async function getUserByUsernameForMetadata(username: string) {
       avatar: user.avatar,
       bio: user.bio,
       isBanned: user.isBanned,
-      audioUrl: user.audioUrl, // ← NEW
+      audioUrl: user.audioUrl,
     };
   } catch {
     return null;
@@ -75,39 +77,6 @@ type Badge = {
   earnedAt?: string;
   hidden?: boolean;
 };
-
-// ✅ Audio Player Component
-function AudioPlayer({ audioUrl }: { audioUrl: string }) {
-  return (
-    <>
-      <audio
-        id="background-audio"
-        src={audioUrl}
-        autoPlay
-        loop
-        muted
-        className="hidden"
-      />
-      <button
-        onClick={() => {
-          const audio = document.getElementById('background-audio') as HTMLAudioElement;
-          if (audio) {
-            audio.muted = !audio.muted;
-            const button = document.getElementById('audio-toggle') as HTMLButtonElement;
-            if (button) {
-              button.innerText = audio.muted ? '🔇' : '🔊';
-            }
-          }
-        }}
-        id="audio-toggle"
-        className="fixed bottom-4 right-4 z-30 bg-gray-800/80 hover:bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-lg shadow-lg backdrop-blur-sm border border-gray-600 transition-all"
-        aria-label={audioUrl ? "Toggle audio" : "No audio"}
-      >
-        🔇
-      </button>
-    </>
-  );
-}
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
@@ -220,12 +189,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       ],
       profileViews = 0,
       theme = 'indigo',
-      audioUrl = '', // ← NEW
+      audioUrl = '',
     } = userData;
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
-
-    // ✅ Enhanced validation: reject YouTube/Spotify URLs as backgrounds
     const isInvalidBackground = pageBackground && isMediaEmbedUrl(pageBackground);
     const isValidGif = pageBackground && /\.gif$/i.test(pageBackground) && !isInvalidBackground;
     const isValidImage = pageBackground && /\.(png|jpg|jpeg|webp)$/i.test(pageBackground) && !isInvalidBackground;

@@ -1,39 +1,88 @@
-// src/app/api/dashboard/update/route.ts
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { updateUserProfile } from '@/lib/storage';
+import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || !user._id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  try {
-    const { profile } = await request.json();
 
-    const updateData = {
-      name: typeof profile.name === 'string' ? profile.name.substring(0, 100) : '',
-      username: typeof profile.username === 'string' ? profile.username.toLowerCase().substring(0, 30) : '',
-      avatar: typeof profile.avatar === 'string' ? profile.avatar : '',
-      profileBanner: typeof profile.profileBanner === 'string' ? profile.profileBanner : '',
-      pageBackground: typeof profile.pageBackground === 'string' ? profile.pageBackground : '',
-      bio: typeof profile.bio === 'string' ? profile.bio.substring(0, 500) : '',
-      location: typeof profile.location === 'string' ? profile.location.substring(0, 100) : '',
-      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) ? profile.theme : 'indigo',
+  try {
+    const { profile, links, widgets } = await request.json();
+
+    // --- Validate and sanitize profile fields ---
+    const sanitizedProfile = {
+      name: typeof profile.name === 'string' ? profile.name.substring(0, 100).trim() : '',
+      username: typeof profile.username === 'string'
+        ? profile.username.toLowerCase().replace(/[^a-z0-9_-]/g, '').substring(0, 30)
+        : '',
+      avatar: typeof profile.avatar === 'string' ? profile.avatar.trim() : '',
+      pageBackground: typeof profile.pageBackground === 'string' ? profile.pageBackground.trim() : '',
+      bio: typeof profile.bio === 'string' ? profile.bio.substring(0, 500).trim() : '',
+      location: typeof profile.location === 'string' ? profile.location.substring(0, 100).trim() : '',
+      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme)
+        ? profile.theme
+        : 'indigo',
       seoMeta: {
-        title: typeof profile.seoMeta?.title === 'string' ? profile.seoMeta.title.substring(0, 100) : '',
-        description: typeof profile.seoMeta?.description === 'string' ? profile.seoMeta.description.substring(0, 200) : '',
-        keywords: typeof profile.seoMeta?.keywords === 'string' ? profile.seoMeta.keywords.substring(0, 200) : '',
+        title: typeof profile.seoMeta?.title === 'string' ? profile.seoMeta.title.substring(0, 100).trim() : '',
+        description: typeof profile.seoMeta?.description === 'string' ? profile.seoMeta.description.substring(0, 200).trim() : '',
+        keywords: typeof profile.seoMeta?.keywords === 'string' ? profile.seoMeta.keywords.substring(0, 200).trim() : '',
       },
-      analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode : '',
-      email: typeof profile.email === 'string' ? profile.email : '',
-      audioUrl: typeof profile.audioUrl === 'string' ? profile.audioUrl : '', // ← NEW
+      analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode.trim() : '',
+      email: typeof profile.email === 'string' ? profile.email.trim() : '',
+      // ❌ audioUrl REMOVED
     };
 
-    await updateUserProfile(user._id, updateData);
+    // --- Validate username uniqueness (excluding current user) ---
+    if (sanitizedProfile.username) {
+      const db = await connectDB();
+      const existing = await db.collection('users').findOne({
+        username: sanitizedProfile.username,
+        _id: { $ne: new ObjectId(user._id) },
+      });
+      if (existing) {
+        return Response.json({ error: 'Username already taken' }, { status: 409 });
+      }
+    }
+
+    // --- Save all data ---
+    await updateUserProfile(user._id, sanitizedProfile);
+
+    if (Array.isArray(links)) {
+      await saveUserLinks(user._id, links);
+    }
+
+    if (Array.isArray(widgets)) {
+      // Filter out any 'audio' type widgets (defense in depth)
+      const cleanWidgets = widgets.filter(w => w.type !== 'audio');
+      await saveUserWidgets(user._id, cleanWidgets);
+    }
+
     return Response.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Dashboard update error:', error);
-    return Response.json({ error: 'Update failed' }, { status: 500 });
+    return Response.json({ error: error.message || 'Update failed' }, { status: 500 });
   }
+}
+
+// --- Helper: Reuse DB connection ---
+import { MongoClient, ObjectId } from 'mongodb';
+
+let cachedClient: MongoClient | null = null;
+let cachedDb: any = null;
+
+async function connectDB() {
+  if (cachedDb) return cachedDb;
+  if (!cachedClient) {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI not set');
+    }
+    cachedClient = new MongoClient(process.env.MONGODB_URI);
+    await cachedClient.connect();
+  }
+  if (!cachedDb) {
+    cachedDb = cachedClient.db();
+  }
+  return cachedDb;
 }

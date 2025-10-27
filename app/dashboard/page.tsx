@@ -3,7 +3,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
 
-// --- Interfaces ---
+// --- Interfaces (audioUrl removed) ---
 interface Link {
   id: string;
   url: string;
@@ -13,7 +13,7 @@ interface Link {
 }
 interface Widget {
   id: string;
-  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'audio';
+  type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
@@ -50,11 +50,11 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
-  audioUrl?: string; // ← NEW
+  // ❌ audioUrl REMOVED
 }
 interface LayoutSection {
   id: string;
-  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page' | 'audio';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
   widgetId?: string;
   height?: number;
   content?: string;
@@ -68,7 +68,7 @@ type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
 
-// --- Constants ---
+// --- Constants (audio removed) ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -91,7 +91,7 @@ const WIDGET_TYPES = [
   { id: 'ecommerce', name: 'Buy Button', icon: '🛒' },
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
-  { id: 'audio', name: 'Audio Player', icon: '🔊' },
+  // ❌ { id: 'audio', name: 'Audio Player', icon: '🔊' } REMOVED
 ];
 
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
@@ -107,7 +107,7 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'spotify', type: 'widget', widgetId: 'sp1' },
     { id: 'soundcloud', type: 'widget', widgetId: 'sc1' },
     { id: 'merch', type: 'ecommerce' },
-    { id: 'audio-player', type: 'audio' },
+    // ❌ { id: 'audio-player', type: 'audio' } REMOVED
   ]},
   { id: 'gamer', name: 'Gamer', config: [
     { id: 'bio', type: 'bio' },
@@ -136,7 +136,7 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'bio', type: 'bio' },
     { id: 'episodes', type: 'api', content: '/api/podcast/feed' },
     { id: 'subscribe', type: 'links' },
-    { id: 'latest-audio', type: 'audio' },
+    // ❌ { id: 'latest-audio', type: 'audio' } REMOVED
   ]},
   { id: 'ecommerce', name: 'E-Commerce', config: [
     { id: 'bio', type: 'bio' },
@@ -196,7 +196,7 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
 
 // --- TAB COMPONENTS ---
 
-// ✅ CustomizeTab: Banner input/upload REMOVED + Audio Upload Added
+// ✅ CustomizeTab: Audio section REMOVED
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -210,7 +210,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -218,19 +217,16 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       let folder = 'biolink';
       if (field === 'avatar') folder = 'avatars';
       if (field === 'pageBackground') folder = 'backgrounds';
-      if (field === 'audioUrl') folder = 'audio'; // ← NEW
-
+      // ❌ No audio folder
       const { url } = await uploadToCloudinary(file, folder);
       setUser({ ...user, [field]: url });
     } catch (err) {
       alert(`Failed to upload ${field}`);
     }
   };
-
   const handleThemeChange = (theme: User['theme']) => {
     setUser({ ...user, theme });
   };
-
   return (
     <div id="tab-customize" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -331,35 +327,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               placeholder="Supports .jpg, .png, .gif, .mp4"
             />
           </div>
-          {/* ✅ AUDIO UPLOAD */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Background Audio (Optional)</label>
-            <div className="flex items-center gap-3">
-              {user.audioUrl && (
-                <audio controls className="w-full text-sm">
-                  <source src={user.audioUrl} />
-                  Your browser does not support audio.
-                </audio>
-              )}
-              <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-                Upload Audio
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => handleFileUpload(e, 'audioUrl')}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <input
-              type="url"
-              name="audioUrl"
-              value={user.audioUrl || ''}
-              onChange={handleProfileChange}
-              className="w-full mt-2 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Or paste audio URL (.mp3, .wav, etc.)"
-            />
-          </div>
+          {/* ❌ AUDIO UPLOAD SECTION FULLY REMOVED */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
             <textarea
@@ -423,7 +391,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
   );
 };
 
-// ✅ WidgetsTab: Added 'audio' type
+// ✅ WidgetsTab: Audio type REMOVED
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -470,15 +438,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
                   className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
                 />
               )}
-              {widget.type === 'audio' && (
-                <input
-                  type="url"
-                  placeholder="Audio URL (.mp3, .wav)"
-                  value={widget.url || ''}
-                  onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, url: e.target.value } : w))}
-                  className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
-                />
-              )}
+              {/* ❌ No audio widget UI */}
             </div>
             <button
               onClick={() => setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })))}
@@ -498,7 +458,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
   </div>
 );
 
-// ✅ OverviewTab: Fixed SVG + id="tab-overview"
+// ✅ OverviewTab
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan 
@@ -608,7 +568,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   );
 };
 
-// ✅ Other Tabs
+// ✅ Other Tabs (unchanged except audio removed in preview)
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1049,9 +1009,8 @@ export default function Dashboard() {
     lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    audioUrl: '', // ← NEW
+    // ❌ audioUrl REMOVED
   });
-
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1059,7 +1018,6 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
-
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -1079,7 +1037,6 @@ export default function Dashboard() {
         const data = await res.json();
         const rawUsername = data.user.username || '';
         const safeUsername = isValidUsername(rawUsername) ? rawUsername : '';
-
         setUser({
           _id: data.user._id || '',
           name: (data.user.name || '').substring(0, 100),
@@ -1103,9 +1060,8 @@ export default function Dashboard() {
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
-          audioUrl: data.user.audioUrl || '', // ← NEW
+          // ❌ audioUrl REMOVED
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1119,7 +1075,6 @@ export default function Dashboard() {
               }))
             : []
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1132,7 +1087,6 @@ export default function Dashboard() {
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1177,7 +1131,6 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
-
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
@@ -1186,7 +1139,6 @@ export default function Dashboard() {
         url: w.url?.trim() || '',
         position: i,
       }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1205,13 +1157,12 @@ export default function Dashboard() {
             seoMeta: user.seoMeta,
             analyticsCode: user.analyticsCode,
             email: user.email,
-            audioUrl: user.audioUrl?.trim() || '', // ← NEW
+            // ❌ audioUrl REMOVED
           },
           links: linksToSend,
           widgets: widgetsToSend,
         }),
       });
-
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1291,7 +1242,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <div className="lg:w-64 flex-shrink-0">
@@ -1315,7 +1265,6 @@ export default function Dashboard() {
               </ul>
             </nav>
           </div>
-
           {/* Main Content */}
           <div className="flex-1">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
@@ -1332,7 +1281,6 @@ export default function Dashboard() {
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
-
           {/* Preview Panel */}
           <div className="lg:w-80">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
@@ -1370,7 +1318,7 @@ export default function Dashboard() {
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) : (
+                  ) else (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
@@ -1388,12 +1336,7 @@ export default function Dashboard() {
                     </div>
                   )}
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
-                  {/* ✅ Audio Preview */}
-                  {user.audioUrl && (
-                    <audio controls className="w-full max-w-xs mx-auto text-sm">
-                      <source src={user.audioUrl} />
-                    </audio>
-                  )}
+                  {/* ❌ Audio Preview REMOVED */}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
@@ -1408,15 +1351,7 @@ export default function Dashboard() {
                           </div>
                         );
                       }
-                      if (section.type === 'audio' && user.audioUrl) {
-                        return (
-                          <div key={section.id} className="bg-white/10 p-2 rounded">
-                            <audio controls className="w-full">
-                              <source src={user.audioUrl} />
-                            </audio>
-                          </div>
-                        );
-                      }
+                      // ❌ No 'audio' section handling
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>
@@ -1425,7 +1360,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         {/* Messages */}
         {message && (
           <div
@@ -1438,7 +1372,6 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
-
         {/* Compliance Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">

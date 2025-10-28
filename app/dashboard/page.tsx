@@ -3,7 +3,7 @@ import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
 
-// --- Interfaces (audioUrl removed) ---
+// --- Interfaces (audioUrl REMOVED) ---
 interface Link {
   id: string;
   url: string;
@@ -32,7 +32,7 @@ interface User {
   name: string;
   username: string;
   avatar: string;
-  profileBanner: string; // kept for data integrity, not editable
+  profileBanner: string;
   pageBackground: string;
   bio: string;
   location?: string;
@@ -50,7 +50,6 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
-  // ❌ audioUrl REMOVED
 }
 interface LayoutSection {
   id: string;
@@ -68,7 +67,7 @@ type HistoryAction =
   | { type: 'SAVE'; payload: LayoutSection[] }
   | { type: 'UNDO' };
 
-// --- Constants (audio removed) ---
+// --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
   { title: 'YouTube', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' },
@@ -91,7 +90,6 @@ const WIDGET_TYPES = [
   { id: 'ecommerce', name: 'Buy Button', icon: '🛒' },
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
-  // ❌ { id: 'audio', name: 'Audio Player', icon: '🔊' } REMOVED
 ];
 
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
@@ -107,7 +105,6 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'spotify', type: 'widget', widgetId: 'sp1' },
     { id: 'soundcloud', type: 'widget', widgetId: 'sc1' },
     { id: 'merch', type: 'ecommerce' },
-    // ❌ { id: 'audio-player', type: 'audio' } REMOVED
   ]},
   { id: 'gamer', name: 'Gamer', config: [
     { id: 'bio', type: 'bio' },
@@ -136,7 +133,6 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'bio', type: 'bio' },
     { id: 'episodes', type: 'api', content: '/api/podcast/feed' },
     { id: 'subscribe', type: 'links' },
-    // ❌ { id: 'latest-audio', type: 'audio' } REMOVED
   ]},
   { id: 'ecommerce', name: 'E-Commerce', config: [
     { id: 'bio', type: 'bio' },
@@ -195,8 +191,6 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
 };
 
 // --- TAB COMPONENTS ---
-
-// ✅ CustomizeTab: Audio section REMOVED
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -210,6 +204,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -217,16 +212,17 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       let folder = 'biolink';
       if (field === 'avatar') folder = 'avatars';
       if (field === 'pageBackground') folder = 'backgrounds';
-      // ❌ No audio folder
       const { url } = await uploadToCloudinary(file, folder);
       setUser({ ...user, [field]: url });
     } catch (err) {
       alert(`Failed to upload ${field}`);
     }
   };
+
   const handleThemeChange = (theme: User['theme']) => {
     setUser({ ...user, theme });
   };
+
   return (
     <div id="tab-customize" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -301,7 +297,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               placeholder="Or paste URL"
             />
           </div>
-          {/* ❌ BANNER SECTION REMOVED */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Page Background</label>
             <div className="flex items-center gap-3">
@@ -327,7 +322,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               placeholder="Supports .jpg, .png, .gif, .mp4"
             />
           </div>
-          {/* ❌ AUDIO UPLOAD SECTION FULLY REMOVED */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
             <textarea
@@ -391,7 +385,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
   );
 };
 
-// ✅ WidgetsTab: Audio type REMOVED
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -438,7 +431,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
                   className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
                 />
               )}
-              {/* ❌ No audio widget UI */}
             </div>
             <button
               onClick={() => setWidgets(widgets.filter((_, i) => i !== index).map((w, i) => ({ ...w, position: i })))}
@@ -458,7 +450,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
   </div>
 );
 
-// ✅ OverviewTab
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan 
@@ -568,7 +559,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   );
 };
 
-// ✅ Other Tabs (unchanged except audio removed in preview)
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -913,7 +903,7 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
       <div className="flex items-start">
         <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
           <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
           </svg>
         </div>
         <div>
@@ -1009,7 +999,6 @@ export default function Dashboard() {
     lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    // ❌ audioUrl REMOVED
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1060,7 +1049,6 @@ export default function Dashboard() {
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
-          // ❌ audioUrl REMOVED
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1147,7 +1135,6 @@ export default function Dashboard() {
             name: user.name.trim().substring(0, 100),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
-            // ❌ profileBanner NOT sent
             pageBackground: user.pageBackground?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             location: user.location?.trim().substring(0, 100) || '',
@@ -1157,7 +1144,6 @@ export default function Dashboard() {
             seoMeta: user.seoMeta,
             analyticsCode: user.analyticsCode,
             email: user.email,
-            // ❌ audioUrl REMOVED
           },
           links: linksToSend,
           widgets: widgetsToSend,
@@ -1311,14 +1297,13 @@ export default function Dashboard() {
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20 space-y-4">
-                  {/* ❌ Banner preview REMOVED */}
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
                       className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30"
                     />
-                  ) else (
+                  ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
@@ -1336,7 +1321,6 @@ export default function Dashboard() {
                     </div>
                   )}
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
-                  {/* ❌ Audio Preview REMOVED */}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
@@ -1351,7 +1335,6 @@ export default function Dashboard() {
                           </div>
                         );
                       }
-                      // ❌ No 'audio' section handling
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>

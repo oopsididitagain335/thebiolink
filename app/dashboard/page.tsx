@@ -14,14 +14,17 @@ interface Link {
   icon: string;
   position: number;
 }
+
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
+  email?: string; // ← Added for contact form
   position: number;
 }
+
 interface User {
   _id: string;
   name: string;
@@ -45,6 +48,7 @@ interface User {
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
 }
+
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
@@ -55,6 +59,7 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
+
 interface NewsPost {
   id: string;
   title: string;
@@ -77,6 +82,7 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺', description: 'Embed a YouTube video' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵', description: 'Share a playlist or track' },
@@ -87,6 +93,7 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌', description: 'Display live data' },
   { id: 'calendar', name: 'Calendar', icon: '📅', description: 'Show upcoming events' },
 ];
+
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -118,10 +125,12 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
 const isValidUsername = (username: string): boolean => {
   return /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 };
+
 const getBioLinkUrl = (username: string): string => {
   if (!isValidUsername(username)) return 'https://thebiolink.lol/';
   return `https://thebiolink.lol/${encodeURIComponent(username)}`;
 };
+
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -219,7 +228,7 @@ const OverviewTab = ({ user, links, setActiveTab }: { user: User; links: Link[];
               className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
               </svg>
               Manage Links
             </button>
@@ -263,6 +272,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -276,9 +286,11 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
+
   const handleThemeChange = (theme: User['theme']) => {
     setUser({ ...user, theme });
   };
+
   return (
     <div id="tab-customize" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -516,32 +528,40 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   </div>
 );
 
-// --- ENHANCED WIDGETS TAB ---
+// --- ENHANCED WIDGETS TAB WITH EMAIL FOR FORM ---
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [newWidget, setNewWidget] = useState<Partial<Widget>>({});
-  const handleAddWidget = () => {
-    if (!selectedType) return;
+
+  const handleAddWidget = (type: string) => {
     const widget: Widget = {
       id: `widget-${Date.now()}`,
-      type: selectedType as any,
+      type: type as any,
       title: '',
       content: '',
       url: '',
+      email: '', // ← Initialize for form
       position: widgets.length,
     };
     setNewWidget(widget);
+    setSelectedType(type);
   };
+
   const handleSaveWidget = () => {
-    if (newWidget.id) {
-      setWidgets([...widgets, newWidget as Widget]);
-      setNewWidget({});
-      setSelectedType(null);
-    }
+    if (!newWidget.type) return;
+    setWidgets([...widgets, newWidget as Widget]);
+    setNewWidget({});
+    setSelectedType(null);
   };
+
   const handleUpdateNewWidget = (field: keyof Widget, value: string) => {
-    setNewWidget(prev => ({ ...prev, [field]: value }));
+    setNewWidget((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleUpdateExistingWidget = (index: number, field: keyof Widget, value: string) => {
+    setWidgets(widgets.map((w, i) => (i === index ? { ...w, [field]: value } : w)));
+  };
+
   return (
     <div id="tab-widgets" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -554,7 +574,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
             {WIDGET_TYPES.map((w) => (
               <button
                 key={w.id}
-                onClick={() => setSelectedType(w.id)}
+                onClick={() => handleAddWidget(w.id)}
                 disabled={w.id === 'custom' && user.plan !== 'premium'}
                 className={`p-4 text-left rounded-lg border ${
                   w.id === 'custom' && user.plan !== 'premium'
@@ -596,6 +616,15 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
                 onChange={(e) => handleUpdateNewWidget('url', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
               />
+              {selectedType === 'form' && (
+                <input
+                  type="email"
+                  placeholder="Email to receive messages"
+                  value={newWidget.email || ''}
+                  onChange={(e) => handleUpdateNewWidget('email', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                />
+              )}
               {selectedType === 'custom' && (
                 <textarea
                   placeholder="Paste HTML or embed code"
@@ -635,21 +664,30 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
                   type="text"
                   placeholder="Widget Title"
                   value={widget.title || ''}
-                  onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, title: e.target.value } : w))}
+                  onChange={(e) => handleUpdateExistingWidget(index, 'title', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                 />
                 <input
                   type="url"
                   placeholder="Embed URL"
                   value={widget.url || ''}
-                  onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, url: e.target.value } : w))}
+                  onChange={(e) => handleUpdateExistingWidget(index, 'url', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
                 />
+                {widget.type === 'form' && (
+                  <input
+                    type="email"
+                    placeholder="Email to receive messages"
+                    value={widget.email || ''}
+                    onChange={(e) => handleUpdateExistingWidget(index, 'email', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm"
+                  />
+                )}
                 {widget.type === 'custom' && (
                   <textarea
                     placeholder="HTML or embed code"
                     value={widget.content || ''}
-                    onChange={(e) => setWidgets(widgets.map((w, i) => i === index ? { ...w, content: e.target.value } : w))}
+                    onChange={(e) => handleUpdateExistingWidget(index, 'content', e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 bg-gray-600/50 border border-gray-600 rounded-lg text-white text-sm font-mono"
                   />
@@ -695,7 +733,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
   </div>
 );
 
-// --- UPGRADED PROFILE BUILDER (VISUAL BLOCKS) ---
 const ProfileBuilderTab = ({ 
   layoutStructure, 
   setLayoutStructure,
@@ -824,7 +861,6 @@ const ProfileBuilderTab = ({
   );
 };
 
-// --- REAL ANALYTICS ---
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
   const totalViews = user.profileViews || 0;
   const days = 7;
@@ -1065,6 +1101,7 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
+
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1072,11 +1109,13 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
+
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -1114,6 +1153,7 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
+
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1127,6 +1167,7 @@ export default function Dashboard() {
               }))
             : []
         );
+
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1136,9 +1177,11 @@ export default function Dashboard() {
             title: w.title || '',
             content: w.content || '',
             url: w.url || '',
+            email: w.email || '', // ← Preserve email
             position: w.position ?? 0,
           }))
         );
+
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1151,6 +1194,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchUserData();
   }, [router]);
 
@@ -1168,11 +1212,13 @@ export default function Dashboard() {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
+
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
+
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1183,14 +1229,17 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
+
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
         url: w.url?.trim() || '',
+        email: w.email?.trim() || '', // ← Include email in save
         position: i,
       }));
+
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1213,6 +1262,7 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
+
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1232,7 +1282,6 @@ export default function Dashboard() {
     setShowGuidelinesModal(true);
   };
 
-  // Tabs WITHOUT Badges and Settings
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1291,6 +1340,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <div className="lg:w-64 flex-shrink-0">
@@ -1314,6 +1364,7 @@ export default function Dashboard() {
               </ul>
             </nav>
           </div>
+
           {/* Main Content */}
           <div className="flex-1">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} setActiveTab={setActiveTab} />}
@@ -1328,6 +1379,7 @@ export default function Dashboard() {
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
+
           {/* Preview Panel */}
           <div className="lg:w-80">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
@@ -1396,6 +1448,17 @@ export default function Dashboard() {
                           </div>
                         );
                       }
+                      if (section.type === 'form') {
+                        return (
+                          <div key={section.id} className="bg-white/10 p-3 rounded text-white">
+                            <div className="font-medium">Contact Form</div>
+                            <input type="text" placeholder="Name" className="w-full mt-2 px-2 py-1 rounded text-black text-sm" />
+                            <input type="email" placeholder="Email" className="w-full mt-2 px-2 py-1 rounded text-black text-sm" />
+                            <textarea placeholder="Message" rows={2} className="w-full mt-2 px-2 py-1 rounded text-black text-sm"></textarea>
+                            <button className="mt-2 w-full bg-indigo-600 text-white text-sm py-1 rounded">Send</button>
+                          </div>
+                        );
+                      }
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>
@@ -1404,6 +1467,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
         {/* Messages */}
         {message && (
           <div
@@ -1416,6 +1480,7 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
+
         {/* Compliance Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">

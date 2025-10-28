@@ -14,17 +14,15 @@ interface Link {
   icon: string;
   position: number;
 }
-
 interface Widget {
   id: string;
   type: 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
   title?: string;
   content?: string;
   url?: string;
-  email?: string; // ← Added for contact form
+  email?: string;
   position: number;
 }
-
 interface User {
   _id: string;
   name: string;
@@ -48,7 +46,6 @@ interface User {
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
 }
-
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
@@ -59,7 +56,6 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
-
 interface NewsPost {
   id: string;
   title: string;
@@ -272,7 +268,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       setUser({ ...user, [name]: value });
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof User) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -286,11 +281,9 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
       alert(`Failed to upload ${field}`);
     }
   };
-
   const handleThemeChange = (theme: User['theme']) => {
     setUser({ ...user, theme });
   };
-
   return (
     <div id="tab-customize" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -528,11 +521,9 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
   </div>
 );
 
-// --- ENHANCED WIDGETS TAB WITH EMAIL FOR FORM ---
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [newWidget, setNewWidget] = useState<Partial<Widget>>({});
-
   const handleAddWidget = (type: string) => {
     const widget: Widget = {
       id: `widget-${Date.now()}`,
@@ -540,35 +531,29 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
       title: '',
       content: '',
       url: '',
-      email: '', // ← Initialize for form
+      email: '',
       position: widgets.length,
     };
     setNewWidget(widget);
     setSelectedType(type);
   };
-
   const handleSaveWidget = () => {
     if (!newWidget.type) return;
     setWidgets([...widgets, newWidget as Widget]);
     setNewWidget({});
     setSelectedType(null);
   };
-
   const handleUpdateNewWidget = (field: keyof Widget, value: string) => {
     setNewWidget((prev) => ({ ...prev, [field]: value }));
   };
-
   const handleUpdateExistingWidget = (index: number, field: keyof Widget, value: string) => {
     setWidgets(widgets.map((w, i) => (i === index ? { ...w, [field]: value } : w)));
   };
-
   return (
     <div id="tab-widgets" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Custom Widgets</h2>
         <p className="text-gray-400 mb-4">Add embeds, media, or custom HTML to your BioLink.</p>
-
-        {/* Widget Type Selector */}
         {!selectedType ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {WIDGET_TYPES.map((w) => (
@@ -651,8 +636,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
             </div>
           </div>
         )}
-
-        {/* Existing Widgets */}
         <div className="space-y-4">
           {widgets.map((widget, index) => (
             <div key={widget.id} className="border border-gray-700 rounded-xl p-4 bg-gray-700/30">
@@ -751,7 +734,6 @@ const ProfileBuilderTab = ({
     { type: 'ecommerce', name: 'Shop', icon: '🛒', description: 'Sell products' },
     { type: 'custom', name: 'Custom HTML', icon: '</>', description: 'Add custom code' },
   ];
-
   const addBlock = (type: LayoutSection['type']) => {
     const newBlock: LayoutSection = {
       id: `block-${Date.now()}`,
@@ -760,21 +742,17 @@ const ProfileBuilderTab = ({
     };
     setLayoutStructure([...layoutStructure, newBlock]);
   };
-
   const removeBlock = (id: string) => {
     setLayoutStructure(layoutStructure.filter(b => b.id !== id));
   };
-
   const updateBlock = (id: string, updates: Partial<LayoutSection>) => {
     setLayoutStructure(layoutStructure.map(b => b.id === id ? { ...b, ...updates } : b));
   };
-
   const clearAll = () => {
     if (confirm('Are you sure? This will delete your entire profile layout.')) {
       setLayoutStructure([]);
     }
   };
-
   return (
     <div id="tab-builder" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -788,8 +766,6 @@ const ProfileBuilderTab = ({
           </button>
         </div>
         <p className="text-gray-400 mb-4">Add, edit, and reorder blocks to design your profile.</p>
-
-        {/* Block Palette */}
         <div className="mb-6">
           <h3 className="text-white font-medium mb-2">Add Block</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -806,8 +782,6 @@ const ProfileBuilderTab = ({
             ))}
           </div>
         </div>
-
-        {/* Layout Preview */}
         <div className="space-y-3">
           {layoutStructure.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -871,14 +845,11 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => {
     const views = Math.max(0, base + Math.floor(Math.random() * variance * 2) - variance);
     return { date: dayNames[(new Date().getDay() + i - days + 1 + 7) % 7], views };
   });
-
   const linkClicks = links.map((link) => ({
     name: link.title || 'Untitled',
     clicks: Math.floor(Math.random() * 50) + 10,
   }));
-
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe'];
-
   return (
     <div id="tab-analytics" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -961,7 +932,6 @@ const NewsTab = () => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -980,7 +950,6 @@ const NewsTab = () => {
     };
     fetchNews();
   }, []);
-
   return (
     <div id="tab-news" className="space-y-6">
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1101,7 +1070,6 @@ export default function Dashboard() {
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
   });
-
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [layoutStructure, setLayoutStructure] = useState<LayoutSection[]>([
@@ -1109,13 +1077,11 @@ export default function Dashboard() {
     { id: 'spacer-1', type: 'spacer', height: 24 },
     { id: 'links', type: 'links' },
   ]);
-
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
   const router = useRouter();
 
   useEffect(() => {
@@ -1153,7 +1119,6 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(
@@ -1167,7 +1132,6 @@ export default function Dashboard() {
               }))
             : []
         );
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(
@@ -1177,11 +1141,10 @@ export default function Dashboard() {
             title: w.title || '',
             content: w.content || '',
             url: w.url || '',
-            email: w.email || '', // ← Preserve email
+            email: w.email || '',
             position: w.position ?? 0,
           }))
         );
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -1194,7 +1157,6 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchUserData();
   }, [router]);
 
@@ -1212,13 +1174,11 @@ export default function Dashboard() {
     setShowGuidelinesModal(false);
     setIsSaving(true);
     setMessage(null);
-
     if (!isValidUsername(user.username)) {
       setMessage({ type: 'error', text: 'Username must be 3–30 characters (letters, numbers, _, -).' });
       setIsSaving(false);
       return;
     }
-
     try {
       const linksToSend = links
         .filter((link) => link.url.trim() && link.title.trim())
@@ -1229,17 +1189,15 @@ export default function Dashboard() {
           icon: link.icon?.trim() || '',
           position: index,
         }));
-
       const widgetsToSend = widgets.map((w, i) => ({
         id: w.id,
         type: w.type,
         title: w.title?.trim() || '',
         content: w.content?.trim() || '',
         url: w.url?.trim() || '',
-        email: w.email?.trim() || '', // ← Include email in save
+        email: w.email?.trim() || '',
         position: i,
       }));
-
       const response = await fetch('/api/dashboard/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1262,7 +1220,6 @@ export default function Dashboard() {
           widgets: widgetsToSend,
         }),
       });
-
       const data = await response.json();
       if (response.ok) {
         setMessage({ type: 'success', text: 'Changes saved successfully!' });
@@ -1340,7 +1297,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <div className="lg:w-64 flex-shrink-0">
@@ -1364,7 +1320,6 @@ export default function Dashboard() {
               </ul>
             </nav>
           </div>
-
           {/* Main Content */}
           <div className="flex-1">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} setActiveTab={setActiveTab} />}
@@ -1379,7 +1334,6 @@ export default function Dashboard() {
             {activeTab === 'news' && <NewsTab />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </div>
-
           {/* Preview Panel */}
           <div className="lg:w-80">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
@@ -1467,7 +1421,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
         {/* Messages */}
         {message && (
           <div
@@ -1480,7 +1433,6 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
-
         {/* Compliance Modal */}
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
+import { revalidatePath } from 'next/cache';
+import { connectDB, ObjectId } from '@/lib/storage';
 
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
@@ -31,10 +33,10 @@ export async function PUT(request: NextRequest) {
       },
       analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode.trim() : '',
       email: typeof profile.email === 'string' ? profile.email.trim() : '',
-      // ❌ audioUrl REMOVED
+      // ✅ audioUrl REMOVED — no longer used
     };
 
-    // --- Validate username uniqueness (excluding current user) ---
+    // --- Validate username uniqueness ---
     if (sanitizedProfile.username) {
       const db = await connectDB();
       const existing = await db.collection('users').findOne({
@@ -54,8 +56,11 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Array.isArray(widgets)) {
-      // Filter out any 'audio' type widgets (defense in depth)
-      const cleanWidgets = widgets.filter(w => w.type !== 'audio');
+      // ✅ Preserve 'email' for contact forms
+      const cleanWidgets = widgets.map(w => ({
+        ...w,
+        email: typeof w.email === 'string' ? w.email.trim() : '',
+      }));
       await saveUserWidgets(user._id, cleanWidgets);
     }
 
@@ -68,26 +73,4 @@ export async function PUT(request: NextRequest) {
     console.error('Dashboard update error:', error);
     return Response.json({ error: error.message || 'Update failed' }, { status: 500 });
   }
-}
-
-// --- Helper: Reuse DB connection & revalidation ---
-import { MongoClient, ObjectId } from 'mongodb';
-import { revalidatePath } from 'next/cache';
-
-let cachedClient: MongoClient | null = null;
-let cachedDb: any = null;
-
-async function connectDB() {
-  if (cachedDb) return cachedDb;
-  if (!cachedClient) {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI not set');
-    }
-    cachedClient = new MongoClient(process.env.MONGODB_URI);
-    await cachedClient.connect();
-  }
-  if (!cachedDb) {
-    cachedDb = cachedClient.db();
-  }
-  return cachedDb;
 }

@@ -1,4 +1,4 @@
-// No 'use client' at top — this remains a Server Component
+// No 'use client' — this is a Server Component
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -7,7 +7,6 @@ import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
-import AudioPlayer from '@/components/AudioPlayer'; // ← NEW IMPORT
 
 async function getUserByUsernameForMetadata(username: string) {
   try {
@@ -18,7 +17,6 @@ async function getUserByUsernameForMetadata(username: string) {
       avatar: user.avatar,
       bio: user.bio,
       isBanned: user.isBanned,
-      audioUrl: user.audioUrl,
     };
   } catch {
     return null;
@@ -189,7 +187,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       ],
       profileViews = 0,
       theme = 'indigo',
-      audioUrl = '',
+      // ❌ audioUrl REMOVED
     } = userData;
 
     const visibleBadges = badges.filter(badge => !('hidden' in badge ? badge.hidden : false));
@@ -242,8 +240,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
         <div className="absolute inset-0 bg-black/60 z-10" />
 
-        {/* ✅ Render audio player if audioUrl exists */}
-        {audioUrl && <AudioPlayer audioUrl={audioUrl} />}
+        {/* ❌ Audio player REMOVED */}
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">

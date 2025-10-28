@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { updateUserProfile, saveUserLinks, saveUserWidgets } from '@/lib/storage';
 import { revalidatePath } from 'next/cache';
-import { connectDB, ObjectId } from '@/lib/storage';
+import { connectDB } from '@/lib/storage';
+import { ObjectId } from 'mongodb';
 
 export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
@@ -33,10 +34,9 @@ export async function PUT(request: NextRequest) {
       },
       analyticsCode: typeof profile.analyticsCode === 'string' ? profile.analyticsCode.trim() : '',
       email: typeof profile.email === 'string' ? profile.email.trim() : '',
-      // ✅ audioUrl REMOVED — no longer used
     };
 
-    // --- Validate username uniqueness ---
+    // --- Validate username uniqueness (excluding current user) ---
     if (sanitizedProfile.username) {
       const db = await connectDB();
       const existing = await db.collection('users').findOne({
@@ -56,11 +56,8 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Array.isArray(widgets)) {
-      // ✅ Preserve 'email' for contact forms
-      const cleanWidgets = widgets.map(w => ({
-        ...w,
-        email: typeof w.email === 'string' ? w.email.trim() : '',
-      }));
+      // Filter out any 'audio' type widgets (defense in depth)
+      const cleanWidgets = widgets.filter(w => w.type !== 'audio');
       await saveUserWidgets(user._id, cleanWidgets);
     }
 

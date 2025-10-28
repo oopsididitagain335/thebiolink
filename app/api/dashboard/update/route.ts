@@ -59,6 +59,10 @@ export async function PUT(request: NextRequest) {
       await saveUserWidgets(user._id, cleanWidgets);
     }
 
+    // ✅ Revalidate the user's public profile page
+    const username = sanitizedProfile.username || user.username;
+    revalidatePath(`/${username}`, 'page');
+
     return Response.json({ success: true });
   } catch (error: any) {
     console.error('Dashboard update error:', error);
@@ -66,8 +70,9 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// --- Helper: Reuse DB connection ---
+// --- Helper: Reuse DB connection & revalidation ---
 import { MongoClient, ObjectId } from 'mongodb';
+import { revalidatePath } from 'next/cache';
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: any = null;

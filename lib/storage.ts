@@ -19,11 +19,11 @@ export async function connectDB() {
   return cachedDb;
 }
 
-//  Normalize Tenor/Giphy URLs to direct media links
+// Normalize Tenor/Giphy URLs to direct media links
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
-  // Tenor: https://tenor.com/view/ID.gif → https://media.tenor.com/ID.gif
+  // Tenor
   if (clean.includes('tenor.com/view/')) {
     const match = clean.match(/\/view\/([^/]+)$/);
     if (match) {
@@ -40,15 +40,16 @@ function normalizeGifUrl(url: string): string {
   return clean;
 }
 
-// FUCKING FIXED FINALLY LayoutSection — matches frontend EXACTLY
+// --- Interfaces (audioUrl REMOVED) ---
 interface LayoutSection {
   id: string;
-  type: 'name' | 'bio' | 'badges' | 'links' | 'widget' | 'spacer' | 'text' | 'audio';
+  type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
   widgetId?: string;
+  height?: number;
   content?: string;
+  children?: LayoutSection[];
+  pagePath?: string;
   styling?: { [key: string]: string };
-  visibleLinks?: string[];
-  height?: number; // for spacer
 }
 
 interface UserDoc {
@@ -91,7 +92,7 @@ interface UserDoc {
   customJS?: string;
   seoMeta?: { title: string; description: string; keywords: string };
   analyticsCode?: string;
-  audioUrl?: string; // ← NEW
+  // ❌ audioUrl REMOVED
 }
 
 interface LinkDoc {
@@ -103,7 +104,7 @@ interface LinkDoc {
   position: number;
 }
 
-type WidgetType = 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar' | 'audio';
+type WidgetType = 'spotify' | 'youtube' | 'twitter' | 'custom' | 'form' | 'ecommerce' | 'api' | 'calendar';
 
 interface WidgetDoc {
   _id: ObjectId;
@@ -113,6 +114,7 @@ interface WidgetDoc {
   title?: string;
   content?: string;
   url?: string;
+  email?: string; // ✅ Added for contact forms
   position: number;
 }
 
@@ -135,6 +137,7 @@ interface NewsPostDoc {
   comments?: { email: string; content: string; createdAt: Date }[];
 }
 
+// --- Helper Functions ---
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -144,6 +147,7 @@ async function getUserWidgets(userId: ObjectId) {
     title: w.title || '',
     content: w.content || '',
     url: w.url || '',
+    email: w.email || '', // ✅
     position: w.position || 0,
   })).sort((a, b) => a.position - b.position);
 }
@@ -207,6 +211,7 @@ async function awardMonthlyBadge(user: UserDoc) {
   return false;
 }
 
+// --- Public API Functions ---
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -304,7 +309,6 @@ export async function getUserByUsername(username: string, clientId: string) {
     })).sort((a, b) => a.position - b.position),
     widgets,
     layoutStructure: updatedUser.layoutStructure || [
-      { id: 'name', type: 'name' },
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 24 },
       { id: 'links', type: 'links' },
@@ -314,7 +318,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     seoMeta: updatedUser.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updatedUser.analyticsCode || '',
     discordId: updatedUser.discordId,
-    audioUrl: updatedUser.audioUrl || '', // ← NEW
+    // ❌ audioUrl REMOVED
   };
 }
 
@@ -403,7 +407,6 @@ export async function getUserById(id: string) {
     loginHistory: (updatedUser.loginHistory || []).map(d => d.toISOString()),
     lastMonthlyBadge: updatedUser.lastMonthlyBadge || '',
     layoutStructure: updatedUser.layoutStructure || [
-      { id: 'name', type: 'name' },
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 24 },
       { id: 'links', type: 'links' },
@@ -422,7 +425,7 @@ export async function getUserById(id: string) {
     seoMeta: updatedUser.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updatedUser.analyticsCode || '',
     discordId: updatedUser.discordId,
-    audioUrl: updatedUser.audioUrl || '', // ← NEW
+    // ❌ audioUrl REMOVED
   };
 }
 
@@ -445,7 +448,7 @@ export async function getUserByEmail(email: string) {
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
     discordId: user.discordId,
-    audioUrl: user.audioUrl || '', // ← NEW
+    // ❌ audioUrl REMOVED
   };
 }
 
@@ -483,7 +486,6 @@ export async function createUser(email: string, password: string, username: stri
     loginHistory: [now],
     lastMonthlyBadge: '',
     layoutStructure: [
-      { id: 'name', type: 'name' },
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 24 },
       { id: 'links', type: 'links' },
@@ -492,7 +494,7 @@ export async function createUser(email: string, password: string, username: stri
     customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    audioUrl: '', // ← NEW
+    // ❌ audioUrl REMOVED
   } as UserDoc);
   return {
     id: userId.toString(),
@@ -517,7 +519,6 @@ export async function createUser(email: string, password: string, username: stri
     loginHistory: [now.toISOString()],
     lastMonthlyBadge: '',
     layoutStructure: [
-      { id: 'name', type: 'name' },
       { id: 'bio', type: 'bio' },
       { id: 'spacer-1', type: 'spacer', height: 24 },
       { id: 'links', type: 'links' },
@@ -526,7 +527,7 @@ export async function createUser(email: string, password: string, username: stri
     customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    audioUrl: '', // ← NEW
+    // ❌ audioUrl REMOVED
   };
 }
 
@@ -555,7 +556,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
   await db.collection('widgets').deleteMany({ userId: uid });
   if (widgets.length > 0) {
     const valid = widgets
-      .filter(w => w.id && ['spotify', 'youtube', 'twitter', 'custom', 'form', 'ecommerce', 'api', 'calendar', 'audio'].includes(w.type))
+      .filter(w => w.id && ['spotify', 'youtube', 'twitter', 'custom', 'form', 'ecommerce', 'api', 'calendar'].includes(w.type))
       .map((w, i) => ({
         _id: new ObjectId(),
         userId: uid,
@@ -564,6 +565,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
         url: (w.url || '').trim(),
+        email: (w.email || '').trim(), // ✅
         position: i,
       }));
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);
@@ -588,25 +590,41 @@ export async function updateUserProfile(userId: string, updates: any) {
   let pageBackground = updates.pageBackground?.trim() || '';
   if (pageBackground) {
     pageBackground = normalizeGifUrl(pageBackground);
-    const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg|mp3|wav|m4a)$/i;
+    const validExtensions = /\.(png|jpe?g|webp|gif|mp4|webm|ogg)$/i;
     if (!validExtensions.test(pageBackground)) {
-      console.warn('Invalid background URL format:', pageBackground);
       pageBackground = '';
     }
   }
 
   const layoutStructure = Array.isArray(updates.layoutStructure)
-    ? updates.layoutStructure.map((s: any) => ({
-        id: String(s.id || ''),
-        type: ['name', 'bio', 'badges', 'links', 'widget', 'spacer', 'text', 'audio'].includes(s.type) ? s.type : 'text',
-        widgetId: s.widgetId ? String(s.widgetId) : undefined,
-        content: typeof s.content === 'string' ? s.content : undefined,
-        styling: s.styling && typeof s.styling === 'object' ? s.styling : undefined,
-        visibleLinks: Array.isArray(s.visibleLinks) ? s.visibleLinks.map(String) : undefined,
-        height: typeof s.height === 'number' ? s.height : undefined,
-      }))
+    ? updates.layoutStructure.map((s: any) => {
+        const base: any = {
+          id: String(s.id || ''),
+          type: s.type,
+          widgetId: s.widgetId ? String(s.widgetId) : undefined,
+          content: typeof s.content === 'string' ? s.content : undefined,
+          styling: s.styling && typeof s.styling === 'object' ? s.styling : undefined,
+          pagePath: typeof s.pagePath === 'string' ? s.pagePath : undefined,
+          height: typeof s.height === 'number' ? s.height : undefined,
+        };
+        if (Array.isArray(s.children)) {
+          base.children = s.children.map((child: any) => ({
+            id: String(child.id || ''),
+            type: child.type,
+            widgetId: child.widgetId ? String(child.widgetId) : undefined,
+            content: typeof child.content === 'string' ? child.content : undefined,
+            styling: child.styling && typeof child.styling === 'object' ? child.styling : undefined,
+            pagePath: typeof child.pagePath === 'string' ? child.pagePath : undefined,
+            height: typeof child.height === 'number' ? child.height : undefined,
+          })).filter((c: any) =>
+            ['bio', 'links', 'widget', 'spacer', 'custom', 'form', 'ecommerce', 'tab', 'column', 'api', 'calendar', 'page'].includes(c.type)
+          );
+        }
+        return base;
+      }).filter((s: any) =>
+        ['bio', 'links', 'widget', 'spacer', 'custom', 'form', 'ecommerce', 'tab', 'column', 'api', 'calendar', 'page'].includes(s.type)
+      )
     : [
-        { id: 'name', type: 'name' },
         { id: 'bio', type: 'bio' },
         { id: 'spacer-1', type: 'spacer', height: 24 },
         { id: 'links', type: 'links' },
@@ -628,14 +646,13 @@ export async function updateUserProfile(userId: string, updates: any) {
     seoMeta: updates.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updates.analyticsCode || '',
     discordId: updates.discordId,
-    audioUrl: typeof updates.audioUrl === 'string' ? updates.audioUrl.trim() : '', // ← NEW
+    // ❌ audioUrl REMOVED
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- News Functions ---
-
+// --- News Functions (unchanged) ---
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
   const post = {
@@ -804,12 +821,12 @@ export async function addNewsInteraction(postId: string, email: string, type: 'l
 }
 
 // --- User Management ---
-
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db.collection<UserDoc>('users').find({ isBanned: { $ne: true } }).project({
     _id: 1, username: 1, name: 1, avatar: 1, profileBanner: 1, pageBackground: 1,
-    bio: 1, location: 1, isBanned: 1, badges: 1, plan: 1, discordId: 1, audioUrl: 1,
+    bio: 1, location: 1, isBanned: 1, badges: 1, plan: 1, discordId: 1,
+    // ❌ audioUrl REMOVED
   }).toArray();
 
   return users.map(user => ({
@@ -825,7 +842,7 @@ export async function getAllUsers() {
     plan: user.plan || 'free',
     badges: Array.isArray(user.badges) ? user.badges : [],
     discordId: user.discordId,
-    audioUrl: user.audioUrl || undefined,
+    // ❌ audioUrl REMOVED
   }));
 }
 
@@ -833,7 +850,6 @@ export async function updateUserById(id: string, updates: { name?: string; usern
   const db = await connectDB();
   const uid = new ObjectId(id);
 
-  // Validate username uniqueness if provided
   if (updates.username) {
     const existing = await db.collection('users').findOne({
       username: updates.username.trim().toLowerCase(),
@@ -842,7 +858,6 @@ export async function updateUserById(id: string, updates: { name?: string; usern
     if (existing) throw new Error('Username already taken');
   }
 
-  // Validate email uniqueness if provided
   if (updates.email) {
     const existing = await db.collection('users').findOne({
       email: updates.email.trim().toLowerCase(),
@@ -880,26 +895,21 @@ export async function updateUserById(id: string, updates: { name?: string; usern
     plan: updatedUser.plan || 'free',
     badges: updatedUser.badges || [],
     discordId: updatedUser.discordId,
-    audioUrl: updatedUser.audioUrl || '',
+    // ❌ audioUrl REMOVED
   };
 }
 
 export async function deleteUserById(id: string) {
   const db = await connectDB();
   const uid = new ObjectId(id);
-
-  // Delete user's related data first
   await db.collection('links').deleteMany({ userId: uid });
   await db.collection('widgets').deleteMany({ userId: uid });
   await db.collection('profile_visits').deleteMany({ userId: uid });
-
-  // Finally delete the user
   const result = await db.collection('users').deleteOne({ _id: uid });
   return result.deletedCount > 0;
 }
 
 // --- Badge Management ---
-
 export async function createBadge(name: string, icon: string) {
   const db = await connectDB();
   const badgeId = new ObjectId().toString();
@@ -931,28 +941,19 @@ export async function removeUserBadge(userId: string, badgeId: string) {
   );
 }
 
-/**
- * Delete a badge by ID and remove it from all users
- */
 export async function deleteBadgeById(id: string) {
   const db = await connectDB();
-
-  // Remove badge from all users who have it
   await db.collection<UserDoc>('users').updateMany(
     { "badges.id": id },
     { $pull: { badges: { id } } as PullOperator<UserDoc> }
   );
-
-  // Delete the badge from the badges collection
   const result = await db.collection('badges').deleteOne({ id });
-
   if (result.deletedCount === 0) {
     throw new Error('Badge not found');
   }
 }
 
 // --- Ban Management ---
-
 export async function banUser(userId: string) {
   const db = await connectDB();
   const objectId = new ObjectId(userId);
@@ -972,7 +973,6 @@ export async function unbanUser(userId: string) {
 }
 
 // --- Discord Integration ---
-
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();
   const code = Math.random().toString(36).substring(2, 10).toUpperCase();

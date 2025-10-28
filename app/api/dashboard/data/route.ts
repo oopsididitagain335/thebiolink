@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         profileViews: userData.profileViews || 0,
         theme: userData.theme || 'indigo',
         badges: Array.isArray(userData.badges) ? userData.badges : [],
-        email: user.email || '',
+        email: user.email || '', // Note: using `user` (from session), not `userData`
         xp: userData.xp || 0,
         level: userData.level || 1,
         loginStreak: userData.loginStreak || 0,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         customJS: userData.customJS || '',
         seoMeta: userData.seoMeta || { title: '', description: '', keywords: '' },
         analyticsCode: userData.analyticsCode || '',
-        audioUrl: userData.audioUrl || '', // ← NEW
+        // ❌ REMOVED: audioUrl — no longer part of user data
       },
       links: userData.links || [],
       widgets: userData.widgets || [],

@@ -1,55 +1,64 @@
-// src/app/api/dashboard/data/route.ts
+// app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getServerSession } from 'next-auth/next';
 import { getUserById } from '@/lib/storage';
 
-export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user || !user._id) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET() {
+  const session = await getServerSession();
+  if (!session?.user?.id) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    const userData = await getUserById(user._id.toString());
+    const userData = await getUserById(session.user.id);
     if (!userData) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return Response.json({
-      success: true,
+    return new Response(JSON.stringify({
       user: {
         _id: userData._id,
-        name: userData.name || '',
-        username: userData.username || '',
-        avatar: userData.avatar || '',
-        profileBanner: userData.profileBanner || '',
-        pageBackground: userData.pageBackground || '',
-        bio: userData.bio || '',
-        location: userData.location || '',
-        isEmailVerified: Boolean(userData.isEmailVerified),
-        plan: userData.plan || 'free',
-        profileViews: userData.profileViews || 0,
-        theme: userData.theme || 'indigo',
-        badges: Array.isArray(userData.badges) ? userData.badges : [],
-        email: user.email || '', // Note: using `user` (from session), not `userData`
-        xp: userData.xp || 0,
-        level: userData.level || 1,
-        loginStreak: userData.loginStreak || 0,
-        lastLogin: userData.lastLogin || '',
-        loginHistory: Array.isArray(userData.loginHistory) ? userData.loginHistory : [],
-        lastMonthlyBadge: userData.lastMonthlyBadge || '',
-        customCSS: userData.customCSS || '',
-        customJS: userData.customJS || '',
-        seoMeta: userData.seoMeta || { title: '', description: '', keywords: '' },
-        analyticsCode: userData.analyticsCode || '',
-        // ❌ REMOVED: audioUrl — no longer part of user data
+        name: userData.name,
+        username: userData.username,
+        avatar: userData.avatar,
+        profileBanner: userData.profileBanner, // kept for data integrity
+        pageBackground: userData.pageBackground,
+        bio: userData.bio,
+        location: userData.location,
+        isEmailVerified: userData.isEmailVerified,
+        plan: userData.plan,
+        profileViews: userData.profileViews,
+        theme: userData.theme,
+        badges: userData.badges,
+        email: userData.email,
+        xp: userData.xp,
+        level: userData.level,
+        loginStreak: userData.loginStreak,
+        lastLogin: userData.lastLogin,
+        loginHistory: userData.loginHistory,
+        lastMonthlyBadge: userData.lastMonthlyBadge,
+        seoMeta: userData.seoMeta,
+        analyticsCode: userData.analyticsCode,
+        // ❌ audioUrl REMOVED
       },
-      links: userData.links || [],
-      widgets: userData.widgets || [],
-      layoutStructure: userData.layoutStructure || [],
+      links: userData.links,
+      widgets: userData.widgets,
+      layoutStructure: userData.layoutStructure,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Dashboard data fetch error:', error);
-    return Response.json({ error: 'Failed to load dashboard data' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

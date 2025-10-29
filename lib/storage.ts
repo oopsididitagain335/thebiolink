@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { MongoClient, ObjectId, Db, PushOperator, PullOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -19,11 +20,9 @@ export async function connectDB() {
   return cachedDb;
 }
 
-// Normalize Tenor/Giphy URLs to direct media links
 function normalizeGifUrl(url: string): string {
   if (!url) return '';
   const clean = url.trim();
-  // Tenor
   if (clean.includes('tenor.com/view/')) {
     const match = clean.match(/\/view\/([^/]+)$/);
     if (match) {
@@ -32,7 +31,6 @@ function normalizeGifUrl(url: string): string {
       return `https://media.tenor.com/${id}.gif`;
     }
   }
-  // Giphy
   if (clean.includes('giphy.com/media/')) {
     const match = clean.match(/\/media\/([^/]+)/);
     if (match) return `https://media.giphy.com/media/${match[1]}/giphy.gif`;
@@ -40,7 +38,6 @@ function normalizeGifUrl(url: string): string {
   return clean;
 }
 
-// --- Interfaces (audioUrl REMOVED) ---
 interface LayoutSection {
   id: string;
   type: 'bio' | 'links' | 'widget' | 'spacer' | 'custom' | 'form' | 'ecommerce' | 'tab' | 'column' | 'api' | 'calendar' | 'page';
@@ -59,7 +56,7 @@ interface UserDoc {
   name: string;
   passwordHash: string;
   avatar?: string;
-  profileBanner?: string;
+  profileBanner?: string; // kept for data integrity, not editable
   pageBackground?: string;
   bio?: string;
   location?: string;
@@ -114,7 +111,7 @@ interface WidgetDoc {
   title?: string;
   content?: string;
   url?: string;
-  email?: string; // ✅ Added for contact forms
+  email?: string;
   position: number;
 }
 
@@ -137,7 +134,6 @@ interface NewsPostDoc {
   comments?: { email: string; content: string; createdAt: Date }[];
 }
 
-// --- Helper Functions ---
 async function getUserWidgets(userId: ObjectId) {
   const db = await connectDB();
   const widgets = await db.collection<WidgetDoc>('widgets').find({ userId }).toArray();
@@ -147,7 +143,7 @@ async function getUserWidgets(userId: ObjectId) {
     title: w.title || '',
     content: w.content || '',
     url: w.url || '',
-    email: w.email || '', // ✅
+    email: w.email || '',
     position: w.position || 0,
   })).sort((a, b) => a.position - b.position);
 }
@@ -211,7 +207,6 @@ async function awardMonthlyBadge(user: UserDoc) {
   return false;
 }
 
-// --- Public API Functions ---
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
@@ -565,7 +560,7 @@ export async function saveUserWidgets(userId: string, widgets: any[]) {
         title: (w.title || '').trim(),
         content: (w.content || '').trim(),
         url: (w.url || '').trim(),
-        email: (w.email || '').trim(), // ✅
+        email: (w.email || '').trim(),
         position: i,
       }));
     if (valid.length > 0) await db.collection('widgets').insertMany(valid);
@@ -634,7 +629,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     name: (updates.name || '').trim().substring(0, 100),
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
-    profileBanner: (updates.profileBanner || '').trim(),
+    profileBanner: (updates.profileBanner || '').trim(), // kept but not editable
     pageBackground,
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
@@ -652,7 +647,7 @@ export async function updateUserProfile(userId: string, updates: any) {
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
 }
 
-// --- News Functions (unchanged) ---
+// --- News Functions ---
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
   const post = {

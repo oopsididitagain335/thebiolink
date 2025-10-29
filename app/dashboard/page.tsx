@@ -49,7 +49,6 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
-  // ❌ DO NOT add `links` here — it's managed separately
 }
 interface LayoutSection {
   id: string;
@@ -171,12 +170,13 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- FIXED: ProfileBuilderTab now accepts `links` as prop ---
-const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }: { 
+// --- UPDATED: No-Code Profile Builder with Widget Support ---
+const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
   setLayoutStructure: (sections: LayoutSection[]) => void; 
   user: User;
   links: Link[];
+  widgets: Widget[];
 }) => {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -218,6 +218,14 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }:
   const updateSectionStyling = (id: string, styleKey: string, value: string) => {
     const updated = layoutStructure.map(s =>
       s.id === id ? { ...s, styling: { ...(s.styling || {}), [styleKey]: value } } : s
+    );
+    setLayoutStructure(updated);
+    dispatchHistory({ type: 'SAVE', payload: updated });
+  };
+
+  const updateWidgetId = (id: string, widgetId: string) => {
+    const updated = layoutStructure.map(s =>
+      s.id === id ? { ...s, widgetId } : s
     );
     setLayoutStructure(updated);
     dispatchHistory({ type: 'SAVE', payload: updated });
@@ -280,7 +288,19 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }:
         );
         break;
       case 'widget':
-        content = <div className="bg-indigo-900/30 p-3 rounded text-center text-sm">Widget: {section.widgetId || section.type}</div>;
+        const widget = widgets.find(w => w.id === section.widgetId);
+        content = (
+          <div className="bg-indigo-900/30 p-3 rounded text-center text-sm">
+            {widget ? (
+              <>
+                <div className="font-medium">{widget.title || widget.type}</div>
+                <div className="text-xs text-gray-300 mt-1 capitalize">{widget.type} Widget</div>
+              </>
+            ) : (
+              <div className="text-gray-400">No widget selected</div>
+            )}
+          </div>
+        );
         break;
       case 'spacer':
         return <div key={section.id} style={{ height: `${section.height}px` }} className="bg-gray-700/30 rounded w-full"></div>;
@@ -342,7 +362,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }:
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-300 mb-2">Add Block</h3>
           <div className="flex flex-wrap gap-2">
-            {(['bio', 'links', 'spacer', 'column', 'custom', 'form', 'ecommerce', 'api', 'calendar'] as const).map((type) => (
+            {(['bio', 'links', 'spacer', 'column', 'form', 'ecommerce', 'api', 'calendar'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => addSection(type)}
@@ -351,29 +371,74 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }:
                 {type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </button>
             ))}
+            {/* Widget Picker */}
+            <div className="relative group">
+              <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded">
+                Widget
+              </button>
+              <div className="absolute left-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 hidden group-hover:block">
+                {widgets.length > 0 ? (
+                  widgets.map(widget => (
+                    <button
+                      key={widget.id}
+                      onClick={() => addSection('widget', widget.id)}
+                      className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 hover:text-white capitalize"
+                    >
+                      {widget.title || widget.type}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-xs text-gray-500">No widgets</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Block List (Reorderable) */}
+        {/* Block List */}
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {layoutStructure.map((section, index) => (
             <div key={section.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded text-sm">
               <button onClick={() => moveSection(index, Math.max(0, index - 1))} className="text-gray-400 hover:text-white">↑</button>
               <button onClick={() => moveSection(index, Math.min(layoutStructure.length - 1, index + 1))} className="text-gray-400 hover:text-white">↓</button>
               <span className="text-white flex-1 capitalize">
-                {section.type}{section.widgetId && ` (${section.widgetId})`}
+                {section.type}
+                {section.type === 'widget' && section.widgetId && (
+                  <span className="text-gray-400 ml-1">
+                    ({widgets.find(w => w.id === section.widgetId)?.title || section.widgetId})
+                  </span>
+                )}
               </span>
               <button onClick={() => removeSection(section.id)} className="text-red-400 hover:text-red-300">×</button>
             </div>
           ))}
-          {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added. Add your first block above.</p>}
+          {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added.</p>}
         </div>
       </div>
 
-      {/* Styling Panel */}
+      {/* Styling & Widget Config */}
       {selectedSection && (
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h3 className="text-lg font-medium text-white mb-3">Style: {selectedSection.type}</h3>
+          <h3 className="text-lg font-medium text-white mb-3">Configure: {selectedSection.type}</h3>
+
+          {selectedSection.type === 'widget' && (
+            <div className="mb-4">
+              <label className="block text-xs text-gray-400 mb-1">Select Widget</label>
+              <select
+                value={selectedSection.widgetId || ''}
+                onChange={(e) => updateWidgetId(selectedSection.id, e.target.value)}
+                className="w-full text-xs px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+              >
+                <option value="">— Choose a widget —</option>
+                {widgets.map(widget => (
+                  <option key={widget.id} value={widget.id}>
+                    {widget.title || widget.type} ({widget.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Background', key: 'background' },
@@ -427,7 +492,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }:
   );
 };
 
-// --- Other tabs remain unchanged ---
+// --- Other Tabs (unchanged from your original) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -1110,7 +1175,7 @@ export default function Dashboard() {
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
             {activeTab === 'templates' && <TemplatesTab setLayoutStructure={setLayoutStructure} />}
-            {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} links={links} />}
+            {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} links={links} widgets={widgets} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'affiliate' && <AffiliateProgramTab />}
@@ -1167,6 +1232,10 @@ export default function Dashboard() {
                             ))}
                           </div>
                         );
+                      }
+                      if (section.type === 'widget') {
+                        const widget = widgets.find(w => w.id === section.widgetId);
+                        return <div key={section.id} className="bg-white/10 p-2 rounded">{widget?.title || 'Widget'}</div>;
                       }
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}

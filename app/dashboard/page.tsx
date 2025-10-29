@@ -1,6 +1,6 @@
 // app/dashboard/page.tsx
 'use client';
-import { useState, useEffect, useReducer } from 'react';
+import { useState, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // --- Interfaces ---
 interface Link {
@@ -170,7 +170,7 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- UPDATED: No-Code Profile Builder with Widget Support ---
+// --- FINAL: Profile Builder Tab with Clickable Widget Picker ---
 const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
   setLayoutStructure: (sections: LayoutSection[]) => void; 
@@ -181,6 +181,18 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+  const [widgetPickerOpen, setWidgetPickerOpen] = useState(false);
+  const widgetPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (widgetPickerRef.current && !widgetPickerRef.current.contains(e.target as Node)) {
+        setWidgetPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (JSON.stringify(layoutStructure) !== JSON.stringify(history[history.length - 1])) {
@@ -371,26 +383,37 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
                 {type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </button>
             ))}
-            {/* Widget Picker */}
-            <div className="relative group">
-              <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded">
+            {/* Click-to-open Widget Picker */}
+            <div className="relative" ref={widgetPickerRef}>
+              <button
+                onClick={() => setWidgetPickerOpen(!widgetPickerOpen)}
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded flex items-center gap-1"
+              >
                 Widget
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-              <div className="absolute left-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 hidden group-hover:block">
-                {widgets.length > 0 ? (
-                  widgets.map(widget => (
-                    <button
-                      key={widget.id}
-                      onClick={() => addSection('widget', widget.id)}
-                      className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 hover:text-white capitalize"
-                    >
-                      {widget.title || widget.type}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-xs text-gray-500">No widgets</div>
-                )}
-              </div>
+              {widgetPickerOpen && (
+                <div className="absolute left-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                  {widgets.length > 0 ? (
+                    widgets.map(widget => (
+                      <button
+                        key={widget.id}
+                        onClick={() => {
+                          addSection('widget', widget.id);
+                          setWidgetPickerOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 hover:text-white capitalize"
+                      >
+                        {widget.title || widget.type}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-xs text-gray-500">No widgets</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -492,7 +515,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   );
 };
 
-// --- Other Tabs (unchanged from your original) ---
+// --- Other Tabs (unchanged) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';

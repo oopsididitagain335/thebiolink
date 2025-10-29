@@ -1,10 +1,7 @@
 // app/dashboard/page.tsx
 'use client';
-
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
-import Editor from '@monaco-editor/react';
-
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -63,7 +60,6 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
-
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -77,7 +73,6 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -88,7 +83,6 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
-
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -154,13 +148,11 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
-
 // --- Helpers ---
 const isValidUsername = (username: string): boolean => /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 const getBioLinkUrl = (username: string): string => isValidUsername(username)
   ? `https://thebiolink.lol/${encodeURIComponent(username)}`
   : 'https://thebiolink.lol/';
-
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -169,7 +161,6 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
-
 type HistoryAction = { type: 'SAVE'; payload: LayoutSection[] } | { type: 'UNDO' };
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
@@ -179,7 +170,254 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- Tab Components ---
+// --- NEW: No-Code Profile Builder Tab ---
+const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user }: { layoutStructure: LayoutSection[]; setLayoutStructure: (sections: LayoutSection[]) => void; user: User }) => {
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
+
+  useEffect(() => {
+    if (JSON.stringify(layoutStructure) !== JSON.stringify(history[history.length - 1])) {
+      dispatchHistory({ type: 'SAVE', payload: layoutStructure });
+    }
+  }, [layoutStructure, history]);
+
+  const addSection = (type: LayoutSection['type'], widgetId?: string) => {
+    const newId = `section-${Date.now()}`;
+    let newSection: LayoutSection = { id: newId, type };
+    if (widgetId) newSection.widgetId = widgetId;
+    if (type === 'spacer') newSection.height = 24;
+    if (type === 'column') newSection.children = [];
+    const updated = [...layoutStructure, newSection];
+    setLayoutStructure(updated);
+    dispatchHistory({ type: 'SAVE', payload: updated });
+  };
+
+  const removeSection = (id: string) => {
+    const updated = layoutStructure.filter(s => s.id !== id);
+    setLayoutStructure(updated);
+    dispatchHistory({ type: 'SAVE', payload: updated });
+    if (selectedSectionId === id) setSelectedSectionId(null);
+  };
+
+  const moveSection = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const newLayout = [...layoutStructure];
+    const [moved] = newLayout.splice(fromIndex, 1);
+    newLayout.splice(toIndex, 0, moved);
+    setLayoutStructure(newLayout);
+    dispatchHistory({ type: 'SAVE', payload: newLayout });
+  };
+
+  const updateSectionStyling = (id: string, styleKey: string, value: string) => {
+    const updated = layoutStructure.map(s =>
+      s.id === id ? { ...s, styling: { ...(s.styling || {}), [styleKey]: value } } : s
+    );
+    setLayoutStructure(updated);
+    dispatchHistory({ type: 'SAVE', payload: updated });
+  };
+
+  const undo = () => {
+    if (history.length > 1) {
+      const prevState = history[history.length - 2];
+      setLayoutStructure(prevState);
+      dispatchHistory({ type: 'UNDO' });
+    }
+  };
+
+  const selectedSection = layoutStructure.find(s => s.id === selectedSectionId);
+
+  const renderPreviewSection = (section: LayoutSection) => {
+    const baseClasses = 'p-4 rounded border mb-3 transition-all';
+    const isSelected = selectedSectionId === section.id;
+    const style = section.styling || {};
+
+    let content;
+    switch (section.type) {
+      case 'bio':
+        content = (
+          <div className="text-center">
+            {user.avatar ? (
+              <img src={user.avatar} className="w-16 h-16 rounded-full mx-auto mb-2 object-cover" alt="Avatar" />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="font-bold text-white">{user.name}</div>
+            <div className="text-gray-300 mt-1">{user.bio}</div>
+            {user.location && (
+              <div className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {user.location}
+              </div>
+            )}
+          </div>
+        );
+        break;
+      case 'links':
+        content = (
+          <div className="space-y-2">
+            {user.links?.map((link) => (
+              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="block bg-white/10 hover:bg-white/20 p-2 rounded text-center text-sm">
+                {link.title}
+              </a>
+            )) || <div className="text-gray-500 text-sm">No links added</div>}
+          </div>
+        );
+        break;
+      case 'widget':
+        content = <div className="bg-indigo-900/30 p-3 rounded text-center text-sm">Widget: {section.widgetId || section.type}</div>;
+        break;
+      case 'spacer':
+        return <div key={section.id} style={{ height: `${section.height}px` }} className="bg-gray-700/30 rounded w-full"></div>;
+      case 'column':
+        content = (
+          <div className="grid grid-cols-2 gap-2">
+            {(section.children || []).map((child) => (
+              <div key={child.id} className="bg-purple-900/30 p-2 rounded text-xs text-center">{child.type}</div>
+            ))}
+          </div>
+        );
+        break;
+      case 'custom':
+      case 'form':
+      case 'ecommerce':
+      case 'api':
+      case 'calendar':
+        content = <div className="bg-gray-800 p-3 rounded text-center text-sm capitalize">{section.type} Block</div>;
+        break;
+      default:
+        content = <div className="bg-gray-800 p-3 rounded">Unknown Block</div>;
+    }
+
+    return (
+      <div
+        key={section.id}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedSectionId(section.id);
+        }}
+        className={`${baseClasses} ${isSelected ? 'border-indigo-500 bg-indigo-900/20' : 'border-gray-700 bg-gray-800/50 cursor-pointer'}`}
+        style={style}
+      >
+        {content}
+      </div>
+    );
+  };
+
+  return (
+    <div id="tab-builder" className="space-y-6">
+      {/* Controls */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Visual Profile Builder</h2>
+            <p className="text-gray-400 text-sm">Drag, style, and arrange every part of your profile—no coding needed.</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={undo}
+              disabled={history.length <= 1}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded disabled:opacity-50"
+            >
+              ↶ Undo
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-300 mb-2">Add Block</h3>
+          <div className="flex flex-wrap gap-2">
+            {(['bio', 'links', 'spacer', 'column', 'custom', 'form', 'ecommerce', 'api', 'calendar'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => addSection(type)}
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded capitalize"
+              >
+                {type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Block List (Reorderable) */}
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+          {layoutStructure.map((section, index) => (
+            <div key={section.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded text-sm">
+              <button onClick={() => moveSection(index, Math.max(0, index - 1))} className="text-gray-400 hover:text-white">↑</button>
+              <button onClick={() => moveSection(index, Math.min(layoutStructure.length - 1, index + 1))} className="text-gray-400 hover:text-white">↓</button>
+              <span className="text-white flex-1 capitalize">
+                {section.type}{section.widgetId && ` (${section.widgetId})`}
+              </span>
+              <button onClick={() => removeSection(section.id)} className="text-red-400 hover:text-red-300">×</button>
+            </div>
+          ))}
+          {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added. Add your first block above.</p>}
+        </div>
+      </div>
+
+      {/* Styling Panel */}
+      {selectedSection && (
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <h3 className="text-lg font-medium text-white mb-3">Style: {selectedSection.type}</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Background', key: 'background' },
+              { label: 'Text Color', key: 'color' },
+              { label: 'Padding (px)', key: 'padding' },
+              { label: 'Margin (px)', key: 'margin' },
+              { label: 'Border Radius (px)', key: 'border-radius' },
+              { label: 'Font Size (px)', key: 'font-size' },
+            ].map(({ label, key }) => (
+              <div key={key}>
+                <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                <input
+                  type="text"
+                  value={selectedSection.styling?.[key] || ''}
+                  onChange={(e) => updateSectionStyling(selectedSection.id, key, e.target.value)}
+                  placeholder={key}
+                  className="w-full text-xs px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Live Preview */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <div className="flex gap-3 mb-4">
+          <h2 className="text-xl font-semibold text-white">Live Preview</h2>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={() => setPreviewDevice('desktop')}
+              className={`px-3 py-1 text-sm rounded ${previewDevice === 'desktop' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+            >
+              Desktop
+            </button>
+            <button
+              onClick={() => setPreviewDevice('mobile')}
+              className={`px-3 py-1 text-sm rounded ${previewDevice === 'mobile' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+            >
+              Mobile
+            </button>
+          </div>
+        </div>
+        <div className={`${previewDevice === 'mobile' ? 'w-[375px] mx-auto border border-gray-600 rounded-xl overflow-hidden' : 'w-full'}`}>
+          <div className="bg-gray-900 min-h-[600px] p-4 relative" style={{ background: user.pageBackground }}>
+            {layoutStructure.map(renderPreviewSection)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Other Tabs (unchanged) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -253,7 +491,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
               </svg>
               Manage Links
             </button>
@@ -275,7 +513,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -388,7 +625,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -432,7 +668,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   </div>
 );
-
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -475,7 +710,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   </div>
 );
-
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => (
   <div id="tab-templates" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -493,69 +727,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   </div>
 );
-
-const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user }: { layoutStructure: LayoutSection[]; setLayoutStructure: (sections: LayoutSection[]) => void; user: User }) => {
-  const [configJson, setConfigJson] = useState(JSON.stringify(layoutStructure, null, 2));
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
-  const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
-
-  useEffect(() => setConfigJson(JSON.stringify(layoutStructure, null, 2)), [layoutStructure]);
-
-  const handleConfigChange = (value: string | undefined) => setConfigJson(value || '');
-  const applyConfig = () => {
-    try {
-      const parsed = JSON.parse(configJson);
-      if (Array.isArray(parsed)) {
-        dispatchHistory({ type: 'SAVE', payload: parsed });
-        setLayoutStructure(parsed);
-      }
-    } catch (error) {
-      alert('Invalid JSON config');
-    }
-  };
-  const undo = () => {
-    if (history.length > 1) {
-      dispatchHistory({ type: 'UNDO' });
-      setLayoutStructure(history[history.length - 2]);
-    }
-  };
-  const renderPreview = () => {
-    const className = previewDevice === 'mobile' ? 'w-[375px] h-[667px] mx-auto border border-gray-600 overflow-y-auto' : 'w-full';
-    return (
-      <div className={className} style={{ background: user.pageBackground }}>
-        {layoutStructure.map((section) => (
-          <div key={section.id} style={section.styling}>
-            {section.type === 'bio' && <div>Bio Section</div>}
-            {section.type === 'page' && <div>Sub-page: {section.pagePath}</div>}
-            {section.children?.map(child => <div key={child.id}>{child.type}</div>)}
-          </div>
-        ))}
-      </div>
-    );
-  };
-  return (
-    <div id="tab-builder" className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Profile Builder</h2>
-        <p className="text-gray-400 mb-4">Edit the JSON config for your layout.</p>
-        <Editor height="400px" defaultLanguage="json" value={configJson} onChange={handleConfigChange} theme="vs-dark" />
-        <div className="flex gap-3 mt-4">
-          <button onClick={applyConfig} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Apply Config</button>
-          <button onClick={undo} disabled={history.length <= 1} className="bg-gray-700 text-white px-4 py-2 rounded-lg disabled:opacity-50">Undo</button>
-        </div>
-      </div>
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
-        <div className="flex gap-3 mb-4">
-          <button onClick={() => setPreviewDevice('desktop')} className="bg-gray-700 text-white px-4 py-2 rounded-lg">Desktop</button>
-          <button onClick={() => setPreviewDevice('mobile')} className="bg-gray-700 text-white px-4 py-2 rounded-lg">Mobile</button>
-        </div>
-        {renderPreview()}
-      </div>
-    </div>
-  );
-};
-
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-analytics_integration" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
@@ -564,7 +735,6 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
       className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono" />
   </div>
 );
-
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div id="tab-analytics" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -582,7 +752,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
-
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -635,7 +804,6 @@ const NewsTab = () => {
     </div>
   );
 };
-
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -663,7 +831,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     )}
   </div>
 );
-
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-settings" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -691,14 +858,12 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   </div>
 );
-
 const HelpCenterTab = () => (
   <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
     <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
   </div>
 );
-
 const AffiliateProgramTab = () => (
   <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
     <div>
@@ -771,7 +936,6 @@ export default function Dashboard() {
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
         });
-
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setLinks(sortedLinks.map((link: any) => ({
@@ -781,7 +945,6 @@ export default function Dashboard() {
           icon: (link.icon || '').trim(),
           position: link.position ?? 0,
         })));
-
         const fetchedWidgets = Array.isArray(data.widgets) ? data.widgets : [];
         const sortedWidgets = [...fetchedWidgets].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setWidgets(sortedWidgets.map((w: any) => ({
@@ -792,7 +955,6 @@ export default function Dashboard() {
           url: w.url || '',
           position: w.position ?? 0,
         })));
-
         setLayoutStructure(data.layoutStructure || [
           { id: 'bio', type: 'bio' },
           { id: 'spacer-1', type: 'spacer', height: 24 },
@@ -912,7 +1074,6 @@ export default function Dashboard() {
             </div>
           </div>
         </header>
-
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="lg:w-64 flex-shrink-0">
             <nav className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-4">
@@ -935,7 +1096,6 @@ export default function Dashboard() {
               </ul>
             </nav>
           </aside>
-
           <main className="flex-1">
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
@@ -951,7 +1111,6 @@ export default function Dashboard() {
             {activeTab === 'settings' && <SettingsTab user={user} setUser={setUser} />}
             {activeTab === 'help_center' && <HelpCenterTab />}
           </main>
-
           <aside className="lg:w-80">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-4 text-white">Live Preview</h2>
@@ -1007,7 +1166,6 @@ export default function Dashboard() {
             </div>
           </aside>
         </div>
-
         {message && (
           <div className={`fixed bottom-6 right-6 p-4 rounded-xl max-w-sm ${
             message.type === 'success' ? 'bg-green-900/80 text-green-200 border border-green-800' : 'bg-red-900/80 text-red-200 border border-red-800'
@@ -1015,7 +1173,6 @@ export default function Dashboard() {
             {message.text}
           </div>
         )}
-
         {showGuidelinesModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md">

@@ -1,12 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { clsx } from 'clsx';
-import { connectDB } from '@/lib/storage';
 
 /* ==============================================================
    TOGGLE HALLOWEEN MODE HERE
@@ -79,41 +78,43 @@ const theme = HALLOWEEN_MODE
     };
 
 /* --------------------------------------------------------------
-   Live Username Availability
+   Live Username Availability – uses /api/username
    -------------------------------------------------------------- */
 const useUsernameAvailability = (username: string) => {
   const [status, setStatus] = useState<'idle' | 'checking' | boolean>('idle');
-  const check = useCallback(async () => {
+
+  useEffect(() => {
     const trimmed = username.trim().toLowerCase();
     if (!trimmed || !/^[a-z0-9]{3,20}$/.test(trimmed)) {
       setStatus('idle');
       return;
     }
+
     setStatus('checking');
-    try {
-      const db = await connectDB();
-      const exists = await db.collection('users').findOne({ username: trimmed });
-      const available = !exists;
-      setStatus(available);
-      if (available && trimmed.length > 2) {
-        confetti({
-          particleCount: 70,
-          spread: 100,
-          origin: { y: 0.65 },
-          colors: theme.confettiColors,
-          scalar: 0.8,
-          ticks: 80,
-        });
-      }
-    } catch (e) {
-      console.error('Check failed:', e);
-      setStatus(false);
-    }
+
+    const timer = setTimeout(() => {
+      fetch(`/api/username?username=${encodeURIComponent(trimmed)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const available = data.available === true;
+          setStatus(available);
+          if (available) {
+            confetti({
+              particleCount: 70,
+              spread: 100,
+              origin: { y: 0.65 },
+              colors: theme.confettiColors,
+              scalar: 0.8,
+              ticks: 80,
+            });
+          }
+        })
+        .catch(() => setStatus(false));
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, [username]);
-  useEffect(() => {
-    const t = setTimeout(check, 400);
-    return () => clearTimeout(t);
-  }, [check]);
+
   return status;
 };
 
@@ -164,7 +165,7 @@ export default function HomePage() {
               key={i}
               className="absolute text-white/30 text-2xl"
               initial={{ x: Math.random() * window.innerWidth, y: -50 }}
-              animate={{ y: window.innerHeight + 50, x: Math.random() * window.innerWidth }}
+              animate={{ y: window.innerHeight + 50, x: Math.random() * windowaked.innerWidth }}
               transition={{
                 duration: 20 + Math.random() * 15,
                 repeat: Infinity,
@@ -316,7 +317,7 @@ export default function HomePage() {
                       <motion.span
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
+                        exit={{ opacity: 0, scale:: 0.8 }}
                         className={`px-3 py-4 text-sm font-mono ${HALLOWEEN_MODE ? 'text-orange-300' : 'text-indigo-300'}`}
                       >
                         thebiolink.lol/<span className={c.inputText}>{username}</span>

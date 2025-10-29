@@ -165,7 +165,7 @@ export default function HomePage() {
               key={i}
               className="absolute text-white/30 text-2xl"
               initial={{ x: Math.random() * window.innerWidth, y: -50 }}
-              animate={{ y: window.innerHeight + 50, x: Math.random() * windowaked.innerWidth }}
+              animate={{ y: window.innerHeight + 50, x: Math.random() * window.innerWidth }}
               transition={{
                 duration: 20 + Math.random() * 15,
                 repeat: Infinity,
@@ -317,7 +317,7 @@ export default function HomePage() {
                       <motion.span
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale:: 0.8 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
                         className={`px-3 py-4 text-sm font-mono ${HALLOWEEN_MODE ? 'text-orange-300' : 'text-indigo-300'}`}
                       >
                         thebiolink.lol/<span className={c.inputText}>{username}</span>

@@ -1,7 +1,7 @@
 // app/api/dashboard/data/route.ts
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth'; // ✅ Make sure this path matches your auth config
+import { authOptions } from '@/lib/auth';
 import { getUserById } from '@/lib/storage';
 
 export async function GET() {
@@ -29,7 +29,7 @@ export async function GET() {
       );
     }
 
-    // ✅ Use email from session (provided by NextAuth), not from userData
+    // Use email from session (trusted), not stored data
     const email = session.user.email || null;
 
     return new Response(
@@ -39,7 +39,7 @@ export async function GET() {
           name: userData.name,
           username: userData.username,
           avatar: userData.avatar,
-          profileBanner: userData.profileBanner,
+          profileBanner: userData.profileBanner, // kept for integrity, not editable
           pageBackground: userData.pageBackground,
           bio: userData.bio,
           location: userData.location,
@@ -48,7 +48,7 @@ export async function GET() {
           profileViews: userData.profileViews,
           theme: userData.theme,
           badges: userData.badges,
-          email, // ✅ Now safe
+          email,
           xp: userData.xp,
           level: userData.level,
           loginStreak: userData.loginStreak,
@@ -57,17 +57,22 @@ export async function GET() {
           lastMonthlyBadge: userData.lastMonthlyBadge,
           seoMeta: userData.seoMeta,
           analyticsCode: userData.analyticsCode,
+          // ❌ audioUrl REMOVED
         },
-        links: userData.links,
-        widgets: userData.widgets,
-        layoutStructure: userData.layoutStructure,
+        links: userData.links || [],
+        widgets: userData.widgets || [],
+        layoutStructure: userData.layoutStructure || [
+          { id: 'bio', type: 'bio' },
+          { id: 'spacer-1', type: 'spacer', height: 24 },
+          { id: 'links', type: 'links' },
+        ],
       }),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }
     );
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Dashboard data fetch error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),

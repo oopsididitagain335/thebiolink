@@ -49,6 +49,7 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
+  // ❌ DO NOT add `links` here — it's managed separately
 }
 interface LayoutSection {
   id: string;
@@ -170,8 +171,13 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- NEW: No-Code Profile Builder Tab ---
-const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user }: { layoutStructure: LayoutSection[]; setLayoutStructure: (sections: LayoutSection[]) => void; user: User }) => {
+// --- FIXED: ProfileBuilderTab now accepts `links` as prop ---
+const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links }: { 
+  layoutStructure: LayoutSection[]; 
+  setLayoutStructure: (sections: LayoutSection[]) => void; 
+  user: User;
+  links: Link[];
+}) => {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
@@ -261,11 +267,15 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user }: { layo
       case 'links':
         content = (
           <div className="space-y-2">
-            {user.links?.map((link) => (
-              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="block bg-white/10 hover:bg-white/20 p-2 rounded text-center text-sm">
-                {link.title}
-              </a>
-            )) || <div className="text-gray-500 text-sm">No links added</div>}
+            {links.length > 0 ? (
+              links.map((link) => (
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="block bg-white/10 hover:bg-white/20 p-2 rounded text-center text-sm">
+                  {link.title}
+                </a>
+              ))
+            ) : (
+              <div className="text-gray-500 text-sm">No links added</div>
+            )}
           </div>
         );
         break;
@@ -417,7 +427,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user }: { layo
   );
 };
 
-// --- Other Tabs (unchanged) ---
+// --- Other tabs remain unchanged ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -491,7 +501,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
               </svg>
               Manage Links
             </button>
@@ -1100,7 +1110,7 @@ export default function Dashboard() {
             {activeTab === 'overview' && <OverviewTab user={user} links={links} />}
             {activeTab === 'customize' && <CustomizeTab user={user} setUser={setUser} />}
             {activeTab === 'templates' && <TemplatesTab setLayoutStructure={setLayoutStructure} />}
-            {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} />}
+            {activeTab === 'builder' && <ProfileBuilderTab layoutStructure={layoutStructure} setLayoutStructure={setLayoutStructure} user={user} links={links} />}
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'affiliate' && <AffiliateProgramTab />}

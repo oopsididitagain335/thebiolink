@@ -140,7 +140,7 @@ export default function HomePage() {
       </div>
 
       <div className="absolute bottom-6 text-sm opacity-70">
-        Built with ❤️ using Next.js & Framer Motion
+        Built with ❤️ using Next.js & Solaces fingers
       </div>
     </main>
   );

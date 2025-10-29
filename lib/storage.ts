@@ -1,4 +1,5 @@
 // lib/storage.ts
+import 'server-only';
 import { MongoClient, ObjectId, Db, PushOperator, PullOperator } from 'mongodb';
 import bcrypt from 'bcryptjs';
 

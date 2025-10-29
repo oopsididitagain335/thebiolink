@@ -1,6 +1,4 @@
-// app/page.tsx
 'use client';
-
 import Link from 'next/link';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -85,22 +83,18 @@ const theme = HALLOWEEN_MODE
    -------------------------------------------------------------- */
 const useUsernameAvailability = (username: string) => {
   const [status, setStatus] = useState<'idle' | 'checking' | boolean>('idle');
-
   const check = useCallback(async () => {
     const trimmed = username.trim().toLowerCase();
     if (!trimmed || !/^[a-z0-9]{3,20}$/.test(trimmed)) {
       setStatus('idle');
       return;
     }
-
     setStatus('checking');
-
     try {
       const db = await connectDB();
       const exists = await db.collection('users').findOne({ username: trimmed });
       const available = !exists;
       setStatus(available);
-
       if (available && trimmed.length > 2) {
         confetti({
           particleCount: 70,
@@ -116,12 +110,10 @@ const useUsernameAvailability = (username: string) => {
       setStatus(false);
     }
   }, [username]);
-
   useEffect(() => {
     const t = setTimeout(check, 400);
     return () => clearTimeout(t);
   }, [check]);
-
   return status;
 };
 
@@ -133,7 +125,6 @@ export default function HomePage() {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
   const availability = useUsernameAvailability(username);
 
   const handleGo = (e: React.FormEvent) => {
@@ -154,7 +145,6 @@ export default function HomePage() {
 
   const isValid = /^[a-z0-9]{3,20}$/.test(username);
   const isDisabled = !username.trim() || !isValid || availability !== true;
-
   const c = theme.colors;
 
   return (
@@ -216,7 +206,6 @@ export default function HomePage() {
                 {theme.name}
               </span>
             </motion.div>
-
             <div className="flex items-center space-x-1 sm:space-x-4">
               {['/', '/news', '/pricing', '/auth/login', '/auth/signup'].map((href, i) => (
                 <motion.div
@@ -237,7 +226,6 @@ export default function HomePage() {
                   </Link>
                 </motion.div>
               ))}
-
               <motion.a
                 href="https://discord.gg/29yDsapcXh"
                 target="_blank"
@@ -313,7 +301,6 @@ export default function HomePage() {
                   <span className={`px-5 py-4 ${HALLOWEEN_MODE ? 'text-orange-300' : 'text-gray-400'} font-mono text-lg select-none`}>
                     thebiolink.lol/
                   </span>
-
                   <input
                     ref={inputRef}
                     type="text"
@@ -322,9 +309,8 @@ export default function HomePage() {
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     placeholder={HALLOWEEN_MODE ? "witchname" : "yourname"}
-                    className={`flex-1 min-w-0 bg-transparent py-4 px-2 ${, ${c.inputText} ${c.inputPlaceholder} outline-none font-mono text-lg`}
+                    className={`flex-1 min-w-0 bg-transparent py-4 px-2 ${c.inputText} ${c.inputPlaceholder} outline-none font-mono text-lg`}
                   />
-
                   <AnimatePresence>
                     {username && isValid && (
                       <motion.span
@@ -337,7 +323,6 @@ export default function HomePage() {
                       </motion.span>
                     )}
                   </AnimatePresence>
-
                   <button
                     type="submit"
                     disabled={isDisabled}

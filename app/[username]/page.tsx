@@ -1,14 +1,10 @@
-// app/[username]/page.tsx
-'use client'; // Needed for interactivity like forms
-
-import { useState, useEffect } from 'react';
 import { headers } from 'next/headers';
 import { getUserByUsername } from '@/lib/storage';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 
-// --- Helper Functions ---
+// --- Helper Functions (pure, no client deps) ---
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
@@ -212,7 +208,7 @@ const renderBlock = (section: any, links: any[], widgets: any[], theme: string) 
   }
 };
 
-// --- Main Page Component ---
+// --- Main Page Component (Server Component) ---
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
@@ -445,7 +441,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   }
 }
 
-// --- Metadata (unchanged) ---
+// --- Metadata (now valid in Server Component) ---
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = await params;
   const { username } = resolvedParams;

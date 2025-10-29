@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 'use client';
 import { useState, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +33,7 @@ interface User {
   name: string;
   username: string;
   avatar: string;
-  profileBanner: string;
+  profileBanner: string; // kept for data integrity, not editable
   pageBackground: string;
   bio: string;
   location?: string;
@@ -50,6 +51,7 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
+  // ❌ audioUrl REMOVED
 }
 interface LayoutSection {
   id: string;
@@ -297,6 +299,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
               placeholder="Or paste URL"
             />
           </div>
+          {/* ❌ BANNER UPLOAD REMOVED */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Page Background</label>
             <div className="flex items-center gap-3">
@@ -1007,6 +1010,7 @@ export default function Dashboard() {
     lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
+    // ❌ audioUrl REMOVED
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1057,6 +1061,7 @@ export default function Dashboard() {
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
+          // ❌ audioUrl REMOVED
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1143,6 +1148,7 @@ export default function Dashboard() {
             name: user.name.trim().substring(0, 100),
             username: user.username.trim().toLowerCase(),
             avatar: user.avatar?.trim() || '',
+            profileBanner: user.profileBanner?.trim() || '', // kept but not editable
             pageBackground: user.pageBackground?.trim() || '',
             bio: user.bio?.trim().substring(0, 500) || '',
             location: user.location?.trim().substring(0, 100) || '',
@@ -1152,6 +1158,7 @@ export default function Dashboard() {
             seoMeta: user.seoMeta,
             analyticsCode: user.analyticsCode,
             email: user.email,
+            // ❌ audioUrl REMOVED
           },
           links: linksToSend,
           widgets: widgetsToSend,
@@ -1305,7 +1312,8 @@ export default function Dashboard() {
                 )}
                 <div className="absolute inset-0 bg-black/70 z-10"></div>
                 <div className="relative z-20 space-y-4">
-                  {/* Avatar fallback: FIXED TERNARY */}
+                  {/* ❌ BANNER REMOVED */}
+                  {/* ✅ FIXED TERNARY BELOW */}
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -1330,6 +1338,7 @@ export default function Dashboard() {
                     </div>
                   )}
                   {user.bio && <p className="text-gray-300 mb-4 max-w-xs mx-auto">{user.bio}</p>}
+                  {/* ❌ AUDIO REMOVED */}
                   <div className="space-y-6">
                     {layoutStructure.map((section) => {
                       if (section.type === 'bio') return null;
@@ -1344,6 +1353,7 @@ export default function Dashboard() {
                           </div>
                         );
                       }
+                      // ❌ No 'audio' handling
                       return <div key={section.id} className="bg-white/10 p-2 rounded">{section.type}</div>;
                     })}
                   </div>

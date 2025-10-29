@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { clsx } from 'clsx';
 
-// TOGGLE HALLOWEEN MODE
+// Toggle Halloween Mode
 const HALLOWEEN_MODE = true; // false = normal BioLink
 
 // Theme configuration
@@ -74,6 +74,7 @@ const theme = HALLOWEEN_MODE
       fogGradient2: 'rgba(255,119,198,0.3)',
     };
 
+// Username availability hook
 const useUsernameAvailability = (username: string) => {
   const [status, setStatus] = useState<'idle' | 'checking' | boolean>('idle');
 
@@ -122,7 +123,6 @@ export default function HomePage() {
   const availability = useUsernameAvailability(username);
   const c = theme.colors;
 
-  // Client-only for SSR
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined' && theme.particles) {
@@ -149,7 +149,7 @@ export default function HomePage() {
   const isValid = /^[a-z0-9]{3,20}$/.test(username);
   const isDisabled = !username.trim() || !isValid || availability !== true;
 
-  if (!mounted) return null; // avoid SSR hydration issues
+  if (!mounted) return null; // avoid SSR issues
 
   return (
     <>
@@ -164,7 +164,63 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Floating Particles */}
+      {/* Navigation */}
+      <motion.nav
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="fixed top-0 inset-x-0 bg-black/50 backdrop-blur-2xl z-50 border-b border-white/5"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-2">
+              <div
+                className={`w-9 h-9 rounded-xl bg-gradient-to-br ${theme.colors.primary} p-0.5 shadow-lg ${c.shadow}`}
+              >
+                <div className="w-full h-full rounded-xl bg-black flex items-center justify-center">
+                  <span className="text-lg font-black text-white">{theme.logoIcon}</span>
+                </div>
+              </div>
+              <span
+                className={`text-xl font-black bg-clip-text text-transparent bg-gradient-to-r ${theme.colors.primary}`}
+              >
+                {theme.name}
+              </span>
+            </motion.div>
+            <div className="flex items-center space-x-1 sm:space-x-4">
+              {['/', '/news', '/pricing', '/auth/login', '/auth/signup'].map((href, i) => (
+                <motion.div
+                  key={href}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  <Link
+                    href={href}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${c.navLink} ${c.navLinkHover} transition-all backdrop-blur-sm`}
+                  >
+                    {href === '/' && 'Home'}
+                    {href === '/news' && 'News'}
+                    {href === '/pricing' && 'Pricing'}
+                    {href === '/auth/login' && 'Login'}
+                    {href === '/auth/signup' && 'Signup'}
+                  </Link>
+                </motion.div>
+              ))}
+              <motion.a
+                href="https://discord.gg/29yDsapcXh"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.1 }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${c.discord} ${c.discordHover} transition-all flex items-center gap-2`}
+              >
+                Discord
+              </motion.a>
+            </div>
+          </div>
+        </div>
+      </motion.nav>
+
+      {/* Floating particles */}
       {theme.particles &&
         particlePositions.map((pos, i) => (
           <motion.div
@@ -178,8 +234,9 @@ export default function HomePage() {
           </motion.div>
         ))}
 
-      {/* Hero & Input */}
+      {/* Hero & Input Section */}
       <section className="pt-28 pb-16 px-4 sm:px-6 text-center">
+        {/* Logo */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -188,6 +245,7 @@ export default function HomePage() {
           <span className="text-5xl font-black">{theme.logoIcon}</span>
         </motion.div>
 
+        {/* Title */}
         <motion.h1
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -197,6 +255,7 @@ export default function HomePage() {
           {theme.title}
         </motion.h1>
 
+        {/* Subtitle */}
         <motion.p
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

@@ -41,6 +41,87 @@ interface NewsPost {
 }
 
 export default function AdminPanel() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+
+  // Check login status on mount
+  useEffect(() => {
+    const auth = localStorage.getItem('admin_auth');
+    if (auth === 'true') {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const envUser = process.env.NEXT_PUBLIC_ADMIN_USER;
+    const envPass = process.env.NEXT_PUBLIC_ADMIN_PASS;
+
+    if (!envUser || !envPass) {
+      setLoginError('Admin credentials not configured in .env.local');
+      return;
+    }
+
+    if (loginForm.username === envUser && loginForm.password === envPass) {
+      localStorage.setItem('admin_auth', 'true');
+      setIsLoggedIn(true);
+      setLoginError('');
+    } else {
+      setLoginError('Invalid username or password');
+      setLoginForm({ username: '', password: '' });
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_auth');
+    setIsLoggedIn(false);
+  };
+
+  // 🔐 Gate: Show login if not authenticated
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-950">
+        <div className="w-full max-w-md p-8 bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-xl">
+          <h1 className="text-2xl font-bold text-center text-white mb-2">Admin Login</h1>
+          <p className="text-gray-400 text-center mb-6">Enter your admin credentials</p>
+
+          {loginError && (
+            <div className="mb-4 p-3 bg-red-900/30 text-red-300 rounded-lg text-sm border border-red-800/50">
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="text"
+              value={loginForm.username}
+              onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+              placeholder="Username"
+              className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="password"
+              value={loginForm.password}
+              onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+              placeholder="Password"
+              className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2.5 rounded-lg font-medium transition-all shadow-md"
+            >
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 👇 Rest of your original component (only shown when logged in)
   const [users, setUsers] = useState<User[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [newsPosts, setNewsPosts] = useState<NewsPost[]>([]);
@@ -55,17 +136,13 @@ export default function AdminPanel() {
   const [editForm, setEditForm] = useState({ name: '', username: '', email: '' });
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Password reset modal
   const [passwordModal, setPasswordModal] = useState<{ userId: string; username: string } | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // News edit modal
   const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
 
   const router = useRouter();
 
-  // Fetch data
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -89,7 +166,6 @@ export default function AdminPanel() {
         throw new Error('Invalid data format');
       }
 
-      // Fetch links for each user
       const usersWithLinks = await Promise.all(
         usersData.map(async (user: any) => {
           const linksRes = await fetch(`/api/profile/${user.username}/links`);
@@ -114,7 +190,6 @@ export default function AdminPanel() {
     fetchData();
   }, [fetchData]);
 
-  // 🔥 FIXED SEARCH: Safe field access
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users;
     const q = searchQuery.toLowerCase();
@@ -125,7 +200,6 @@ export default function AdminPanel() {
     );
   }, [users, searchQuery]);
 
-  // --- Handlers ---
   const handleCreateBadge = async () => {
     if (!newBadge.name.trim() || !newBadge.icon.trim()) {
       setMessage({ type: 'error', text: 'Badge name and icon URL are required.' });
@@ -421,12 +495,20 @@ export default function AdminPanel() {
             </h1>
             <p className="text-gray-400 mt-1">Manage users, badges, links, and announcements</p>
           </div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center px-4 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-750 transition-colors"
-          >
-            ← Back to Dashboard
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center px-4 py-2.5 border border-rose-700 rounded-lg text-sm font-medium text-rose-300 bg-rose-900/20 hover:bg-rose-900/30 transition-colors"
+            >
+              🔒 Logout
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="inline-flex items-center px-4 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-750 transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
         </div>
 
         {message && (
@@ -737,7 +819,7 @@ export default function AdminPanel() {
         </section>
       </div>
 
-      {/* Edit User Modal */}
+      {/* Modals */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-6">
@@ -783,7 +865,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Password Modal */}
       {passwordModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-6">
@@ -828,7 +909,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       {deletingUserId && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl border border-rose-700/50 w-full max-w-md p-6">

@@ -198,20 +198,53 @@ export default function UserPage() {
   if (!hasClicked) {
     return (
       <div
-        className="min-h-screen w-full bg-black flex flex-col items-center justify-center cursor-pointer"
+        className="min-h-screen w-full bg-black flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
         onClick={() => setHasClicked(true)}
       >
-        <p className="text-white text-lg font-medium">Click to enter</p>
-        <p className="text-gray-500 text-sm mt-6">
-          Powered by{' '}
-          <a
-            href={`${window.location.origin}/auth/signup`}
-            className="text-indigo-400 hover:underline"
-            onClick={(e) => e.stopPropagation()}
+        {/* Floating bats */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-red-900/10 animate-bounce"
+            style={{
+              left: `${10 + i * 12}%`,
+              top: `${20 + (i % 3) * 20}%`,
+              animationDuration: `${3 + i}s`,
+              animationDelay: `${i * 0.5}s`,
+              fontSize: `${20 + i * 2}px`,
+            }}
           >
-            BioLink
-          </a>
-        </p>
+            🦇
+          </div>
+        ))}
+
+        {/* Animated cauldron smoke */}
+        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent z-0 pointer-events-none"></div>
+        <div className="absolute bottom-10 w-16 h-16 rounded-full bg-orange-600/20 blur-xl animate-pulse"></div>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 10px #ea580c, 0 0 20px #ea580c; }
+            50% { text-shadow: 0 0 20px #f97316, 0 0 30px #f97316; }
+          }
+          .haunted-text {
+            animation: pulseGlow 2s infinite alternate;
+          }
+        ` }} />
+
+        <div className="text-center z-10">
+          <p className="text-3xl font-bold text-orange-500 haunted-text">Click to Enter</p>
+          <p className="text-gray-500 text-sm mt-6">
+            Powered by{' '}
+            <a
+              href={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/signup`}
+              className="text-orange-400 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              BioLink
+            </a>
+          </p>
+        </div>
       </div>
     );
   }

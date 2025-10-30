@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Head from 'next/head';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 
-// --- Keep all your helper functions exactly as before ---
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
@@ -171,7 +171,6 @@ export default function UserPage() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (hasClicked) {
@@ -198,20 +197,50 @@ export default function UserPage() {
   if (!hasClicked) {
     return (
       <div
-        className="min-h-screen w-full bg-black flex flex-col items-center justify-center cursor-pointer"
+        className="min-h-screen w-full bg-black flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
         onClick={() => setHasClicked(true)}
       >
-        <p className="text-white text-lg font-medium">Click to enter</p>
-        <p className="text-gray-500 text-sm mt-6">
-          Powered by{' '}
-          <a
-            href={`${window.location.origin}/auth/signup`}
-            className="text-indigo-400 hover:underline"
-            onClick={(e) => e.stopPropagation()}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-red-900/10 animate-bounce"
+            style={{
+              left: `${10 + i * 12}%`,
+              top: `${20 + (i % 3) * 20}%`,
+              animationDuration: `${3 + i}s`,
+              animationDelay: `${i * 0.5}s`,
+              fontSize: `${20 + i * 2}px`,
+            }}
           >
-            BioLink
-          </a>
-        </p>
+            🦇
+          </div>
+        ))}
+        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent z-0 pointer-events-none"></div>
+        <div className="absolute bottom-10 w-16 h-16 rounded-full bg-orange-600/20 blur-xl animate-pulse"></div>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 10px #ea580c, 0 0 20px #ea580c; }
+            50% { text-shadow: 0 0 20px #f97316, 0 0 30px #f97316; }
+          }
+          .haunted-text {
+            animation: pulseGlow 2s infinite alternate;
+          }
+        ` }} />
+
+        <div className="text-center z-10">
+          <p className="text-3xl font-bold text-orange-500 haunted-text">Click to Enter</p>
+          <p className="text-gray-500 text-sm mt-6">
+            Powered by{' '}
+            <a
+              href={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/signup`}
+              className="text-orange-400 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              BioLink
+            </a>
+          </p>
+        </div>
       </div>
     );
   }
@@ -357,93 +386,113 @@ export default function UserPage() {
   };
   const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
+  const displayName = name || username;
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=312e81&color=fff`;
+  const ogImage = avatar || fallbackAvatar;
+  const ogTitle = `${displayName} on BioLink`;
+  const ogDescription = bio || `Check out ${displayName}'s BioLink profile`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://biolinkhq.com';
+  const ogUrl = `${origin}/${username}`;
+
   return (
-    <div className="min-h-screen relative overflow-hidden bg-black">
-      {/* Background */}
-      {!isValidGif && !isValidImage && !isInvalidBackground && (
-        <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
-      )}
-      {isInvalidBackground && (
-        <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
-          <div className="text-center p-6 bg-gray-900/80 rounded-xl max-w-xs">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 17h.01M12 12h.01M12 15h.01M12 18h.01M12 21h.01M12 3h.01M12 6h.01" />
-            </svg>
-            <p className="text-white font-medium">Invalid Background</p>
-            <p className="text-gray-300 text-sm mt-1">Media URLs cannot be used as page backgrounds.</p>
-          </div>
-        </div>
-      )}
-      {isValidImage && (
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${pageBackground})` }}
-        />
-      )}
-      {isValidGif && (
-        <img
-          className="absolute inset-0 z-0 object-cover w-full h-full"
-          src={pageBackground}
-          alt="Animated background"
-        />
-      )}
+    <>
+      <Head>
+        <title>{displayName}</title>
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:url" content={ogUrl} />
+        <meta property="og:type" content="profile" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+        <meta name="twitter:image" content={ogImage} />
+      </Head>
 
-      <div className="absolute inset-0 bg-black/60 z-10" />
-
-      <div className="relative z-20 flex justify-center p-4 min-h-screen">
-        <div className="w-full max-w-md space-y-4">
-          {/* Bio Header */}
-          <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
-            <div className="relative inline-block mb-4">
-              <Avatar name={name} avatar={avatar} />
+      <div className="min-h-screen relative overflow-hidden bg-black">
+        {!isValidGif && !isValidImage && !isInvalidBackground && (
+          <div className="absolute inset-0 z-0" style={{ background: getThemeBackground(theme), backgroundAttachment: 'fixed' }} />
+        )}
+        {isInvalidBackground && (
+          <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
+            <div className="text-center p-6 bg-gray-900/80 rounded-xl max-w-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 17h.01M12 12h.01M12 15h.01M12 18h.01M12 21h.01M12 3h.01M12 6h.01" />
+              </svg>
+              <p className="text-white font-medium">Invalid Background</p>
+              <p className="text-gray-300 text-sm mt-1">Media URLs cannot be used as page backgrounds.</p>
             </div>
+          </div>
+        )}
+        {isValidImage && (
+          <div
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${pageBackground})` }}
+          />
+        )}
+        {isValidGif && (
+          <img
+            className="absolute inset-0 z-0 object-cover w-full h-full"
+            src={pageBackground}
+            alt="Animated background"
+          />
+        )}
 
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">{name || username}</h1>
+        <div className="absolute inset-0 bg-black/60 z-10" />
 
-            {visibleBadges.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
-                {visibleBadges.map((badge: any) => (
-                  <span
-                    key={badge.id}
-                    className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
-                    title={`Awarded: ${new Date(badge.awardedAt ?? badge.earnedAt ?? Date.now()).toLocaleDateString()}`}
-                  >
-                    {badge.icon && <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />}
-                    {badge.name}
-                  </span>
-                ))}
+        <div className="relative z-20 flex justify-center p-4 min-h-screen">
+          <div className="w-full max-w-md space-y-4">
+            <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
+              <div className="relative inline-block mb-4">
+                <Avatar name={name} avatar={avatar} />
               </div>
-            )}
 
-            {bio && <TypingBio bio={bio} />}
+              <h1 className="text-3xl font-extrabold text-white tracking-tight">{displayName}</h1>
 
-            <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
-              {location && (
-                <div className="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>{location}</span>
+              {visibleBadges.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mt-2 mb-3">
+                  {visibleBadges.map((badge: any) => (
+                    <span
+                      key={badge.id}
+                      className="inline-flex items-center text-xs font-medium text-gray-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10"
+                      title={`Awarded: ${new Date(badge.awardedAt ?? badge.earnedAt ?? Date.now()).toLocaleDateString()}`}
+                    >
+                      {badge.icon && <img src={badge.icon} alt="" className="w-3.5 h-3.5 mr-1.5" />}
+                      {badge.name}
+                    </span>
+                  ))}
                 </div>
               )}
-              <span>👁️ {profileViews.toLocaleString()}</span>
-              {links.length > 0 && <span>🔗 {links.length}</span>}
+
+              {bio && <TypingBio bio={bio} />}
+
+              <div className="flex justify-center gap-4 text-xs text-gray-300 mt-4">
+                {location && (
+                  <div className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{location}</span>
+                  </div>
+                )}
+                <span>👁️ {profileViews.toLocaleString()}</span>
+                {links.length > 0 && <span>🔗 {links.length}</span>}
+              </div>
+
+              {getSpecialProfileTag(username) && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
+                    🏆 {getSpecialProfileTag(username)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {getSpecialProfileTag(username) && (
-              <div className="mt-3 pt-3 border-t border-white/20">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-sm">
-                  🏆 {getSpecialProfileTag(username)}
-                </span>
-              </div>
-            )}
+            {layoutStructure.map((section) => renderBlock(section, links, widgets, theme))}
           </div>
-
-          {/* Render Layout Blocks */}
-          {layoutStructure.map((section) => renderBlock(section, links, widgets, theme))}
         </div>
       </div>
-    </div>
+    </>
   );
 }

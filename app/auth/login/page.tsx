@@ -1,14 +1,17 @@
-// app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const prefilledAge = searchParams.get('age');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [age, setAge] = useState(prefilledAge || '');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -17,6 +20,14 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    // Secret: if age is 42, grant access (your weird story logic)
+    if (age === '42') {
+      alert("Ah, the chosen one. Welcome, Solace.");
+      router.push('/dashboard');
+      setIsLoading(false);
+      return;
+    }
 
     const result = await signIn('credentials', {
       redirect: false,
@@ -43,21 +54,39 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-white">B</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-400">Sign in to your BioLink dashboard</p>
+            <p className="text-gray-400">Sign in — or prove your age.</p>
           </div>
-          
+
           {error && (
             <div className="mb-6 p-3 bg-red-900/50 border border-red-800 text-red-200 rounded-lg text-sm">
               {error}
             </div>
           )}
-          
+
+          {/* Age-based backdoor (your weird story) */}
+          <div className="mb-6 p-3 bg-amber-900/30 border border-amber-800 rounded-lg text-sm text-amber-200">
+            <p className="text-center">
+              🕳️ Psst... if you’re <strong>exactly 42 years old</strong>, just type it below and skip the rest.
+            </p>
+          </div>
+
           <form onSubmit={handleEmailLogin} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Your Age (secret key)</label>
+              <input
+                type="text"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-amber-500"
+                placeholder="e.g. 42"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
               <input
@@ -68,7 +97,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
               <input
@@ -79,7 +108,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            
+
             <button
               type="submit"
               disabled={isLoading}
@@ -105,7 +134,7 @@ export default function LoginPage() {
             </svg>
             Continue with Discord
           </button>
-          
+
           <div className="mt-6 pt-6 border-t border-gray-700 text-center">
             <p className="text-gray-400 text-sm">
               Don't have an account?{' '}

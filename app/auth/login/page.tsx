@@ -8,27 +8,23 @@ import { Suspense } from 'react';
 
 function LoginPageContent() {
   const searchParams = useSearchParams();
-  const prefilledAge = searchParams.get('age');
-  
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [age, setAge] = useState(prefilledAge || '');
+  const [acceptTOS, setAcceptTOS] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    // Secret: if age is 42, grant access (your weird story logic)
-    if (age === '42') {
-      alert("Ah, the chosen one. Welcome, Solace.");
-      router.push('/dashboard');
-      setIsLoading(false);
+    if (!acceptTOS) {
+      setError('You must accept the Terms of Service to continue.');
       return;
     }
+    setIsLoading(true);
+    setError('');
 
     const result = await signIn('credentials', {
       redirect: false,
@@ -37,18 +33,20 @@ function LoginPageContent() {
     });
 
     if (result?.error) {
-      setError(result.error === 'Account has been banned' 
-        ? 'This account has been banned.' 
-        : 'Invalid email or password.');
+      setError(
+        result.error === 'Account has been banned'
+          ? 'This account has been banned.'
+          : 'Invalid email or password.'
+      );
     } else {
-      router.push('/dashboard');
+      router.push(callbackUrl);
     }
 
     setIsLoading(false);
   };
 
   const handleDiscordLogin = () => {
-    signIn('discord', { callbackUrl: '/dashboard' });
+    signIn('discord', { callbackUrl });
   };
 
   return (
@@ -60,7 +58,7 @@ function LoginPageContent() {
               <span className="text-2xl font-bold text-white">B</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-400">Sign in — or prove your age.</p>
+            <p className="text-gray-400">Sign in to continue.</p>
           </div>
 
           {error && (
@@ -69,25 +67,7 @@ function LoginPageContent() {
             </div>
           )}
 
-          {/* Age-based backdoor (your weird story) */}
-          <div className="mb-6 p-3 bg-amber-900/30 border border-amber-800 rounded-lg text-sm text-amber-200">
-            <p className="text-center">
-              🕳️ Psst... if you’re <strong>exactly 42 years old</strong>, just type it below and skip the rest.
-            </p>
-          </div>
-
           <form onSubmit={handleEmailLogin} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Your Age (secret key)</label>
-              <input
-                type="text"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-amber-500"
-                placeholder="e.g. 42"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
               <input
@@ -108,6 +88,24 @@ function LoginPageContent() {
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
                 required
               />
+            </div>
+
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="tos"
+                checked={acceptTOS}
+                onChange={(e) => setAcceptTOS(e.target.checked)}
+                className="mt-1 h-4 w-4 text-indigo-600 rounded border-gray-600 bg-gray-700 focus:ring-indigo-500"
+                required
+              />
+              <label htmlFor="tos" className="ml-2 block text-sm text-gray-300">
+                I accept the{' '}
+                <Link href="/terms" className="text-indigo-400 hover:text-indigo-300 underline">
+                  Terms of Service
+                </Link>
+                .
+              </label>
             </div>
 
             <button

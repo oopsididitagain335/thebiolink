@@ -90,7 +90,7 @@ interface UserDoc {
   customJS?: string;
   seoMeta?: { title: string; description: string; keywords: string };
   analyticsCode?: string;
-  // ❌ audioUrl REMOVED
+  formEmails?: string[]; // 🆕 contact form recipient emails
 }
 
 interface LinkDoc {
@@ -646,6 +646,31 @@ export async function updateUserProfile(userId: string, updates: any) {
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
+}
+
+// --- Form Settings Management ---
+export async function updateUserFormEmails(userId: string, emails: string[]) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  const cleanEmails = Array.isArray(emails)
+    ? emails
+        .map(e => e.trim().toLowerCase())
+        .filter(e => /^[\w-.]+@[\w-]+\.[a-z]{2,}$/i.test(e))
+    : [];
+
+  await db.collection('users').updateOne(
+    { _id: uid },
+    { $set: { formEmails: cleanEmails } }
+  );
+
+  return { success: true, formEmails: cleanEmails };
+}
+
+export async function getUserFormEmails(userId: string) {
+  const db = await connectDB();
+  const uid = new ObjectId(userId);
+  const user = await db.collection<UserDoc>('users').findOne({ _id: uid });
+  return user?.formEmails || [];
 }
 
 // --- News Functions ---

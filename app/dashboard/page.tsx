@@ -2,6 +2,7 @@
 'use client';
 import { useState, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -49,6 +50,7 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
+  formEmails?: string[]; // ← Added for Form Settings
 }
 interface LayoutSection {
   id: string;
@@ -60,6 +62,7 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -73,6 +76,7 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
+
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -83,6 +87,7 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
+
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -148,11 +153,13 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
+
 // --- Helpers ---
 const isValidUsername = (username: string): boolean => /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 const getBioLinkUrl = (username: string): string => isValidUsername(username)
   ? `https://thebiolink.lol/${encodeURIComponent(username)}`
   : 'https://thebiolink.lol/';
+
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -161,6 +168,7 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
+
 type HistoryAction = { type: 'SAVE'; payload: LayoutSection[] } | { type: 'UNDO' };
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
@@ -170,7 +178,287 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 
-// --- FINAL: Profile Builder Tab with Clickable Widget Picker ---
+// --- Tabs ---
+
+// ... (OverviewTab, CustomizeTab, LinksTab, WidgetsTab, TemplatesTab remain unchanged)
+
+const AffiliateProgramTab = () => (
+  <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
+    <div>
+      <h2 className="text-xl font-semibold text-white mb-2">Affiliate Program</h2>
+      <p className="text-gray-400">Apply to become a sponsored creator and unlock exclusive monetization features.</p>
+    </div>
+    <form className="space-y-4">
+      <input type="text" placeholder="Discord Username" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
+      <input type="text" placeholder="BioLink Username" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
+      <textarea placeholder="Social Media Links" rows={2} className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
+      <textarea placeholder="Communities" rows={2} className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
+      <input type="text" placeholder="Position / Role" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
+      <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">Apply for Affiliate Program</button>
+    </form>
+  </div>
+);
+
+// --- NEW: Form Settings Tab ---
+const FormSettingsTab = ({
+  user,
+  setUser,
+  widgets,
+}: {
+  user: User;
+  setUser: (user: User) => void;
+  widgets: Widget[];
+}) => {
+  const hasFormWidget = widgets.some((w) => w.type === "form");
+  const [emails, setEmails] = useState<string[]>(() =>
+    Array.isArray((user as any).formEmails)
+      ? ((user as any).formEmails as string[])
+      : user.email
+      ? [user.email]
+      : []
+  );
+  const [newEmail, setNewEmail] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const addEmail = () => {
+    const clean = newEmail.trim().toLowerCase();
+    if (!clean) return;
+    if (!/^[\w-.]+@[\w-]+\.[a-z]{2,}$/i.test(clean)) {
+      setMessage("❌ Invalid email format.");
+      return;
+    }
+    if (emails.includes(clean)) {
+      setMessage("⚠️ Email already added.");
+      return;
+    }
+    const updated = [...emails, clean];
+    setEmails(updated);
+    setUser({ ...user, formEmails: updated } as any);
+    setNewEmail("");
+    setMessage("✅ Email added.");
+  };
+
+  const removeEmail = (email: string) => {
+    const updated = emails.filter((e) => e !== email);
+    setEmails(updated);
+    setUser({ ...user, formEmails: updated } as any);
+  };
+
+  if (!hasFormWidget) {
+    return (
+      <div
+        id="tab-form_settings"
+        className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6"
+      >
+        <h2 className="text-xl font-semibold text-white mb-4">Form Settings</h2>
+        <p className="text-gray-400">
+          You haven’t added a <span className="text-indigo-400">Contact Form</span> widget yet.
+          Add one from the <b>Widgets</b> or <b>Profile Builder</b> tab to enable form settings.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      id="tab-form_settings"
+      className="space-y-6 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6"
+    >
+      <h2 className="text-xl font-semibold text-white mb-4">Form Settings</h2>
+      <p className="text-gray-400 mb-4">
+        Choose which email addresses will receive submissions from your contact forms.
+      </p>
+
+      {/* Add Email Field */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="email"
+          placeholder="Add new email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          className="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          onClick={addEmail}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+        >
+          + Add
+        </button>
+      </div>
+
+      {/* Email List */}
+      <div className="space-y-2 mt-4">
+        {emails.length > 0 ? (
+          emails.map((email) => (
+            <div
+              key={email}
+              className="flex justify-between items-center px-3 py-2 bg-gray-700/30 rounded-lg border border-gray-700"
+            >
+              <span className="text-gray-200 text-sm">{email}</span>
+              <button
+                onClick={() => removeEmail(email)}
+                className="text-red-400 hover:text-red-300 text-xs"
+              >
+                Remove
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-sm">No email addresses added yet.</p>
+        )}
+      </div>
+
+      {message && <p className="text-xs text-gray-400 mt-2">{message}</p>}
+    </div>
+  );
+};
+
+// ... (AnalyticsIntegrationTab, AnalyticsTab, NewsTab, BadgesTab, SettingsTab, HelpCenterTab remain unchanged)
+
+const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-analytics_integration" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
+    <textarea value={user.analyticsCode || ''} onChange={(e) => setUser({ ...user, analyticsCode: e.target.value })}
+      placeholder="Paste Google Analytics script or similar" rows={5}
+      className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono" />
+  </div>
+);
+
+const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
+  <div id="tab-analytics" className="space-y-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-900/50 p-5 rounded-xl">
+          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
+          <p className="text-3xl font-bold text-white">{user.profileViews != null ? user.profileViews.toLocaleString() : '—'}</p>
+        </div>
+        <div className="bg-gray-900/50 p-5 rounded-xl">
+          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
+          <p className="text-3xl font-bold text-white">{links.length}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const NewsTab = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch('https://www.thebiolink.lol/api/news');
+        if (!res.ok) throw new Error('Failed to fetch news');
+        const data = await res.json();
+        setPosts(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        setError(err.message || 'Unable to load news.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+  return (
+    <div id="tab-news" className="space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
+        {loading ? (
+          <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>
+        ) : error ? (
+          <div className="text-center py-6 text-red-400"><p>⚠️ {error}</p></div>
+        ) : posts.length === 0 ? (
+          <p className="text-gray-400 text-center py-6">No news available.</p>
+        ) : (
+          <div className="space-y-4">
+            {posts.slice(0, 5).map((post: any) => (
+              <div key={post.id || post.title} className="border-b border-gray-700 pb-4 last:border-0">
+                <h3 className="text-white font-medium">{post.title}</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                  {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 'Date unknown'} • {post.authorName || 'The BioLink Team'}
+                </p>
+                <p className="text-gray-300 mt-2 text-sm">
+                  {post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'No content.'}
+                </p>
+                {post.url && <a href={post.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-indigo-400 hover:text-indigo-300">Read more →</a>}
+              </div>
+            ))}
+          </div>
+        )}
+        <a href="https://www.thebiolink.lol/news" target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-indigo-400 hover:text-indigo-300">View all news →</a>
+      </div>
+    </div>
+  );
+};
+
+const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
+    {user.badges && user.badges.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {user.badges.map(badge => (
+          <div key={badge.id} className={`p-4 rounded-xl border ${badge.hidden ? 'border-gray-700 bg-gray-900/30 opacity-50' : 'border-indigo-500 bg-indigo-900/20'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
+                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
+                <span className="text-white font-medium">{badge.name}</span>
+              </div>
+              <button onClick={() => setUser({ ...user, badges: user.badges?.map(b => b.id === badge.id ? { ...b, hidden: !b.hidden } : b) })}
+                className={`px-2 py-1 text-xs rounded ${badge.hidden ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                {badge.hidden ? 'Show' : 'Hide'}
+              </button>
+            </div>
+            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
+            <p className="text-xs text-gray-500">Earned: {new Date(badge.earnedAt).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-400">You haven't earned any badges yet.</p>
+    )}
+  </div>
+);
+
+const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
+  <div id="tab-settings" className="space-y-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
+      <p className="text-gray-400 mb-4">
+        {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
+      </p>
+      <button onClick={() => alert('Security setup')} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm">
+        {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
+      </button>
+    </div>
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
+      <div className="flex items-start">
+        <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
+          <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-white font-medium">Upgrade to Premium</h3>
+          <p className="text-gray-400 text-sm mt-1">Unlock custom domains, advanced analytics, priority support, and more.</p>
+          <button onClick={() => window.location.href = '/premium'} className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Upgrade Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const HelpCenterTab = () => (
+  <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+    <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
+    <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
+  </div>
+);
+
+// --- Profile Builder Tab (unchanged from your original) ---
 const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
   setLayoutStructure: (sections: LayoutSection[]) => void; 
@@ -183,7 +471,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   const [history, dispatchHistory] = useReducer(historyReducer, [layoutStructure]);
   const [widgetPickerOpen, setWidgetPickerOpen] = useState(false);
   const widgetPickerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (widgetPickerRef.current && !widgetPickerRef.current.contains(e.target as Node)) {
@@ -193,13 +480,11 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
   useEffect(() => {
     if (JSON.stringify(layoutStructure) !== JSON.stringify(history[history.length - 1])) {
       dispatchHistory({ type: 'SAVE', payload: layoutStructure });
     }
   }, [layoutStructure, history]);
-
   const addSection = (type: LayoutSection['type'], widgetId?: string) => {
     const newId = `section-${Date.now()}`;
     let newSection: LayoutSection = { id: newId, type };
@@ -210,14 +495,12 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     setLayoutStructure(updated);
     dispatchHistory({ type: 'SAVE', payload: updated });
   };
-
   const removeSection = (id: string) => {
     const updated = layoutStructure.filter(s => s.id !== id);
     setLayoutStructure(updated);
     dispatchHistory({ type: 'SAVE', payload: updated });
     if (selectedSectionId === id) setSelectedSectionId(null);
   };
-
   const moveSection = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
     const newLayout = [...layoutStructure];
@@ -226,7 +509,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     setLayoutStructure(newLayout);
     dispatchHistory({ type: 'SAVE', payload: newLayout });
   };
-
   const updateSectionStyling = (id: string, styleKey: string, value: string) => {
     const updated = layoutStructure.map(s =>
       s.id === id ? { ...s, styling: { ...(s.styling || {}), [styleKey]: value } } : s
@@ -234,7 +516,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     setLayoutStructure(updated);
     dispatchHistory({ type: 'SAVE', payload: updated });
   };
-
   const updateWidgetId = (id: string, widgetId: string) => {
     const updated = layoutStructure.map(s =>
       s.id === id ? { ...s, widgetId } : s
@@ -242,7 +523,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     setLayoutStructure(updated);
     dispatchHistory({ type: 'SAVE', payload: updated });
   };
-
   const undo = () => {
     if (history.length > 1) {
       const prevState = history[history.length - 2];
@@ -250,14 +530,11 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
       dispatchHistory({ type: 'UNDO' });
     }
   };
-
   const selectedSection = layoutStructure.find(s => s.id === selectedSectionId);
-
   const renderPreviewSection = (section: LayoutSection) => {
     const baseClasses = 'p-4 rounded border mb-3 transition-all';
     const isSelected = selectedSectionId === section.id;
     const style = section.styling || {};
-
     let content;
     switch (section.type) {
       case 'bio':
@@ -335,7 +612,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
       default:
         content = <div className="bg-gray-800 p-3 rounded">Unknown Block</div>;
     }
-
     return (
       <div
         key={section.id}
@@ -350,7 +626,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
       </div>
     );
   };
-
   return (
     <div id="tab-builder" className="space-y-6">
       {/* Controls */}
@@ -370,7 +645,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
             </button>
           </div>
         </div>
-
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-300 mb-2">Add Block</h3>
           <div className="flex flex-wrap gap-2">
@@ -417,7 +691,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
             </div>
           </div>
         </div>
-
         {/* Block List */}
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {layoutStructure.map((section, index) => (
@@ -438,12 +711,10 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added.</p>}
         </div>
       </div>
-
       {/* Styling & Widget Config */}
       {selectedSection && (
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
           <h3 className="text-lg font-medium text-white mb-3">Configure: {selectedSection.type}</h3>
-
           {selectedSection.type === 'widget' && (
             <div className="mb-4">
               <label className="block text-xs text-gray-400 mb-1">Select Widget</label>
@@ -461,7 +732,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
               </select>
             </div>
           )}
-
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Background', key: 'background' },
@@ -485,7 +755,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           </div>
         </div>
       )}
-
       {/* Live Preview */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex gap-3 mb-4">
@@ -515,7 +784,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   );
 };
 
-// --- Other Tabs (unchanged) ---
+// --- Other Tabs (Overview, Customize, etc.) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -611,6 +880,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -723,6 +993,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -766,6 +1037,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   </div>
 );
+
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -808,6 +1080,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   </div>
 );
+
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => (
   <div id="tab-templates" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -825,159 +1098,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   </div>
 );
-const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
-  <div id="tab-analytics_integration" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-    <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
-    <textarea value={user.analyticsCode || ''} onChange={(e) => setUser({ ...user, analyticsCode: e.target.value })}
-      placeholder="Paste Google Analytics script or similar" rows={5}
-      className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono" />
-  </div>
-);
-const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
-  <div id="tab-analytics" className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Profile Analytics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Profile Views</h3>
-          <p className="text-3xl font-bold text-white">{user.profileViews != null ? user.profileViews.toLocaleString() : '—'}</p>
-        </div>
-        <div className="bg-gray-900/50 p-5 rounded-xl">
-          <h3 className="text-gray-300 text-sm font-medium mb-1">Total Links</h3>
-          <p className="text-3xl font-bold text-white">{links.length}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-const NewsTab = () => {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch('https://www.thebiolink.lol/api/news');
-        if (!res.ok) throw new Error('Failed to fetch news');
-        const data = await res.json();
-        setPosts(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        setError(err.message || 'Unable to load news.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNews();
-  }, []);
-  return (
-    <div id="tab-news" className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Latest News</h2>
-        {loading ? (
-          <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>
-        ) : error ? (
-          <div className="text-center py-6 text-red-400"><p>⚠️ {error}</p></div>
-        ) : posts.length === 0 ? (
-          <p className="text-gray-400 text-center py-6">No news available.</p>
-        ) : (
-          <div className="space-y-4">
-            {posts.slice(0, 5).map((post: any) => (
-              <div key={post.id || post.title} className="border-b border-gray-700 pb-4 last:border-0">
-                <h3 className="text-white font-medium">{post.title}</h3>
-                <p className="text-gray-400 text-sm mt-1">
-                  {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 'Date unknown'} • {post.authorName || 'The BioLink Team'}
-                </p>
-                <p className="text-gray-300 mt-2 text-sm">
-                  {post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'No content.'}
-                </p>
-                {post.url && <a href={post.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-indigo-400 hover:text-indigo-300">Read more →</a>}
-              </div>
-            ))}
-          </div>
-        )}
-        <a href="https://www.thebiolink.lol/news" target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-indigo-400 hover:text-indigo-300">View all news →</a>
-      </div>
-    </div>
-  );
-};
-const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
-  <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-    <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
-    {user.badges && user.badges.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {user.badges.map(badge => (
-          <div key={badge.id} className={`p-4 rounded-xl border ${badge.hidden ? 'border-gray-700 bg-gray-900/30 opacity-50' : 'border-indigo-500 bg-indigo-900/20'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <img src={badge.icon} alt={badge.name} className="w-8 h-8" />
-                <span className="text-white font-medium">{badge.name}</span>
-              </div>
-              <button onClick={() => setUser({ ...user, badges: user.badges?.map(b => b.id === badge.id ? { ...b, hidden: !b.hidden } : b) })}
-                className={`px-2 py-1 text-xs rounded ${badge.hidden ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-                {badge.hidden ? 'Show' : 'Hide'}
-              </button>
-            </div>
-            <p className="text-gray-300 text-sm mb-2">{badge.description}</p>
-            <p className="text-xs text-gray-500">Earned: {new Date(badge.earnedAt).toLocaleDateString()}</p>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p className="text-gray-400">You haven't earned any badges yet.</p>
-    )}
-  </div>
-);
-const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
-  <div id="tab-settings" className="space-y-6">
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <h2 className="text-xl font-semibold mb-4 text-white">Account Security</h2>
-      <p className="text-gray-400 mb-4">
-        {!user.isEmailVerified ? 'Verify your email and set a password to secure your account.' : 'Your account is secured with email verification.'}
-      </p>
-      <button onClick={() => alert('Security setup')} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm">
-        {!user.isEmailVerified ? 'Set Up Security' : 'Manage Security'}
-      </button>
-    </div>
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-purple-700 rounded-2xl p-6">
-      <div className="flex items-start">
-        <div className="bg-purple-500/20 p-3 rounded-lg mr-4">
-          <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 001.028.684l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00.684 1.028l3.292.677c.921.192 1.583 1.086 1.285 1.975l-1.07 3.292a1 1 0 00-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-1.902 0l-1.07 3.292c-.3.921-1.603.921-1.902 0l-1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00-.684-1.028l-3.292-.677c-.921-.192-1.583-1.086-1.285-1.975l1.07-3.292a1 1 0 00.684-1.028l3.292-.677c.921-.192 1.583-1.086 1.285-1.975L6.708 2.25a1 1 0 00-1.902 0L3.737 5.542c-.3.921.362 1.815 1.285 1.975l3.292.677a1 1 0 001.028-.684L10.41 4.219z" />
-          </svg>
-        </div>
-        <div>
-          <h3 className="text-white font-medium">Upgrade to Premium</h3>
-          <p className="text-gray-400 text-sm mt-1">Unlock custom domains, advanced analytics, priority support, and more.</p>
-          <button onClick={() => window.location.href = '/premium'} className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Upgrade Now</button>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-const HelpCenterTab = () => (
-  <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-    <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
-    <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
-  </div>
-);
-const AffiliateProgramTab = () => (
-  <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
-    <div>
-      <h2 className="text-xl font-semibold text-white mb-2">Affiliate Program</h2>
-      <p className="text-gray-400">Apply to become a sponsored creator and unlock exclusive monetization features.</p>
-    </div>
-    <form className="space-y-4">
-      <input type="text" placeholder="Discord Username" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
-      <input type="text" placeholder="BioLink Username" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
-      <textarea placeholder="Social Media Links" rows={2} className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
-      <textarea placeholder="Communities" rows={2} className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
-      <input type="text" placeholder="Position / Role" className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" />
-      <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-medium hover:opacity-90">Apply for Affiliate Program</button>
-    </form>
-  </div>
-);
 
 // --- Main Dashboard ---
 export default function Dashboard() {
@@ -986,6 +1106,7 @@ export default function Dashboard() {
     isEmailVerified: true, plan: 'free', profileViews: 0, theme: 'indigo', badges: [], email: '', xp: 0, level: 1,
     loginStreak: 0, lastLogin: '', loginHistory: [], lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' }, analyticsCode: '',
+    formEmails: [], // ← Initialize
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1033,6 +1154,7 @@ export default function Dashboard() {
           lastMonthlyBadge: data.user.lastMonthlyBadge || '',
           seoMeta: data.user.seoMeta || { title: '', description: '', keywords: '' },
           analyticsCode: data.user.analyticsCode || '',
+          formEmails: Array.isArray(data.user.formEmails) ? data.user.formEmails : data.user.email ? [data.user.email] : [],
         });
         const fetchedLinks = Array.isArray(data.links) ? data.links : [];
         const sortedLinks = [...fetchedLinks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -1105,6 +1227,7 @@ export default function Dashboard() {
             seoMeta: user.seoMeta,
             analyticsCode: user.analyticsCode,
             email: user.email,
+            formEmails: user.formEmails || [],
           },
           links: linksToSend,
           widgets: widgetsToSend,
@@ -1132,6 +1255,7 @@ export default function Dashboard() {
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'affiliate', name: 'Affiliate Program' },
+    { id: 'form_settings', name: 'Form Settings' }, // ← Added
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1202,6 +1326,7 @@ export default function Dashboard() {
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'affiliate' && <AffiliateProgramTab />}
+            {activeTab === 'form_settings' && <FormSettingsTab user={user} setUser={setUser} widgets={widgets} />} {/* ← Rendered */}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
@@ -1226,7 +1351,7 @@ export default function Dashboard() {
                 <div className="relative z-20 space-y-4">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30" />
-                  ) : (
+                  ) else (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
                     </div>

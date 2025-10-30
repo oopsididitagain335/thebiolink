@@ -2,7 +2,6 @@
 'use client';
 import { useState, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -62,7 +61,6 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
-
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -76,7 +74,6 @@ const FAMOUS_LINKS = [
   { title: 'Merch', icon: 'https://cdn-icons-png.flaticon.com/512/3003/3003947.png' },
   { title: 'Contact', icon: 'https://cdn-icons-png.flaticon.com/512/724/724933.png' },
 ];
-
 const WIDGET_TYPES = [
   { id: 'youtube', name: 'YouTube Video', icon: '📺' },
   { id: 'spotify', name: 'Spotify Embed', icon: '🎵' },
@@ -87,7 +84,6 @@ const WIDGET_TYPES = [
   { id: 'api', name: 'Dynamic API', icon: '🔌' },
   { id: 'calendar', name: 'Calendar', icon: '📅' },
 ];
-
 const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
   { id: 'minimalist', name: 'Minimalist', config: [{ id: 'bio', type: 'bio' }, { id: 'links', type: 'links' }] },
   { id: 'creator', name: 'Content Creator', config: [
@@ -153,13 +149,11 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
-
 // --- Helpers ---
 const isValidUsername = (username: string): boolean => /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 const getBioLinkUrl = (username: string): string => isValidUsername(username)
   ? `https://thebiolink.lol/${encodeURIComponent(username)}`
   : 'https://thebiolink.lol/';
-
 const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   const formData = new FormData();
   formData.append('file', file);
@@ -168,7 +162,6 @@ const uploadToCloudinary = async (file: File, folder = 'biolink') => {
   if (!res.ok) throw new Error('Upload failed');
   return await res.json();
 };
-
 type HistoryAction = { type: 'SAVE'; payload: LayoutSection[] } | { type: 'UNDO' };
 const historyReducer = (state: LayoutSection[][], action: HistoryAction): LayoutSection[][] => {
   switch (action.type) {
@@ -177,11 +170,8 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
     default: return state;
   }
 };
-
 // --- Tabs ---
-
 // ... (OverviewTab, CustomizeTab, LinksTab, WidgetsTab, TemplatesTab remain unchanged)
-
 const AffiliateProgramTab = () => (
   <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
     <div>
@@ -198,7 +188,6 @@ const AffiliateProgramTab = () => (
     </form>
   </div>
 );
-
 // --- NEW: Form Settings Tab ---
 const FormSettingsTab = ({
   user,
@@ -219,7 +208,6 @@ const FormSettingsTab = ({
   );
   const [newEmail, setNewEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-
   const addEmail = () => {
     const clean = newEmail.trim().toLowerCase();
     if (!clean) return;
@@ -237,13 +225,11 @@ const FormSettingsTab = ({
     setNewEmail("");
     setMessage("✅ Email added.");
   };
-
   const removeEmail = (email: string) => {
     const updated = emails.filter((e) => e !== email);
     setEmails(updated);
     setUser({ ...user, formEmails: updated } as any);
   };
-
   if (!hasFormWidget) {
     return (
       <div
@@ -258,7 +244,6 @@ const FormSettingsTab = ({
       </div>
     );
   }
-
   return (
     <div
       id="tab-form_settings"
@@ -268,7 +253,6 @@ const FormSettingsTab = ({
       <p className="text-gray-400 mb-4">
         Choose which email addresses will receive submissions from your contact forms.
       </p>
-
       {/* Add Email Field */}
       <div className="flex flex-col sm:flex-row gap-3">
         <input
@@ -285,7 +269,6 @@ const FormSettingsTab = ({
           + Add
         </button>
       </div>
-
       {/* Email List */}
       <div className="space-y-2 mt-4">
         {emails.length > 0 ? (
@@ -307,14 +290,11 @@ const FormSettingsTab = ({
           <p className="text-gray-500 text-sm">No email addresses added yet.</p>
         )}
       </div>
-
       {message && <p className="text-xs text-gray-400 mt-2">{message}</p>}
     </div>
   );
 };
-
 // ... (AnalyticsIntegrationTab, AnalyticsTab, NewsTab, BadgesTab, SettingsTab, HelpCenterTab remain unchanged)
-
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-analytics_integration" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Analytics Integration</h2>
@@ -323,7 +303,6 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
       className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white font-mono" />
   </div>
 );
-
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div id="tab-analytics" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -341,7 +320,6 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
-
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -394,7 +372,6 @@ const NewsTab = () => {
     </div>
   );
 };
-
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -422,7 +399,6 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     )}
   </div>
 );
-
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-settings" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -450,14 +426,12 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   </div>
 );
-
 const HelpCenterTab = () => (
   <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
     <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
   </div>
 );
-
 // --- Profile Builder Tab (unchanged from your original) ---
 const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
@@ -783,7 +757,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     </div>
   );
 };
-
 // --- Other Tabs (Overview, Customize, etc.) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
@@ -858,7 +831,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
               </svg>
               Manage Links
             </button>
@@ -880,7 +853,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
     </div>
   );
 };
-
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -993,7 +965,6 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
-
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1037,7 +1008,6 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   </div>
 );
-
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1080,7 +1050,6 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   </div>
 );
-
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => (
   <div id="tab-templates" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1098,7 +1067,6 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   </div>
 );
-
 // --- Main Dashboard ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1121,7 +1089,6 @@ export default function Dashboard() {
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -1189,12 +1156,10 @@ export default function Dashboard() {
     };
     fetchUserData();
   }, [router]);
-
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(console.error);
     router.push('/auth/login');
   };
-
   const confirmSave = async () => {
     setShowGuidelinesModal(false);
     setIsSaving(true);
@@ -1244,9 +1209,7 @@ export default function Dashboard() {
       setIsSaving(false);
     }
   };
-
   const handleSave = () => setShowGuidelinesModal(true);
-
   const tabs = [
     { id: 'overview', name: 'Overview' },
     { id: 'customize', name: 'Customize' },
@@ -1263,7 +1226,6 @@ export default function Dashboard() {
     { id: 'settings', name: 'Settings' },
     { id: 'help_center', name: 'Help Center' },
   ];
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -1271,7 +1233,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1351,7 +1312,7 @@ export default function Dashboard() {
                 <div className="relative z-20 space-y-4">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30" />
-                  ) else (
+                  ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
                     </div>

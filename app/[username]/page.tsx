@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Head from 'next/head'; // <-- Required for dynamic OG tags
+import Head from 'next/head';
 import Avatar from '@/components/Avatar';
 import TypingBio from '@/components/TypingBio';
 import WhackTheBanHammerGame from './WhackTheBanHammerGame';
 
-// --- Keep all your helper functions exactly as before ---
 function getYouTubeId(url: string): string {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.*?v=))([^&?# ]{11})/);
   return match ? match[1] : '';
@@ -172,7 +171,6 @@ export default function UserPage() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (hasClicked) {
@@ -196,7 +194,6 @@ export default function UserPage() {
     }
   }, [hasClicked, username]);
 
-  // --- Halloween Click Screen ---
   if (!hasClicked) {
     return (
       <div
@@ -389,18 +386,16 @@ export default function UserPage() {
   };
   const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
-  // --- OG Meta Tags for Discord/Twitter Embeds ---
   const displayName = name || username;
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=312e81&color=fff`;
   const ogImage = avatar || fallbackAvatar;
   const ogTitle = `${displayName} on BioLink`;
   const ogDescription = bio || `Check out ${displayName}'s BioLink profile`;
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'; // Replace with your real domain in production
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://biolinkhq.com';
   const ogUrl = `${origin}/${username}`;
 
   return (
     <>
-      {/* Inject dynamic OG tags */}
       <Head>
         <title>{displayName}</title>
         <meta property="og:title" content={ogTitle} />

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByUsername } from '@/lib/storage';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { username: string } }
-) {
-  const { username } = context.params;
+export async function GET(request: NextRequest, context: any) {
+  const username = context?.params?.username as string;
 
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';

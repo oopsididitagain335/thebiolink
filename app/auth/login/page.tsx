@@ -101,7 +101,7 @@ function LoginPageContent() {
               />
               <label htmlFor="tos" className="ml-2 block text-sm text-gray-300">
                 I accept the{' '}
-                <Link href="/terms" className="text-indigo-400 hover:text-indigo-300 underline">
+                <Link href="/tos" className="text-indigo-400 hover:text-indigo-300 underline">
                   Terms of Service
                 </Link>
                 .

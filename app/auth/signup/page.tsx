@@ -26,7 +26,8 @@ function SignupForm() {
     name: '',
     email: '',
     username: '',
-    password: ''
+    password: '',
+    acceptedTOS: false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -53,8 +54,8 @@ function SignupForm() {
   }, [formData.username]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    let finalValue = value;
+    const { name, value, type, checked } = e.target;
+    let finalValue = type === 'checkbox' ? checked : value;
 
     if (name === 'username') {
       finalValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -71,7 +72,7 @@ function SignupForm() {
     setError('');
     setSuccess('');
 
-    const { name, email, username, password } = formData;
+    const { name, email, username, password, acceptedTOS } = formData;
 
     if (!name.trim()) {
       setError('Please enter your full name');
@@ -93,6 +94,12 @@ function SignupForm() {
 
     if (!/^[a-z0-9]{3,20}$/.test(username)) {
       setError('Username must be 3–20 lowercase letters or numbers');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!acceptedTOS) {
+      setError('You must agree to the Terms of Service to continue.');
       setIsLoading(false);
       return;
     }
@@ -230,6 +237,24 @@ function SignupForm() {
                 placeholder="••••••••"
               />
               <p className="mt-1.5 text-xs text-gray-500">At least 6 characters</p>
+            </div>
+
+            <div className="flex items-start">
+              <input
+                id="acceptedTOS"
+                name="acceptedTOS"
+                type="checkbox"
+                checked={formData.acceptedTOS}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
+                required
+              />
+              <label htmlFor="acceptedTOS" className="ml-2 block text-xs sm:text-sm text-gray-300">
+                I agree to the{' '}
+                <Link href="/tos" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+                  Terms of Service
+                </Link>
+              </label>
             </div>
 
             <button

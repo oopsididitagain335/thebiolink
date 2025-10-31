@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function POST() {
-  // Clear the session cookie by setting maxAge=0
-  cookies().set({
+  const cookieStore = await cookies();
+  cookieStore.set({
     name: 'admin_session',
     value: '',
     httpOnly: true,

@@ -2,8 +2,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export function GET() {
-  const session = cookies().get('admin_session');
+export async function GET() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('admin_session');
 
   const isValid = session?.value === process.env.ADMIN_SESSION_SECRET;
 

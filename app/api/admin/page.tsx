@@ -45,36 +45,47 @@ export default function AdminPanel() {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
 
-  // Check login status on mount
+  // Check login status on mount via secure cookie (set by API)
   useEffect(() => {
-    const auth = localStorage.getItem('admin_auth');
-    if (auth === 'true') {
-      setIsLoggedIn(true);
-    }
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin/auth');
+        const data = await res.json();
+        setIsLoggedIn(data.authenticated);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const envUser = process.env.NEXT_PUBLIC_ADMIN_USER;
-    const envPass = process.env.NEXT_PUBLIC_ADMIN_PASS;
+    setLoginError('');
 
-    if (!envUser || !envPass) {
-      setLoginError('Admin credentials not configured in .env.local');
-      return;
-    }
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm),
+      });
 
-    if (loginForm.username === envUser && loginForm.password === envPass) {
-      localStorage.setItem('admin_auth', 'true');
-      setIsLoggedIn(true);
-      setLoginError('');
-    } else {
-      setLoginError('Invalid username or password');
-      setLoginForm({ username: '', password: '' });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setIsLoggedIn(true);
+        setLoginForm({ username: '', password: '' });
+      } else {
+        setLoginError(data.error || 'Invalid credentials');
+        setLoginForm({ username: '', password: '' });
+      }
+    } catch {
+      setLoginError('Network error. Try again.');
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_auth');
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
     setIsLoggedIn(false);
   };
 
@@ -135,7 +146,6 @@ export default function AdminPanel() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({ name: '', username: '', email: '' });
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-
   const [passwordModal, setPasswordModal] = useState<{ userId: string; username: string } | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

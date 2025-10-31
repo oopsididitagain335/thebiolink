@@ -41,11 +41,33 @@ interface NewsPost {
 }
 
 export default function AdminPanel() {
+  // 🔑 ALL HOOKS — UNCONDITIONAL, AT TOP LEVEL
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
 
-  // Check login status on mount via secure cookie (set by API)
+  // Admin state (declared even when not logged in — required by React)
+  const [users, setUsers] = useState<User[]>([]);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [newsPosts, setNewsPosts] = useState<NewsPost[]>([]);
+  const [newBadge, setNewBadge] = useState({ name: '', icon: '' });
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedBadge, setSelectedBadge] = useState<string>('');
+  const [newsForm, setNewsForm] = useState({ id: '', title: '', content: '', imageUrl: '' });
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', username: '', email: '' });
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [passwordModal, setPasswordModal] = useState<{ userId: string; username: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
+
+  const router = useRouter();
+
+  // 🔐 Auth check on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -59,6 +81,58 @@ export default function AdminPanel() {
     checkAuth();
   }, []);
 
+  // 🔄 Fetch admin data (only when logged in, but effect is unconditional)
+  const fetchData = useCallback(async () => {
+    if (!isLoggedIn) return; // early exit, but hook already ran
+    try {
+      setLoading(true);
+      const [usersRes, badgesRes, newsRes] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/admin/badges'),
+        fetch('/api/news')
+      ]);
+
+      if (!usersRes.ok || !badgesRes.ok) {
+        setMessage({ type: 'error', text: 'Unauthorized access' });
+        setTimeout(() => router.push('/dashboard'), 1500);
+        return;
+      }
+
+      const usersData = await usersRes.json();
+      const badgesData = await badgesRes.json();
+      const newsData = await newsRes.json();
+
+      if (!Array.isArray(usersData) || !Array.isArray(badgesData)) {
+        throw new Error('Invalid data format');
+      }
+
+      const usersWithLinks = await Promise.all(
+        usersData.map(async (user: any) => {
+          const linksRes = await fetch(`/api/profile/${user.username}/links`);
+          const links = linksRes.ok ? await linksRes.json() : [];
+          return { ...user, links };
+        })
+      );
+
+      setUsers(usersWithLinks);
+      setBadges(badgesData);
+      setNewsPosts(Array.isArray(newsData) ? newsData : []);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setMessage({ type: 'error', text: 'Failed to load admin data' });
+      setTimeout(() => router.push('/dashboard'), 2000);
+    } finally {
+      setLoading(false);
+    }
+  }, [router, isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchData();
+    }
+  }, [fetchData, isLoggedIn]);
+
+  // 🚪 Login / Logout
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -132,74 +206,7 @@ export default function AdminPanel() {
     );
   }
 
-  // 👇 Rest of your original component (only shown when logged in)
-  const [users, setUsers] = useState<User[]>([]);
-  const [badges, setBadges] = useState<Badge[]>([]);
-  const [newsPosts, setNewsPosts] = useState<NewsPost[]>([]);
-  const [newBadge, setNewBadge] = useState({ name: '', icon: '' });
-  const [selectedUser, setSelectedUser] = useState<string>('');
-  const [selectedBadge, setSelectedBadge] = useState<string>('');
-  const [newsForm, setNewsForm] = useState({ id: '', title: '', content: '', imageUrl: '' });
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', username: '', email: '' });
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [passwordModal, setPasswordModal] = useState<{ userId: string; username: string } | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
-
-  const router = useRouter();
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [usersRes, badgesRes, newsRes] = await Promise.all([
-        fetch('/api/admin/users'),
-        fetch('/api/admin/badges'),
-        fetch('/api/news')
-      ]);
-
-      if (!usersRes.ok || !badgesRes.ok) {
-        setMessage({ type: 'error', text: 'Unauthorized access' });
-        setTimeout(() => router.push('/dashboard'), 1500);
-        return;
-      }
-
-      const usersData = await usersRes.json();
-      const badgesData = await badgesRes.json();
-      const newsData = await newsRes.json();
-
-      if (!Array.isArray(usersData) || !Array.isArray(badgesData)) {
-        throw new Error('Invalid data format');
-      }
-
-      const usersWithLinks = await Promise.all(
-        usersData.map(async (user: any) => {
-          const linksRes = await fetch(`/api/profile/${user.username}/links`);
-          const links = linksRes.ok ? await linksRes.json() : [];
-          return { ...user, links };
-        })
-      );
-
-      setUsers(usersWithLinks);
-      setBadges(badgesData);
-      setNewsPosts(Array.isArray(newsData) ? newsData : []);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setMessage({ type: 'error', text: 'Failed to load admin data' });
-      setTimeout(() => router.push('/dashboard'), 2000);
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
+  // 📊 Computed data
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users;
     const q = searchQuery.toLowerCase();
@@ -210,6 +217,7 @@ export default function AdminPanel() {
     );
   }, [users, searchQuery]);
 
+  // 🛠️ All your handlers (unchanged logic)
   const handleCreateBadge = async () => {
     if (!newBadge.name.trim() || !newBadge.icon.trim()) {
       setMessage({ type: 'error', text: 'Badge name and icon URL are required.' });

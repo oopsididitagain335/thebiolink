@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (username === validUser && password === validPass) {
-    // Set HTTP-only, secure, same-site cookie
-    cookies().set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: 'admin_session',
       value: sessionSecret,
       httpOnly: true,

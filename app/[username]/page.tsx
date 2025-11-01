@@ -83,12 +83,7 @@ const getThemeBackground = (theme: string) => {
     case 'purple': return `${base}#581c87, #000000)`;
     case 'green': return `${base}#065f46, #000000)`;
     case 'red': return `${base}#991b1b, #000000)`;
-    case 'halloween':
-      return `
-        radial-gradient(circle at 30% 30%, #ea580c, #000000),
-        repeating-conic-gradient(transparent 0deg 10deg, rgba(255,165,0,0.03) 10deg 20deg)
-      `;
-    default: return `${base}#312e81, #000000)`;
+    default: return `${base}#312e81, #000000)`; // indigo default
   }
 };
 
@@ -251,42 +246,24 @@ export default function UserPage() {
   if (!hasClicked) {
     return (
       <div
-        className="min-h-screen w-full bg-black flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
+        className="min-h-screen w-full bg-gradient-to-br from-gray-900 to-black flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
         onClick={() => setHasClicked(true)}
       >
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-red-900/10 animate-bounce"
-            style={{
-              left: `${10 + i * 12}%`,
-              top: `${20 + (i % 3) * 20}%`,
-              animationDuration: `${3 + i}s`,
-              animationDelay: `${i * 0.5}s`,
-              fontSize: `${20 + i * 2}px`,
-            }}
-          >
-            🦇
-          </div>
-        ))}
-        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent z-0 pointer-events-none"></div>
-        <div className="absolute bottom-10 w-16 h-16 rounded-full bg-orange-600/20 blur-xl animate-pulse"></div>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes pulseGlow {
-            0%, 100% { text-shadow: 0 0 10px #ea580c, 0 0 20px #ea580c; }
-            50% { text-shadow: 0 0 20px #f97316, 0 0 30px #f97316; }
-          }
-          .haunted-text {
-            animation: pulseGlow 2s infinite alternate;
-          }
-        ` }} />
         <div className="text-center z-10">
-          <p className="text-3xl font-bold text-orange-500 haunted-text">Click to Enter</p>
-          <p className="text-gray-500 text-sm mt-6">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-indigo-500/10 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold text-white mb-2">Welcome to {username}'s BioLink</h1>
+          <p className="text-gray-400 text-sm max-w-xs mx-auto">
+            Click anywhere to continue to the profile.
+          </p>
+          <p className="text-gray-600 text-xs mt-6">
             Powered by{' '}
             <a
-              href={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/signup`}
-              className="text-orange-400 hover:underline"
+              href={`${typeof window !== 'undefined' ? window.location.origin : 'https://biolinkhq.com'}/auth/signup`}
+              className="text-indigo-400 hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               BioLink
@@ -420,7 +397,6 @@ export default function UserPage() {
     purple: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
     green: 'shadow-[0_0_20px_rgba(34,197,94,0.6)]',
     red: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
-    halloween: 'shadow-[0_0_20px_rgba(234,88,12,0.6)]',
   };
   const glow = themeGlowMap[theme] || themeGlowMap.indigo;
 
@@ -473,6 +449,7 @@ export default function UserPage() {
 
         <div className="relative z-20 flex justify-center p-4 min-h-screen">
           <div className="w-full max-w-md space-y-4">
+            {/* Profile Card */}
             <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center shadow-xl border border-white/20 ${glow}`}>
               <div className="relative inline-block mb-4">
                 <Avatar name={name} avatar={avatar} />
@@ -510,6 +487,36 @@ export default function UserPage() {
                 </div>
               )}
             </div>
+
+            {/* Handle "No Links" Case */}
+            {links.length === 0 && (
+              <div className="text-center text-gray-400 text-sm py-6">
+                No links added yet. This profile is under construction.
+              </div>
+            )}
+
+            {/* Handle "Only Discord Link" Case */}
+            {links.length === 1 && links[0].url.includes('discord.gg') && (
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/20">
+                <div className="flex items-center gap-3">
+                  <img src="/icons/discord.svg" alt="Discord" className="w-8 h-8" />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white">Join My Discord</h3>
+                    <p className="text-gray-300 text-sm">Connect with me and my community</p>
+                  </div>
+                  <a
+                    href={links[0].url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-medium transition-all"
+                  >
+                    Join
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Render Layout Structure */}
             {layoutStructure.map((section: LayoutSection) => renderBlock(section, links, widgets, theme))}
           </div>
         </div>

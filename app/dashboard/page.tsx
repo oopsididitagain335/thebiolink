@@ -38,7 +38,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
-  viewsLastWeek?: number; // ← ADDED
+  viewsLastWeek?: number; // ← ADDED for real delta
   theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
@@ -50,7 +50,7 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
-  formEmails?: string[];
+  formEmails?: string[]; // ← Added for Form Settings
 }
 interface LayoutSection {
   id: string;
@@ -172,6 +172,7 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
   }
 };
 // --- Tabs ---
+// ... (OverviewTab, CustomizeTab, LinksTab, WidgetsTab, TemplatesTab remain unchanged)
 const AffiliateProgramTab = () => (
   <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
     <div>
@@ -188,6 +189,7 @@ const AffiliateProgramTab = () => (
     </form>
   </div>
 );
+// --- NEW: Form Settings Tab ---
 const FormSettingsTab = ({
   user,
   setUser,
@@ -252,6 +254,7 @@ const FormSettingsTab = ({
       <p className="text-gray-400 mb-4">
         Choose which email addresses will receive submissions from your contact forms.
       </p>
+      {/* Add Email Field */}
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="email"
@@ -267,6 +270,7 @@ const FormSettingsTab = ({
           + Add
         </button>
       </div>
+      {/* Email List */}
       <div className="space-y-2 mt-4">
         {emails.length > 0 ? (
           emails.map((email) => (
@@ -291,6 +295,7 @@ const FormSettingsTab = ({
     </div>
   );
 };
+// --- Analytics Integration with Validation ---
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [error, setError] = useState<string | null>(null);
   return (
@@ -452,6 +457,7 @@ const HelpCenterTab = () => (
     <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
   </div>
 );
+// --- Profile Builder Tab (unchanged from your original) ---
 const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
   setLayoutStructure: (sections: LayoutSection[]) => void; 
@@ -535,7 +541,8 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           <div className="text-center">
             {user.avatar ? (
               <img src={user.avatar} className="w-16 h-16 rounded-full mx-auto mb-2 object-cover" alt="Avatar" />
-            ) else (
+            ) : (
+              // ✅ FIXED: ternary operator syntax
               <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold">
                 {user.name.charAt(0).toUpperCase()}
               </div>
@@ -621,6 +628,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   };
   return (
     <div id="tab-builder" className="space-y-6">
+      {/* Controls */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
@@ -649,6 +657,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
                 {type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </button>
             ))}
+            {/* Click-to-open Widget Picker */}
             <div className="relative" ref={widgetPickerRef}>
               <button
                 onClick={() => setWidgetPickerOpen(!widgetPickerOpen)}
@@ -682,6 +691,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
             </div>
           </div>
         </div>
+        {/* Block List */}
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {layoutStructure.map((section, index) => (
             <div key={section.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded text-sm">
@@ -701,6 +711,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added.</p>}
         </div>
       </div>
+      {/* Styling & Widget Config */}
       {selectedSection && (
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
           <h3 className="text-lg font-medium text-white mb-3">Configure: {selectedSection.type}</h3>
@@ -744,6 +755,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           </div>
         </div>
       )}
+      {/* Live Preview */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex gap-3 mb-4">
           <h2 className="text-xl font-semibold text-white">Live Preview</h2>
@@ -771,6 +783,7 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     </div>
   );
 };
+// --- Other Tabs (Overview, Customize, etc.) ---
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -816,6 +829,7 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           </div>
           <div className="flex items-end gap-1">
             <span className="text-2xl font-bold text-white">{user.profileViews || 0}</span>
+            {/* ✅ REAL view delta */}
             {typeof user.viewsLastWeek === 'number' && user.viewsLastWeek > 0 && (
               <span className="text-xs text-green-400 mb-1">+{user.viewsLastWeek} views since last week</span>
             )}
@@ -1082,13 +1096,14 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   </div>
 );
+// --- Main Dashboard ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
     _id: '', name: '', username: '', avatar: '', profileBanner: '', pageBackground: '', bio: '', location: '',
-    isEmailVerified: true, plan: 'free', profileViews: 0, viewsLastWeek: undefined, theme: 'indigo', badges: [], email: '', xp: 0, level: 1,
+    isEmailVerified: true, plan: 'free', profileViews: 0, viewsLastWeek: 0, theme: 'indigo', badges: [], email: '', xp: 0, level: 1,
     loginStreak: 0, lastLogin: '', loginHistory: [], lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' }, analyticsCode: '',
-    formEmails: [],
+    formEmails: [], // ← Initialize
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1124,7 +1139,7 @@ export default function Dashboard() {
           isEmailVerified: data.user.isEmailVerified ?? true,
           plan: data.user.plan || 'free',
           profileViews: data.user.profileViews || 0,
-          viewsLastWeek: data.user.viewsLastWeek || undefined,
+          viewsLastWeek: data.user.viewsLastWeek || 0,
           theme: (data.user.theme as User['theme']) || 'indigo',
           badges: Array.isArray(data.user.badges) ? data.user.badges : [],
           email: data.user.email || '',
@@ -1233,7 +1248,7 @@ export default function Dashboard() {
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'affiliate', name: 'Affiliate Program' },
-    { id: 'form_settings', name: 'Form Settings' },
+    { id: 'form_settings', name: 'Form Settings' }, // ← Added
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1302,7 +1317,7 @@ export default function Dashboard() {
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'affiliate' && <AffiliateProgramTab />}
-            {activeTab === 'form_settings' && <FormSettingsTab user={user} setUser={setUser} widgets={widgets} />}
+            {activeTab === 'form_settings' && <FormSettingsTab user={user} setUser={setUser} widgets={widgets} />} {/* ← Rendered */}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}
@@ -1327,7 +1342,7 @@ export default function Dashboard() {
                 <div className="relative z-20 space-y-4">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/30" />
-                  ) else (
+                  ) : (
                     <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl text-white font-bold">{user.name.charAt(0).toUpperCase()}</span>
                     </div>

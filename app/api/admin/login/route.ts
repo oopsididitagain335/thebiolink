@@ -1,4 +1,3 @@
-// app/api/admin/login/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -10,18 +9,17 @@ export async function POST(request: Request) {
     const { username, password } = await request.json();
 
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      // ✅ Correct way: call cookies() and use .set() — it's sync in API routes
-      const cookieStore = cookies();
-      cookieStore.set({
+      // ✅ Set a cookie on the response, not directly via cookies()
+      const response = NextResponse.json({ success: true });
+      response.cookies.set({
         name: 'admin_session',
         value: 'authenticated',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24, // 24 hours
-        path: '/api/admin',
+        path: '/',
       });
-
-      return NextResponse.json({ success: true });
+      return response;
     }
 
     return NextResponse.json(

@@ -2,6 +2,7 @@
 'use client';
 import { useState, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+
 // --- Interfaces ---
 interface Link {
   id: string;
@@ -38,7 +39,7 @@ interface User {
   isEmailVerified: boolean;
   plan?: string;
   profileViews?: number;
-  viewsLastWeek?: number; // ← ADDED for real delta
+  viewsLastWeek?: number;
   theme?: 'indigo' | 'purple' | 'green' | 'red' | 'halloween';
   badges?: Badge[];
   email?: string;
@@ -50,7 +51,7 @@ interface User {
   lastMonthlyBadge?: string;
   seoMeta: { title?: string; description?: string; keywords?: string };
   analyticsCode?: string;
-  formEmails?: string[]; // ← Added for Form Settings
+  formEmails?: string[];
 }
 interface LayoutSection {
   id: string;
@@ -62,6 +63,7 @@ interface LayoutSection {
   pagePath?: string;
   styling?: { [key: string]: string };
 }
+
 // --- Constants ---
 const FAMOUS_LINKS = [
   { title: 'Instagram', icon: 'https://cdn-icons-png.flaticon.com/512/174/174855.png' },
@@ -150,6 +152,7 @@ const TEMPLATES: { id: string; name: string; config: LayoutSection[] }[] = [
     { id: 'mission', type: 'custom', content: '<div>Our Mission</div>' },
   ]},
 ];
+
 // --- Helpers ---
 const isValidUsername = (username: string): boolean => /^[a-zA-Z0-9_-]{3,30}$/.test(username);
 const getBioLinkUrl = (username: string): string => isValidUsername(username)
@@ -171,8 +174,8 @@ const historyReducer = (state: LayoutSection[][], action: HistoryAction): Layout
     default: return state;
   }
 };
+
 // --- Tabs ---
-// ... (OverviewTab, CustomizeTab, LinksTab, WidgetsTab, TemplatesTab remain unchanged)
 const AffiliateProgramTab = () => (
   <div id="tab-affiliate" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-6">
     <div>
@@ -189,7 +192,7 @@ const AffiliateProgramTab = () => (
     </form>
   </div>
 );
-// --- NEW: Form Settings Tab ---
+
 const FormSettingsTab = ({
   user,
   setUser,
@@ -254,7 +257,6 @@ const FormSettingsTab = ({
       <p className="text-gray-400 mb-4">
         Choose which email addresses will receive submissions from your contact forms.
       </p>
-      {/* Add Email Field */}
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="email"
@@ -270,7 +272,6 @@ const FormSettingsTab = ({
           + Add
         </button>
       </div>
-      {/* Email List */}
       <div className="space-y-2 mt-4">
         {emails.length > 0 ? (
           emails.map((email) => (
@@ -295,7 +296,8 @@ const FormSettingsTab = ({
     </div>
   );
 };
-// --- Analytics Integration with Validation ---
+
+// ✅ FIXED: Analytics with paste support + validation
 const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const [error, setError] = useState<string | null>(null);
   return (
@@ -328,6 +330,7 @@ const AnalyticsIntegrationTab = ({ user, setUser }: { user: User; setUser: (user
     </div>
   );
 };
+
 const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
   <div id="tab-analytics" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -345,6 +348,7 @@ const AnalyticsTab = ({ user, links }: { user: User; links: Link[] }) => (
     </div>
   </div>
 );
+
 const NewsTab = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -397,6 +401,7 @@ const NewsTab = () => {
     </div>
   );
 };
+
 const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-badges" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Your Badges</h2>
@@ -424,6 +429,7 @@ const BadgesTab = ({ user, setUser }: { user: User; setUser: (user: User) => voi
     )}
   </div>
 );
+
 const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => (
   <div id="tab-settings" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -451,13 +457,14 @@ const SettingsTab = ({ user, setUser }: { user: User; setUser: (user: User) => v
     </div>
   </div>
 );
+
 const HelpCenterTab = () => (
   <div id="tab-help_center" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
     <h2 className="text-xl font-semibold mb-4 text-white">Help Center</h2>
     <p className="text-gray-400">Visit our documentation portal for guides and support.</p>
   </div>
 );
-// --- Profile Builder Tab (unchanged from your original) ---
+
 const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, widgets }: { 
   layoutStructure: LayoutSection[]; 
   setLayoutStructure: (sections: LayoutSection[]) => void; 
@@ -542,7 +549,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
             {user.avatar ? (
               <img src={user.avatar} className="w-16 h-16 rounded-full mx-auto mb-2 object-cover" alt="Avatar" />
             ) : (
-              // ✅ FIXED: ternary operator syntax
               <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold">
                 {user.name.charAt(0).toUpperCase()}
               </div>
@@ -628,7 +634,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
   };
   return (
     <div id="tab-builder" className="space-y-6">
-      {/* Controls */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
@@ -657,7 +662,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
                 {type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </button>
             ))}
-            {/* Click-to-open Widget Picker */}
             <div className="relative" ref={widgetPickerRef}>
               <button
                 onClick={() => setWidgetPickerOpen(!widgetPickerOpen)}
@@ -691,7 +695,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
             </div>
           </div>
         </div>
-        {/* Block List */}
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {layoutStructure.map((section, index) => (
             <div key={section.id} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded text-sm">
@@ -711,7 +714,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           {layoutStructure.length === 0 && <p className="text-gray-500 text-sm">No blocks added.</p>}
         </div>
       </div>
-      {/* Styling & Widget Config */}
       {selectedSection && (
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
           <h3 className="text-lg font-medium text-white mb-3">Configure: {selectedSection.type}</h3>
@@ -755,7 +757,6 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
           </div>
         </div>
       )}
-      {/* Live Preview */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
         <div className="flex gap-3 mb-4">
           <h2 className="text-xl font-semibold text-white">Live Preview</h2>
@@ -783,7 +784,8 @@ const ProfileBuilderTab = ({ layoutStructure, setLayoutStructure, user, links, w
     </div>
   );
 };
-// --- Other Tabs (Overview, Customize, etc.) ---
+
+// ✅ FIXED: OverviewTab - Removed Quick Actions + Upgrade goes to /pricing
 const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
   const bioLinkUrl = getBioLinkUrl(user.username);
   const planDisplay = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Free';
@@ -829,7 +831,6 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
           </div>
           <div className="flex items-end gap-1">
             <span className="text-2xl font-bold text-white">{user.profileViews || 0}</span>
-            {/* ✅ REAL view delta */}
             {typeof user.viewsLastWeek === 'number' && user.viewsLastWeek > 0 && (
               <span className="text-xs text-green-400 mb-1">+{user.viewsLastWeek} views since last week</span>
             )}
@@ -849,39 +850,27 @@ const OverviewTab = ({ user, links }: { user: User; links: Link[] }) => {
               {planDisplay}
             </div>
             {user.plan !== 'premium' && (
-              <button className="text-xs text-indigo-400 hover:text-indigo-300 underline">Upgrade</button>
+              <button
+                onClick={() => window.location.href = '/pricing'}
+                className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+              >
+                Upgrade
+              </button>
             )}
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 011 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v1z" />
-              </svg>
-              Manage Links
-            </button>
-            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Customize Profile
-            </button>
-          </div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Your BioLink</h3>
-          <a href={bioLinkUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-indigo-400 hover:underline break-all block">
-            {bioLinkUrl}
-          </a>
-        </div>
+      {/* ✅ REMOVED: Quick Actions section */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Your BioLink</h3>
+        <a href={bioLinkUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-indigo-400 hover:underline break-all block">
+          {bioLinkUrl}
+        </a>
       </div>
     </div>
   );
 };
+
 const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => void }) => {
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -994,6 +983,7 @@ const CustomizeTab = ({ user, setUser }: { user: User; setUser: (user: User) => 
     </div>
   );
 };
+
 const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]) => void }) => (
   <div id="tab-links" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1037,6 +1027,7 @@ const LinksTab = ({ links, setLinks }: { links: Link[]; setLinks: (links: Link[]
     </div>
   </div>
 );
+
 const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidgets: (widgets: Widget[]) => void; user: User }) => (
   <div id="tab-widgets" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1079,6 +1070,7 @@ const WidgetsTab = ({ widgets, setWidgets, user }: { widgets: Widget[]; setWidge
     </div>
   </div>
 );
+
 const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: LayoutSection[]) => void }) => (
   <div id="tab-templates" className="space-y-6">
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -1096,6 +1088,7 @@ const TemplatesTab = ({ setLayoutStructure }: { setLayoutStructure: (config: Lay
     </div>
   </div>
 );
+
 // --- Main Dashboard ---
 export default function Dashboard() {
   const [user, setUser] = useState<User>({
@@ -1103,7 +1096,7 @@ export default function Dashboard() {
     isEmailVerified: true, plan: 'free', profileViews: 0, viewsLastWeek: 0, theme: 'indigo', badges: [], email: '', xp: 0, level: 1,
     loginStreak: 0, lastLogin: '', loginHistory: [], lastMonthlyBadge: '',
     seoMeta: { title: '', description: '', keywords: '' }, analyticsCode: '',
-    formEmails: [], // ← Initialize
+    formEmails: [],
   });
   const [links, setLinks] = useState<Link[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -1248,7 +1241,7 @@ export default function Dashboard() {
     { id: 'links', name: 'Links' },
     { id: 'widgets', name: 'Widgets' },
     { id: 'affiliate', name: 'Affiliate Program' },
-    { id: 'form_settings', name: 'Form Settings' }, // ← Added
+    { id: 'form_settings', name: 'Form Settings' },
     { id: 'analytics_integration', name: 'Analytics Integration' },
     { id: 'analytics', name: 'Analytics' },
     { id: 'news', name: 'News' },
@@ -1317,7 +1310,7 @@ export default function Dashboard() {
             {activeTab === 'links' && <LinksTab links={links} setLinks={setLinks} />}
             {activeTab === 'widgets' && <WidgetsTab widgets={widgets} setWidgets={setWidgets} user={user} />}
             {activeTab === 'affiliate' && <AffiliateProgramTab />}
-            {activeTab === 'form_settings' && <FormSettingsTab user={user} setUser={setUser} widgets={widgets} />} {/* ← Rendered */}
+            {activeTab === 'form_settings' && <FormSettingsTab user={user} setUser={setUser} widgets={widgets} />}
             {activeTab === 'analytics_integration' && <AnalyticsIntegrationTab user={user} setUser={setUser} />}
             {activeTab === 'analytics' && <AnalyticsTab user={user} links={links} />}
             {activeTab === 'news' && <NewsTab />}

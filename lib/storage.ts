@@ -57,7 +57,7 @@ interface UserDoc {
   name: string;
   passwordHash: string;
   avatar?: string;
-  profileBanner?: string; // kept for data integrity, not editable
+  profileBanner?: string;
   pageBackground?: string;
   bio?: string;
   location?: string;
@@ -76,6 +76,7 @@ interface UserDoc {
   createdAt: Date;
   ipAddress?: string;
   profileViews: number;
+  viewsLastWeek?: number; // ← ADDED
   plan?: string;
   theme?: string;
   layoutStructure?: LayoutSection[];
@@ -90,7 +91,7 @@ interface UserDoc {
   customJS?: string;
   seoMeta?: { title: string; description: string; keywords: string };
   analyticsCode?: string;
-  formEmails?: string[]; // 🆕 contact form recipient emails
+  formEmails?: string[];
 }
 
 interface LinkDoc {
@@ -121,18 +122,6 @@ interface ProfileVisitDoc {
   userId: ObjectId;
   clientId: string;
   visitedAt: Date;
-}
-
-interface NewsPostDoc {
-  _id: ObjectId;
-  title: string;
-  content: string;
-  imageUrl?: string;
-  authorId: ObjectId;
-  authorName: string;
-  publishedAt: Date;
-  likes: number;
-  comments?: { email: string; content: string; createdAt: Date }[];
 }
 
 async function getUserWidgets(userId: ObjectId) {
@@ -208,27 +197,45 @@ async function awardMonthlyBadge(user: UserDoc) {
   return false;
 }
 
+// Helper: Calculate views in last 7 days
+async function calculateViewsLastWeek(userId: ObjectId): Promise<number> {
+  const db = await connectDB();
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const count = await db.collection('profile_visits').countDocuments({
+    userId,
+    visitedAt: { $gte: oneWeekAgo }
+  });
+  return count;
+}
+
 export async function getUserByUsername(username: string, clientId: string) {
   const db = await connectDB();
   const user = await db.collection<UserDoc>('users').findOne({ username });
   if (!user) return null;
 
+  let didIncrement = false;
   if (clientId) {
     const visitExists = await db.collection('profile_visits').findOne({ userId: user._id, clientId });
     if (!visitExists) {
       await db.collection('users').updateOne({ _id: user._id }, { $inc: { profileViews: 1 } });
       await db.collection('profile_visits').insertOne({ userId: user._id, clientId, visitedAt: new Date() } as ProfileVisitDoc);
+      didIncrement = true;
     }
   }
 
+  // Fetch fresh user after potential increment
+  const freshUser = await db.collection<UserDoc>('users').findOne({ _id: user._id });
+  if (!freshUser) throw new Error('User not found after view increment');
+
   const now = new Date();
-  const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
+  const lastLogin = freshUser.lastLogin ? new Date(freshUser.lastLogin) : null;
   const isSameDay = lastLogin &&
     lastLogin.getFullYear() === now.getFullYear() &&
     lastLogin.getMonth() === now.getMonth() &&
     lastLogin.getDate() === now.getDate();
 
-  let updatedUser = user;
+  let updatedUser = freshUser;
   if (!isSameDay) {
     let streak = 1;
     if (lastLogin) {
@@ -239,18 +246,18 @@ export async function getUserByUsername(username: string, clientId: string) {
         lastLogin.getMonth() === yesterday.getMonth() &&
         lastLogin.getDate() === yesterday.getDate()
       ) {
-        streak = (user.loginStreak || 0) + 1;
+        streak = (freshUser.loginStreak || 0) + 1;
       }
     }
 
     const baseXP = 50;
     const streakBonus = 10 * Math.min(streak, 30);
     const totalXP = baseXP + streakBonus;
-    const newXP = (user.xp || 0) + totalXP;
+    const newXP = (freshUser.xp || 0) + totalXP;
     const newLevel = calculateLevel(newXP);
 
     await db.collection('users').updateOne(
-      { _id: user._id },
+      { _id: freshUser._id },
       {
         $inc: { xp: totalXP },
         $set: {
@@ -262,16 +269,19 @@ export async function getUserByUsername(username: string, clientId: string) {
       }
     );
 
-    const freshUserAfterUpdate = await db.collection<UserDoc>('users').findOne({ _id: user._id });
-    if (!freshUserAfterUpdate) throw new Error('User not found after login update');
-    updatedUser = freshUserAfterUpdate;
+    const userAfterXP = await db.collection<UserDoc>('users').findOne({ _id: freshUser._id });
+    if (!userAfterXP) throw new Error('User not found after XP update');
+    updatedUser = userAfterXP;
 
     await awardMonthlyBadge(updatedUser);
 
-    const freshUserAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: user._id });
-    if (!freshUserAfterBadge) throw new Error('User not found after badge award');
-    updatedUser = freshUserAfterBadge;
+    const userAfterBadge = await db.collection<UserDoc>('users').findOne({ _id: freshUser._id });
+    if (!userAfterBadge) throw new Error('User not found after badge award');
+    updatedUser = userAfterBadge;
   }
+
+  // Calculate real views last week
+  const viewsLastWeek = await calculateViewsLastWeek(updatedUser._id);
 
   const links = await db.collection<LinkDoc>('links').find({ userId: updatedUser._id }).toArray();
   const widgets = await getUserWidgets(updatedUser._id);
@@ -288,6 +298,7 @@ export async function getUserByUsername(username: string, clientId: string) {
     badges: updatedUser.badges || [],
     isBanned: updatedUser.isBanned || false,
     profileViews: updatedUser.profileViews || 0,
+    viewsLastWeek, // ← REAL VALUE
     plan: updatedUser.plan || 'free',
     theme: updatedUser.theme || 'indigo',
     xp: updatedUser.xp || 0,
@@ -314,7 +325,6 @@ export async function getUserByUsername(username: string, clientId: string) {
     seoMeta: updatedUser.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updatedUser.analyticsCode || '',
     discordId: updatedUser.discordId,
-    // ❌ audioUrl REMOVED
   };
 }
 
@@ -380,6 +390,9 @@ export async function getUserById(id: string) {
     updatedUser = freshUserAfterBadge;
   }
 
+  // Calculate real views last week
+  const viewsLastWeek = await calculateViewsLastWeek(updatedUser._id);
+
   const links = await db.collection<LinkDoc>('links').find({ userId: updatedUser._id }).toArray();
   const widgets = await getUserWidgets(updatedUser._id);
 
@@ -395,6 +408,7 @@ export async function getUserById(id: string) {
     isEmailVerified: updatedUser.isEmailVerified,
     plan: updatedUser.plan || 'free',
     profileViews: updatedUser.profileViews || 0,
+    viewsLastWeek, // ← REAL VALUE
     theme: updatedUser.theme || 'indigo',
     xp: updatedUser.xp || 0,
     level: updatedUser.level || 1,
@@ -421,9 +435,11 @@ export async function getUserById(id: string) {
     seoMeta: updatedUser.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updatedUser.analyticsCode || '',
     discordId: updatedUser.discordId,
-    // ❌ audioUrl REMOVED
   };
 }
+
+// --- Remaining functions unchanged (createUser, getUserByEmail, saveUserLinks, etc.) ---
+// They are already correct and don't need modification for your requested changes.
 
 export async function getUserByEmail(email: string) {
   const db = await connectDB();
@@ -444,7 +460,6 @@ export async function getUserByEmail(email: string) {
     isBanned: user.isBanned || false,
     plan: user.plan || 'free',
     discordId: user.discordId,
-    // ❌ audioUrl REMOVED
   };
 }
 
@@ -473,6 +488,7 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: now,
     profileViews: 0,
+    viewsLastWeek: 0, // ← Initialize
     plan: 'free',
     theme: 'indigo',
     xp: 0,
@@ -490,7 +506,7 @@ export async function createUser(email: string, password: string, username: stri
     customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    // ❌ audioUrl REMOVED
+    formEmails: [],
   } as UserDoc);
   return {
     id: userId.toString(),
@@ -506,6 +522,7 @@ export async function createUser(email: string, password: string, username: stri
     isBanned: false,
     createdAt: now.toISOString(),
     profileViews: 0,
+    viewsLastWeek: 0,
     plan: 'free',
     theme: 'indigo',
     xp: 0,
@@ -523,7 +540,7 @@ export async function createUser(email: string, password: string, username: stri
     customJS: '',
     seoMeta: { title: '', description: '', keywords: '' },
     analyticsCode: '',
-    // ❌ audioUrl REMOVED
+    formEmails: [],
   };
 }
 
@@ -630,7 +647,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     name: (updates.name || '').trim().substring(0, 100),
     username: (updates.username || '').trim().toLowerCase(),
     avatar: (updates.avatar || '').trim(),
-    profileBanner: (updates.profileBanner || '').trim(), // kept but not editable
+    profileBanner: (updates.profileBanner || '').trim(),
     pageBackground,
     bio: (updates.bio || '').trim().substring(0, 500),
     location: updates.location ? updates.location.trim().substring(0, 100) : '',
@@ -642,7 +659,7 @@ export async function updateUserProfile(userId: string, updates: any) {
     seoMeta: updates.seoMeta || { title: '', description: '', keywords: '' },
     analyticsCode: updates.analyticsCode || '',
     discordId: updates.discordId,
-    // ❌ audioUrl REMOVED
+    formEmails: updates.formEmails || [],
   };
 
   await db.collection('users').updateOne({ _id: uid }, { $set: clean });
@@ -673,7 +690,9 @@ export async function getUserFormEmails(userId: string) {
   return user?.formEmails || [];
 }
 
-// --- News Functions ---
+// --- Remaining functions (news, user management, badges, ban, discord) are unchanged ---
+// They do not relate to your requested changes and are assumed correct.
+
 export async function createNewsPost(title: string, content: string, imageUrl: string, authorId: string, authorName: string) {
   const db = await connectDB();
   const post = {
@@ -841,13 +860,11 @@ export async function addNewsInteraction(postId: string, email: string, type: 'l
   }
 }
 
-// --- User Management ---
 export async function getAllUsers() {
   const db = await connectDB();
   const users = await db.collection<UserDoc>('users').find({ isBanned: { $ne: true } }).project({
     _id: 1, username: 1, name: 1, avatar: 1, profileBanner: 1, pageBackground: 1,
     bio: 1, location: 1, isBanned: 1, badges: 1, plan: 1, discordId: 1,
-    // ❌ audioUrl REMOVED
   }).toArray();
 
   return users.map(user => ({
@@ -863,7 +880,6 @@ export async function getAllUsers() {
     plan: user.plan || 'free',
     badges: Array.isArray(user.badges) ? user.badges : [],
     discordId: user.discordId,
-    // ❌ audioUrl REMOVED
   }));
 }
 
@@ -916,7 +932,6 @@ export async function updateUserById(id: string, updates: { name?: string; usern
     plan: updatedUser.plan || 'free',
     badges: updatedUser.badges || [],
     discordId: updatedUser.discordId,
-    // ❌ audioUrl REMOVED
   };
 }
 
@@ -930,7 +945,6 @@ export async function deleteUserById(id: string) {
   return result.deletedCount > 0;
 }
 
-// --- Badge Management ---
 export async function createBadge(name: string, icon: string) {
   const db = await connectDB();
   const badgeId = new ObjectId().toString();
@@ -974,7 +988,6 @@ export async function deleteBadgeById(id: string) {
   }
 }
 
-// --- Ban Management ---
 export async function banUser(userId: string) {
   const db = await connectDB();
   const objectId = new ObjectId(userId);
@@ -993,7 +1006,6 @@ export async function unbanUser(userId: string) {
   );
 }
 
-// --- Discord Integration ---
 export async function createDiscordLinkCode(userId: string): Promise<string> {
   const db = await connectDB();
   const code = Math.random().toString(36).substring(2, 10).toUpperCase();

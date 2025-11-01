@@ -69,7 +69,7 @@ const PLANS: Plan[] = [
 /* ==============================================================
    TOGGLE HALLOWEEN MODE
    ============================================================== */
-const HALLOWEEN_MODE = true;
+const HALLOWEEN_MODE = false;
 
 const theme = HALLOWEEN_MODE
   ? {

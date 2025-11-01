@@ -10,7 +10,9 @@ export async function POST(request: Request) {
     const { username, password } = await request.json();
 
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      cookies().set({
+      // ✅ Correct way: call cookies() and use .set() — it's sync in API routes
+      const cookieStore = cookies();
+      cookieStore.set({
         name: 'admin_session',
         value: 'authenticated',
         httpOnly: true,
@@ -18,6 +20,7 @@ export async function POST(request: Request) {
         maxAge: 60 * 60 * 24, // 24 hours
         path: '/api/admin',
       });
+
       return NextResponse.json({ success: true });
     }
 

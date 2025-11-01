@@ -17,6 +17,20 @@ export async function PUT(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Invalid username format' }), { status: 400 });
     }
 
+    // Validate analytics script if present
+    let cleanAnalyticsCode = profile.analyticsCode || '';
+    if (cleanAnalyticsCode.trim()) {
+      const script = cleanAnalyticsCode.trim();
+      if (
+        !/gtag\(/.test(script) &&
+        !/googletagmanager\.com/.test(script) &&
+        !/analytics\.js/.test(script) &&
+        !/g\.meas/.test(script)
+      ) {
+        return new Response(JSON.stringify({ error: 'Invalid analytics script. Must be Google Analytics or Google Tag Manager.' }), { status: 400 });
+      }
+    }
+
     await updateUserProfile(session.user.id, {
       name: profile.name?.substring(0, 100) || '',
       username: profile.username?.trim().toLowerCase() || '',
@@ -26,13 +40,14 @@ export async function PUT(req: NextRequest) {
       bio: profile.bio?.substring(0, 500) || '',
       location: profile.location?.substring(0, 100) || '',
       plan: profile.plan || 'free',
-      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme) 
-        ? profile.theme 
+      theme: ['indigo', 'purple', 'green', 'red', 'halloween'].includes(profile.theme)
+        ? profile.theme
         : 'indigo',
       layoutStructure: profile.layoutStructure,
       seoMeta: profile.seoMeta || { title: '', description: '', keywords: '' },
-      analyticsCode: profile.analyticsCode || '',
+      analyticsCode: cleanAnalyticsCode,
       email: profile.email,
+      formEmails: profile.formEmails || [],
     });
 
     await saveUserLinks(session.user.id, links || []);

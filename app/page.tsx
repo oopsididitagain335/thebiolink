@@ -9,7 +9,7 @@ import confetti from 'canvas-confetti';
 import { clsx } from 'clsx';
 
 // Toggle Halloween Mode
-const HALLOWEEN_MODE = true; // false = normal BioLink
+const HALLOWEEN_MODE = false; // false = normal BioLink
 
 // Theme configuration
 const theme = HALLOWEEN_MODE

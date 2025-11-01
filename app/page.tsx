@@ -207,7 +207,7 @@ export default function HomePage() {
                 </motion.div>
               ))}
               <motion.a
-                href="https://discord.gg/29yDsapcXh"
+                href="https://discord.gg/z5EK5aJhSb"
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.1 }}

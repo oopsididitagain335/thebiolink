@@ -166,7 +166,7 @@ export default function NewsPage() {
                 </Link>
               ))}
               <Link
-                href="https://discord.gg/29yDsapcXh"
+                href="https://discord.gg/z5EK5aJhSb"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-indigo-300 hover:bg-indigo-900/30 transition-all duration-200 flex items-center gap-1"

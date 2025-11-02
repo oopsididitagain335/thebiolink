@@ -1,4 +1,3 @@
-// app/api/webhooks/stripe/route.ts
 import { NextRequest } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { updateUserPlan } from '@/lib/db';
@@ -12,7 +11,7 @@ export const config = {
 
 export async function POST(req: NextRequest) {
   // ✅ Get headers BEFORE awaiting request body
-  const sig = headers().get('Stripe-Signature');
+  const sig = (await headers()).get('Stripe-Signature');
 
   if (!sig) {
     return new Response('No signature', { status: 400 });

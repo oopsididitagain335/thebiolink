@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -118,6 +118,11 @@ export default function PricingContent() {
   const [email, setEmail] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingForm, setPendingForm] = useState<HTMLFormElement | null>(null);
+  const [userInfo, setUserInfo] = useState<{ found?: boolean; username?: string; email?: string; createdAt?: string } | null>(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+
   useEffect(() => {
     if (errorParam) {
       setError(decodeURIComponent(errorParam));
@@ -126,9 +131,11 @@ export default function PricingContent() {
     }
   }, [errorParam]);
 
-  const handleFreePlan = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user && !email.includes('@')) return;
+  const handleFreePlan = (e: FormEvent) => {
+    if (!user && !email.includes('@')) {
+      e.preventDefault();
+      return;
+    }
     confetti({
       particleCount: 100,
       spread: 70,
@@ -136,6 +143,39 @@ export default function PricingContent() {
       colors: c.confetti,
     });
   };
+
+  async function handleFormSubmit(e: FormEvent<HTMLFormElement>, planId: string) {
+    if (user) {
+      // Logged-in users skip the email check
+      return;
+    }
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const enteredEmail = (fd.get('email') as string) || '';
+    if (!enteredEmail.includes('@')) {
+      return;
+    }
+    setSelectedPlan(planId);
+    setPendingForm(form);
+    setLoadingInfo(true);
+    try {
+      const res = await fetch('/api/userinfo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: enteredEmail.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      setUserInfo(data);
+      setShowConfirm(true);
+    } catch (err) {
+      console.error(err);
+      setUserInfo(null);
+      setShowConfirm(true);
+    } finally {
+      setLoadingInfo(false);
+    }
+  }
 
   return (
     <>
@@ -285,9 +325,7 @@ export default function PricingContent() {
                     action={plan.id === 'free' ? '/api/subscribe' : '/api/checkout'}
                     method="POST"
                     className="mt-8"
-                    onSubmit={(e) => {
-                      if (plan.id === 'free') handleFreePlan(e);
-                    }}
+                    onSubmit={(e) => handleFormSubmit(e, plan.id)}
                   >
                     <input type="hidden" name="plan" value={plan.id} />
                     {plan.price > 0 && <input type="hidden" name="price" value={String(plan.price)} />}
@@ -342,6 +380,89 @@ export default function PricingContent() {
           </div>
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md w-full text-center"
+            >
+              <h2 className="text-xl font-bold text-white mb-4">Verify Account</h2>
+
+              {loadingInfo ? (
+                <p className="text-gray-400">Loading account info...</p>
+              ) : userInfo?.found ? (
+                <>
+                  <p className="text-gray-300 mb-2">
+                    <strong>Username:</strong> {userInfo.username || '—'}
+                  </p>
+                  <p className="text-gray-300 mb-2">
+                    <strong>Email:</strong> {userInfo.email}
+                  </p>
+                  <p className="text-gray-300 mb-6">
+                    <strong>Created:</strong>{' '}
+                    {userInfo.createdAt
+                      ? new Date(userInfo.createdAt).toLocaleDateString()
+                      : 'Unknown'}
+                  </p>
+                  <p className="text-gray-400 mb-6">
+                    Please confirm this is your account before continuing to payment.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => {
+                        pendingForm?.submit();
+                        setShowConfirm(false);
+                      }}
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg font-medium hover:opacity-90"
+                    >
+                      Yes, Proceed
+                    </button>
+                    <button
+                      onClick={() => setShowConfirm(false)}
+                      className="px-5 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-red-400 mb-6">
+                    No account found for that email. Continue anyway?
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => {
+                        pendingForm?.submit();
+                        setShowConfirm(false);
+                      }}
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg font-medium hover:opacity-90"
+                    >
+                      Continue Anyway
+                    </button>
+                    <button
+                      onClick={() => setShowConfirm(false)}
+                      className="px-5 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

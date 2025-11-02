@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { clsx } from 'clsx';
+import { useSession } from 'next-auth/react';
 
 interface Plan {
   id: string;
@@ -109,6 +110,9 @@ const c = theme;
 
 export default function PricingContent() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const errorParam = searchParams?.get('error');
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -124,7 +128,7 @@ export default function PricingContent() {
 
   const handleFreePlan = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes('@')) return;
+    if (!user && !email.includes('@')) return;
     confetti({
       particleCount: 100,
       spread: 70,
@@ -225,7 +229,13 @@ export default function PricingContent() {
             animate={{ y: 0, opacity: 1 }}
             className="text-center mb-16"
           >
-            <h1 className={clsx('text-5xl sm:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r', c.title, 'mb-4')}>
+            <h1
+              className={clsx(
+                'text-5xl sm:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r',
+                c.title,
+                'mb-4'
+              )}
+            >
               Choose Your Plan
             </h1>
             <p className={clsx('text-lg max-w-2xl mx-auto', c.subtitle)}>
@@ -266,7 +276,7 @@ export default function PricingContent() {
                   <ul className="mt-6 space-y-3 text-left">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className={clsx('flex items-center text-sm', c.text)}>
-                        <span className="text-green-400 mr-2">Check</span> {feature}
+                        <span className="text-green-400 mr-2">✔</span> {feature}
                       </li>
                     ))}
                   </ul>
@@ -275,26 +285,35 @@ export default function PricingContent() {
                     action={plan.id === 'free' ? '/api/subscribe' : '/api/checkout'}
                     method="POST"
                     className="mt-8"
-                    onSubmit={plan.id === 'free' ? handleFreePlan : undefined}
+                    onSubmit={(e) => {
+                      if (plan.id === 'free') handleFreePlan(e);
+                    }}
                   >
                     <input type="hidden" name="plan" value={plan.id} />
                     {plan.price > 0 && <input type="hidden" name="price" value={String(plan.price)} />}
+                    {user && <input type="hidden" name="userEmail" value={user.email || ''} />}
 
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="you@biolink.lol"
-                      required
-                      value={selectedPlan === plan.id ? email : ''}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setSelectedPlan(plan.id);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 transition-all mb-3',
-                        c.input
-                      )}
-                    />
+                    {!user ? (
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="you@biolink.lol"
+                        required
+                        value={selectedPlan === plan.id ? email : ''}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setSelectedPlan(plan.id);
+                        }}
+                        className={clsx(
+                          'w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 transition-all mb-3',
+                          c.input
+                        )}
+                      />
+                    ) : (
+                      <p className={clsx('mb-3 text-sm text-center', c.text)}>
+                        Subscribing as <strong>{user.email}</strong>
+                      </p>
+                    )}
 
                     <button
                       type="submit"

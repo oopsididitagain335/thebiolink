@@ -11,13 +11,16 @@ export const config = {
 };
 
 export async function POST(req: NextRequest) {
-  const body = await req.text(); // ✅ Get raw body as string
-  const buf = Buffer.from(body); // ✅ Convert to Buffer for Stripe
+  // ✅ Get headers BEFORE awaiting request body
   const sig = headers().get('Stripe-Signature');
 
   if (!sig) {
     return new Response('No signature', { status: 400 });
   }
+
+  // ✅ Now read raw body
+  const body = await req.text();
+  const buf = Buffer.from(body);
 
   let event;
 
@@ -31,7 +34,9 @@ export async function POST(req: NextRequest) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
 
-    if (session.mode !== 'subscription') return new Response(null, { status: 200 });
+    if (session.mode !== 'subscription') {
+      return new Response(null, { status: 200 });
+    }
 
     const email = session.customer_details?.email;
     const plan = session.metadata?.plan;
